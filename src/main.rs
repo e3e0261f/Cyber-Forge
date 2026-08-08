@@ -23,6 +23,7 @@ use cyber_forge::{
     sword_gen::SwordGenerator,
     types::{ForgeResult, Quality},
     ui::{
+        help::{render_help_modal, render_quit_confirm},
         line1::{render_line_1, Line1State},
         line2::{render_line_2, Line2State},
         line3::{render_line_3, Line3State},
@@ -41,13 +42,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    // 读入持久化存档或创建新档
     let initial_state = GameState::load_from_disk();
     let game_state = SharedGameState(Arc::new(RwLock::new(initial_state)));
 
     let res = run_game_loop(&mut terminal, game_state.clone()).await;
 
-    // 优雅退出前全量落盘保存
     {
         let state = game_state.0.read().await;
         state.save_to_disk();
@@ -73,12 +72,26 @@ async fn run_game_loop(
     let mut tick_counter: u64 = 0;
     let mut reader = EventStream::new();
     let mut tick_interval = tokio::time::interval(Duration::from_millis(100));
+    let mut show_help = false;
+    let mut show_quit_confirm = false;
 
     loop {
         tick_counter = tick_counter.wrapping_add(1);
 
-        // 提取 UI 13 维解构数据 (对齐元组)
-        let (l1_data, l2_data, l3_data, backpack_data, max_bp, bp_cost, pavilion_data, max_pav, pav_cost, news, active_modal, interval_ticks) = {
+        let (
+            l1_data,
+             l2_data,
+             l3_data,
+             backpack_data,
+             max_bp,
+             bp_cost,
+             pavilion_data,
+             max_pav,
+             pav_cost,
+             news,
+             active_modal,
+             interval_ticks,
+        ) = {
             let state = shared_state.0.read().await;
             (
                 Line1State {
@@ -90,18 +103,18 @@ async fn run_game_loop(
                     coins: state.coins,
                 },
              Line2State {
-                 progress: state.strikes as f64 / state.max_strikes as f64,
-                 carbon_ratio: state.carbon_ratio,
-                 tick_count: tick_counter,
-                 interval_secs: state.natural_interval_ticks as f32 / 10.0,
+                 progress: state.strikes as f64 / state.max_strikes.max(1) as f64,
+             carbon_ratio: state.carbon_ratio,
+             tick_count: tick_counter,
+             interval_secs: state.natural_interval_ticks as f32 / 10.0,
              },
              Line3State {
                  apprentices: state.apprentices,
-                 max_apprentices: state.max_apprentices,
-                 sharpen_workers: state.sharpen_workers,
-                 enchant_workers: state.enchant_workers,
-                 repair_workers: state.repair_workers,
-                 next_cost: state.get_next_apprentice_cost(),
+             max_apprentices: state.max_apprentices,
+             sharpen_workers: state.sharpen_workers,
+             enchant_workers: state.enchant_workers,
+             repair_workers: state.repair_workers,
+             next_cost: state.get_next_apprentice_cost(),
              house_cost: state.get_house_upgrade_cost(),
              },
              state.backpack.clone(),
@@ -118,36 +131,64 @@ async fn run_game_loop(
 
         terminal.draw(|f| {
             let size = f.size();
-            let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(0)
+
+            // ===== 左中右三栏 =====
+            let columns = Layout::default()
+            .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Length(3),
-                         Constraint::Length(3),
-                         Constraint::Length(3),
-                         Constraint::Length(3),
-                         Constraint::Length(3),
-                         Constraint::Min(0),
+                Constraint::Percentage(22), // 左：背包
+                         Constraint::Percentage(50), // 中：操作台
+                         Constraint::Percentage(28), // 右：藏宝阁
             ])
             .split(size);
 
-            render_line_1(f, chunks[0], &l1_data);
-            render_line_2(f, chunks[1], &l2_data);
-            render_line_3(f, chunks[2], &l3_data);
-            render_line_4(f, chunks[3], &Line4State {
-                backpack: &backpack_data,
-                max_backpack: max_bp,
-                expand_cost: bp_cost,
-            });
-            render_line_5(f, chunks[4], &Line5State {
-                pavilion: &pavilion_data,
-                max_pavilion: max_pav,
-                market_news: &news,
-                expand_cost: pav_cost,
-            });
+            // 中间再竖分三行：身位 / 炉火 / 宗门
+            let middle = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3),
+                         Constraint::Length(3),
+                         Constraint::Min(3),
+            ])
+            .split(columns[1]);
 
+            // 左：背包竖条
+            render_line_4(
+                f,
+                columns[0],
+                &Line4State {
+                    backpack: &backpack_data,
+                    max_backpack: max_bp,
+                    expand_cost: bp_cost,
+                },
+            );
+
+            // 中：锤击与升级
+            render_line_1(f, middle[0], &l1_data);
+            render_line_2(f, middle[1], &l2_data);
+            render_line_3(f, middle[2], &l3_data);
+
+            // 右：藏宝阁拍卖
+            render_line_5(
+                f,
+                columns[2],
+                &Line5State {
+                    pavilion: &pavilion_data,
+                    max_pavilion: max_pav,
+                    market_news: &news,
+                    expand_cost: pav_cost,
+                },
+            );
+
+            // 弹窗层级（后画覆盖）
             if let Some(ref sword) = active_modal {
                 render_sword_modal(f, size, sword);
+            }
+            if show_help {
+                render_help_modal(f, size);
+            }
+            if show_quit_confirm {
+                render_quit_confirm(f, size);
             }
         })?;
 
@@ -156,14 +197,43 @@ async fn run_game_loop(
                 if let Some(Ok(Event::Key(key))) = maybe_event {
                     let mut state = shared_state.0.write().await;
 
+                    // 出炉弹窗优先关闭
                     if state.active_sword_modal.is_some() {
                         state.active_sword_modal = None;
                         continue;
                     }
 
+                    // 退出确认优先
+                    if show_quit_confirm {
+                        match key.code {
+                            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                                return Ok(());
+                            }
+                            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                                show_quit_confirm = false;
+                            }
+                            _ => {}
+                        }
+                        continue;
+                    }
+
+                    // 帮助弹窗优先
+                    if show_help {
+                        match key.code {
+                            KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Esc => {
+                                show_help = false;
+                            }
+                            _ => {}
+                        }
+                        continue;
+                    }
+
                     match key.code {
+                        KeyCode::Char('h') | KeyCode::Char('H') => {
+                            show_help = true;
+                        }
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
-                            return Ok(());
+                            show_quit_confirm = true;
                         }
                         KeyCode::Char('1') => state.reassign_workers(1),
                         KeyCode::Char('2') => state.reassign_workers(2),
@@ -189,8 +259,12 @@ async fn run_game_loop(
                                 state.market_news = format!("❌ 扩囊需 💰{} 帛！", cost);
                             }
                         }
+                        KeyCode::Char('s') | KeyCode::Char('S') => {
+                            drop(state);
+                            shared_state.auto_recycle_backpack().await;
+                        }
                         _ => {
-                            // v2.0 精准量化：敲击 1 锤 = 固定 1 点经验
+                            // 敲击 1 锤 = 1 经验
                             state.strikes += 1;
                             state.exp += 1;
 
@@ -238,8 +312,7 @@ async fn run_game_loop(
                     state.save_to_disk();
                 }
 
-                // 自然挂机锤：1 锤 = 1 点基础经验
-                if tick_counter % interval_ticks == 0 {
+                if interval_ticks > 0 && tick_counter % interval_ticks == 0 {
                     state.strikes += 1;
                     state.exp += 1;
 
