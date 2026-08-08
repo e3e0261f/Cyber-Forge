@@ -82,8 +82,11 @@ fn do_strike(state: &mut GameState) {
             ForgeResult::Success(sword) => {
                 state.exp += sword.quality.bonus_exp();
 
-                if state.auto_recycle_trash && sword.quality == Quality::Common {
-                    state.coins += sword.price;
+                // 斩断自动换金！无论何等品质，成功皆尝试入包
+                if state.backpack.len() < state.max_backpack {
+                    state.backpack.push(sword.clone());
+                    state.sort_backpack();
+                    state.active_sword_modal = Some(sword);
                 } else if state.backpack.len() < state.max_backpack {
                     state.backpack.push(sword.clone());
                     state.sort_backpack();
@@ -142,7 +145,10 @@ async fn run_game_loop(
                     coins: state.coins,
                 },
              Line2State {
-                 progress: state.strikes as f64 / state.max_strikes.max(1) as f64,
+                 // 【关键修改】：用 % 取余算出当前周期内之时间流逝比例 (0.0 ~ 1.0)
+                 progress: (tick_counter % state.natural_interval_ticks.max(1) as u64) as f64
+                 / state.natural_interval_ticks.max(1) as f64,
+
              carbon_ratio: state.carbon_ratio,
              tick_count: tick_counter,
              interval_secs: state.natural_interval_ticks as f32 / 10.0,

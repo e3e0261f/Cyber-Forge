@@ -17,7 +17,7 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【天道炉火】 ");
+    .title(" 【锻打技术】 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -31,22 +31,23 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     ])
     .split(inner_area);
 
-    let anim_frames = ["🔨 ──► 💥", " 🔨 ─► 💥", "  🔨 ► 💥", "   🔨 💥 "];
-    let frame_idx = (state.tick_count as usize) % anim_frames.len();
-    f.render_widget(
-        Paragraph::new(format!("⚙️ {}", anim_frames[frame_idx]))
-        .style(Style::default().fg(Color::Rgb(180, 180, 180))),
-                    chunks[0],
-    );
+
+    // 1. time_ratio 现已是【时间流逝比例】（0.0 ~ 1.0）
+    let time_ratio = state.progress.clamp(0.0, 1.0);
+
+    // 2. 计算倒计时剩余秒数
+    let remaining_secs = (1.0 - time_ratio) * (state.interval_secs as f64);
 
     let forge_gauge = Gauge::default()
     .gauge_style(
         Style::default()
-        .fg(Color::Rgb(120, 120, 120))
+        .fg(Color::Rgb(255, 140, 0)) // 橘黄火候色
         .bg(Color::Rgb(30, 30, 30)),
     )
-    .ratio(state.progress.clamp(0.0, 1.0))
-    .label(format!("开锋 {:.0}%", state.progress * 100.0));
+    .ratio(time_ratio)
+    // 3. 完美动态显示倒计时！
+    .label(format!("下一锤还剩 {:.1}s", remaining_secs));
+
     f.render_widget(forge_gauge, chunks[1]);
 
     let (carbon_color, status_str) = if (0.7..=0.9).contains(&state.carbon_ratio) {
@@ -56,8 +57,8 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     };
     f.render_widget(
         Paragraph::new(format!(
-            "碳 {:.2}% ({}) │ 息 {:.1}s [W]风",
-                               state.carbon_ratio, status_str, state.interval_secs
+            "{:.1}s│{:.2}%碳({}) ",
+                              state.interval_secs, state.carbon_ratio, status_str
         ))
         .style(Style::default().fg(carbon_color)),
                     chunks[2],
