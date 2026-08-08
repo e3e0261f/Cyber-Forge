@@ -21,11 +21,14 @@ use tokio::sync::RwLock;
 use cyber_forge::{
     state::{GameState, SharedGameState},
     sword_gen::SwordGenerator,
+    types::{ForgeResult, Quality},
     ui::{
         line1::{render_line_1, Line1State},
         line2::{render_line_2, Line2State},
         line3::{render_line_3, Line3State},
         line4::{render_line_4, Line4State},
+        line5::{render_line_5, Line5State},
+        modal::render_sword_modal,
     },
 };
 
@@ -38,21 +41,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let game_state = SharedGameState(Arc::new(RwLock::new(GameState {
-        strikes: 0,
-        max_strikes: 10,
-        level: 1,
-        exp: 0,
-        max_exp: 100,
-        coins: 1000,
-        inventory: Vec::new(),
-        max_inventory: 8,
-        carbon_ratio: 0.85,
-        apprentices: 0,
-        max_apprentices: 5,
-    })));
+    // 读入持久化存档或创建新档
+    let initial_state = GameState::load_from_disk();
+    let game_state = SharedGameState(Arc::new(RwLock::new(initial_state)));
 
-    let res = run_game_loop(&mut terminal, game_state).await;
+    let res = run_game_loop(&mut terminal, game_state.clone()).await;
+
+    // 优雅退出前全量落盘保存
+    {
+        let state = game_state.0.read().await;
+        state.save_to_disk();
+    }
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -61,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     if let Err(err) = res {
         println!("❌ 熔炉崩溃: {:?}", err);
     } else {
-        println!("✨ 赛博天道关机成功，存档已保存。");
+        println!("✨ 赛博天道关机成功，存档已安全加密落盘。");
     }
 
     Ok(())
@@ -78,8 +77,8 @@ async fn run_game_loop(
     loop {
         tick_counter = tick_counter.wrapping_add(1);
 
-        // 1. 异步锁隔离：提前提取 UI 状态数据，不阻塞 Ratatui 闭包
-        let (l1_data, l2_data, l3_data, inv_data, max_inv) = {
+        // 提取 UI 13 维解构数据 (对齐元组)
+        let (l1_data, l2_data, l3_data, backpack_data, max_bp, bp_cost, pavilion_data, max_pav, pav_cost, news, active_modal, interval_ticks) = {
             let state = shared_state.0.read().await;
             (
                 Line1State {
@@ -90,93 +89,141 @@ async fn run_game_loop(
                     max_exp: state.max_exp,
                     coins: state.coins,
                 },
-                Line2State {
-                    progress: state.strikes as f64 / state.max_strikes as f64,
-                    carbon_ratio: state.carbon_ratio,
-                    tick_count: tick_counter,
-                },
-                Line3State {
-                    apprentices: state.apprentices,
-                    max_apprentices: state.max_apprentices,
-                    next_cost: state.get_next_apprentice_cost(),
-                    tick_count: tick_counter,
-                },
-                state.inventory.clone(),
-                state.max_inventory,
+             Line2State {
+                 progress: state.strikes as f64 / state.max_strikes as f64,
+                 carbon_ratio: state.carbon_ratio,
+                 tick_count: tick_counter,
+                 interval_secs: state.natural_interval_ticks as f32 / 10.0,
+             },
+             Line3State {
+                 apprentices: state.apprentices,
+                 max_apprentices: state.max_apprentices,
+                 sharpen_workers: state.sharpen_workers,
+                 enchant_workers: state.enchant_workers,
+                 repair_workers: state.repair_workers,
+                 next_cost: state.get_next_apprentice_cost(),
+             house_cost: state.get_house_upgrade_cost(),
+             },
+             state.backpack.clone(),
+             state.max_backpack,
+             state.get_backpack_upgrade_cost(),
+             state.pavilion_market.clone(),
+             state.max_pavilion,
+             state.get_pavilion_upgrade_cost(),
+             state.market_news.clone(),
+             state.active_sword_modal.clone(),
+             state.natural_interval_ticks,
             )
         };
 
-        // 2. Ratatui 原生圆角控制舱渲染
         terminal.draw(|f| {
             let size = f.size();
             let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(0)
-                .constraints([
-                    Constraint::Length(3), // Panel 1
-                    Constraint::Length(3), // Panel 2
-                    Constraint::Length(3), // Panel 3
-                    Constraint::Length(3), // Panel 4
-                    Constraint::Min(0),
-                ])
-                .split(size);
+            .direction(Direction::Vertical)
+            .margin(0)
+            .constraints([
+                Constraint::Length(3),
+                         Constraint::Length(3),
+                         Constraint::Length(3),
+                         Constraint::Length(3),
+                         Constraint::Length(3),
+                         Constraint::Min(0),
+            ])
+            .split(size);
 
             render_line_1(f, chunks[0], &l1_data);
             render_line_2(f, chunks[1], &l2_data);
             render_line_3(f, chunks[2], &l3_data);
             render_line_4(f, chunks[3], &Line4State {
-                inventory: &inv_data,
-                max_inventory: max_inv,
+                backpack: &backpack_data,
+                max_backpack: max_bp,
+                expand_cost: bp_cost,
             });
+            render_line_5(f, chunks[4], &Line5State {
+                pavilion: &pavilion_data,
+                max_pavilion: max_pav,
+                market_news: &news,
+                expand_cost: pav_cost,
+            });
+
+            if let Some(ref sword) = active_modal {
+                render_sword_modal(f, size, sword);
+            }
         })?;
 
-        // 3. Tokio 异步事件驱动循环
         tokio::select! {
             maybe_event = reader.next() => {
                 if let Some(Ok(Event::Key(key))) = maybe_event {
+                    let mut state = shared_state.0.write().await;
+
+                    if state.active_sword_modal.is_some() {
+                        state.active_sword_modal = None;
+                        continue;
+                    }
+
                     match key.code {
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
                             return Ok(());
                         }
-                        KeyCode::Char('a') | KeyCode::Char('A') => {
-                            let mut state = shared_state.0.write().await;
-                            let _ = state.hire_apprentice();
+                        KeyCode::Char('1') => state.reassign_workers(1),
+                        KeyCode::Char('2') => state.reassign_workers(2),
+                        KeyCode::Char('3') => state.reassign_workers(3),
+
+                        KeyCode::Char('a') | KeyCode::Char('A') => state.hire_apprentice(),
+                        KeyCode::Char('u') | KeyCode::Char('U') => state.upgrade_house(),
+                        KeyCode::Char('e') | KeyCode::Char('E') => state.upgrade_pavilion(),
+                        KeyCode::Char('f') | KeyCode::Char('F') => state.upgrade_bellows(),
+
+                        KeyCode::Char('l') | KeyCode::Char('L') => state.list_top_sword_to_market(),
+                        KeyCode::Char('r') | KeyCode::Char('R') => {
+                            drop(state);
+                            shared_state.auto_recycle_backpack().await;
                         }
                         KeyCode::Char('b') | KeyCode::Char('B') => {
-                            let mut state = shared_state.0.write().await;
-                            if state.coins >= 500 {
-                                state.coins -= 500;
-                                state.max_inventory += 2;
+                            let cost = state.get_backpack_upgrade_cost();
+                            if state.coins >= cost {
+                                state.coins -= cost;
+                                state.max_backpack += 2;
+                                state.market_news = format!("🎒 锦囊扩至 {} 格！", state.max_backpack);
+                            } else {
+                                state.market_news = format!("❌ 扩囊需 💰{} 帛！", cost);
                             }
                         }
-                        KeyCode::Char('s') | KeyCode::Char('S') => {
-                            shared_state.safe_sell_all(true).await;
-                        }
                         _ => {
-                            let mut state = shared_state.0.write().await;
+                            // v2.0 精准量化：敲击 1 锤 = 固定 1 点经验
                             state.strikes += 1;
+                            state.exp += 1;
 
                             if state.strikes >= state.max_strikes {
                                 state.strikes = 0;
-                                let new_sword = SwordGenerator::generate(
+
+                                match SwordGenerator::generate(
                                     state.level,
                                     state.carbon_ratio,
                                     Instant::now().elapsed().as_nanos() as u64,
-                                );
+                                                               state.apprentices,
+                                                               state.bonus_god_rate,
+                                ) {
+                                    ForgeResult::Success(sword) => {
+                                        state.exp += sword.quality.bonus_exp();
 
-                                state.exp += new_sword.exp_reward;
-                                if state.inventory.len() < state.max_inventory {
-                                    state.inventory.push(new_sword);
+                                        if state.auto_recycle_trash && sword.quality == Quality::Common {
+                                            state.coins += sword.price;
+                                        } else if state.backpack.len() < state.max_backpack {
+                                            state.backpack.push(sword.clone());
+                                            state.active_sword_modal = Some(sword);
+                                        }
+                                    }
+                                    ForgeResult::Shattered { slag_gained } => {
+                                        state.add_iron_slag(slag_gained);
+                                    }
                                 }
 
                                 if state.exp >= state.max_exp {
                                     state.level += 1;
                                     state.exp -= state.max_exp;
-                                    state.max_exp = (state.max_exp as f64 * 1.5) as u32;
-
-                                    if state.level > 10 {
-                                        state.max_strikes = 12 + ((state.level - 10) / 10) * 5;
-                                    }
+                                    state.max_exp = (100.0 * 1.25f64.powi(state.level as i32)) as u32;
+                                    state.update_max_strikes();
                                 }
                             }
                         }
@@ -186,23 +233,55 @@ async fn run_game_loop(
 
             _ = tick_interval.tick() => {
                 let mut state = shared_state.0.write().await;
-                if state.apprentices > 0 {
-                    if tick_counter % 5 == 0 {
-                        state.strikes += state.apprentices;
 
-                        if state.strikes >= state.max_strikes {
-                            state.strikes = 0;
-                            let new_sword = SwordGenerator::generate(
-                                state.level,
-                                state.carbon_ratio,
-                                Instant::now().elapsed().as_nanos() as u64,
-                            );
-                            state.exp += new_sword.exp_reward;
-                            if state.inventory.len() < state.max_inventory {
-                                state.inventory.push(new_sword);
+                if tick_counter % 300 == 0 {
+                    state.save_to_disk();
+                }
+
+                // 自然挂机锤：1 锤 = 1 点基础经验
+                if tick_counter % interval_ticks == 0 {
+                    state.strikes += 1;
+                    state.exp += 1;
+
+                    if state.strikes >= state.max_strikes {
+                        state.strikes = 0;
+                        match SwordGenerator::generate(
+                            state.level,
+                            state.carbon_ratio,
+                            Instant::now().elapsed().as_nanos() as u64,
+                                                       state.apprentices,
+                                                       state.bonus_god_rate,
+                        ) {
+                            ForgeResult::Success(sword) => {
+                                state.exp += sword.quality.bonus_exp();
+
+                                if state.auto_recycle_trash && sword.quality == Quality::Common {
+                                    state.coins += sword.price;
+                                } else if state.backpack.len() < state.max_backpack {
+                                    state.backpack.push(sword.clone());
+                                    state.active_sword_modal = Some(sword);
+                                }
+                            }
+                            ForgeResult::Shattered { slag_gained } => {
+                                state.add_iron_slag(slag_gained);
                             }
                         }
+
+                        if state.exp >= state.max_exp {
+                            state.level += 1;
+                            state.exp -= state.max_exp;
+                            state.max_exp = (100.0 * 1.25f64.powi(state.level as i32)) as u32;
+                            state.update_max_strikes();
+                        }
                     }
+                }
+
+                if tick_counter % 10 == 0 {
+                    state.process_apprentice_work();
+                }
+
+                if tick_counter % 30 == 0 {
+                    state.process_immortal_buyers();
                 }
             }
         }

@@ -18,53 +18,39 @@ pub struct Line1State {
 
 pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
     let outer_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(0, 229, 255)))
-        .title(" 🔨 赛博天道身位 ");
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
+    .title(" 【身位财帛】 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
     let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(16),
-            Constraint::Length(20),
-            Constraint::Min(20),
-            Constraint::Length(16),
-        ])
-        .split(inner_area);
+    .direction(Direction::Horizontal)
+    .constraints([
+        Constraint::Length(15),
+                 Constraint::Length(18),
+                 Constraint::Min(20),
+                 Constraint::Length(16),
+    ])
+    .split(inner_area);
 
-    let strike_text = format!("🔨 {:0>4}/{:0>4}", state.current_strikes, state.max_strikes);
-    f.render_widget(
-        Paragraph::new(strike_text).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        chunks[0],
-    );
+    let strike_text = format!("锤 {:0>4}/{:0>4}", state.current_strikes, state.max_strikes);
+    f.render_widget(Paragraph::new(strike_text).style(Style::default().fg(Color::Rgb(200, 200, 200)).add_modifier(Modifier::BOLD)), chunks[0]);
 
     let title = TitleSystem::get_title_by_level(state.level);
-    let level_text = format!("Lv.{:0>3} {}", state.level, title);
-    f.render_widget(
-        Paragraph::new(level_text).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-        chunks[1],
-    );
+    let level_text = format!("阶 {:0>3} {}", state.level, title);
+    f.render_widget(Paragraph::new(level_text).style(Style::default().fg(Color::Rgb(180, 180, 180))), chunks[1]);
 
-    let exp_label = format!("EXP {}/{}", state.current_exp, state.max_exp);
-    let ratio = if state.max_exp > 0 {
-        (state.current_exp as f64 / state.max_exp as f64).clamp(0.0, 1.0)
-    } else {
-        0.0
-    };
+    let exp_label = format!("验 {}/{}", state.current_exp, state.max_exp);
+    let ratio = if state.max_exp > 0 { (state.current_exp as f64 / state.max_exp as f64).clamp(0.0, 1.0) } else { 0.0 };
     let exp_gauge = Gauge::default()
-        .gauge_style(Style::default().fg(Color::Rgb(0, 255, 127)).bg(Color::Rgb(40, 40, 40)))
-        .ratio(ratio)
-        .label(exp_label);
+    .gauge_style(Style::default().fg(Color::Rgb(100, 100, 100)).bg(Color::Rgb(30, 30, 30)))
+    .ratio(ratio)
+    .label(exp_label);
     f.render_widget(exp_gauge, chunks[2]);
 
     let coin_formatted = format_compact_number(state.coins);
-    let coin_text = format!("💰 {}", coin_formatted.trim());
-    f.render_widget(
-        Paragraph::new(coin_text).style(Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)),
-        chunks[3],
-    );
+    f.render_widget(Paragraph::new(format!("帛 {}", coin_formatted.trim())).style(Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)), chunks[3]);
 }

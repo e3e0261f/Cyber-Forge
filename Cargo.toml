@@ -1,9 +1,9 @@
 [package]
 name = "cyber-forge"
-version = "1.9.6"
+version = "2.0.0"
 edition = "2021"
 authors = ["CyberCraftsman <forge@heavenly.dev>"]
-description = "锻造大师：赛博工匠与天道炉火 - 硬核终端 Ratatui UI 挂机修真游戏"
+description = "锻造大师：赛博工匠与天道炉火 - 硬核 5-Line 控制舱修真挂机游戏 v2.0"
 
 [dependencies]
 ratatui = { version = "0.26", features = ["all-widgets"] }
@@ -13,7 +13,7 @@ futures = "0.3"
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sha2 = "0.10"
+sha2 = { version = "0.10", features = ["std"] }
 async-trait = "0.1"
 
 [profile.release]
