@@ -1,10 +1,30 @@
 [package]
-name = "keymarst"
-version = "1.8.3"
+name = "cyber-forge"
+version = "1.9.5"
 edition = "2021"
+authors = ["CyberCraftsman <forge@heavenly.dev>"]
+description = "锻造大师：赛博工匠与天道炉火 - 硬核终端挂机与打字修真游戏"
 
 [dependencies]
-ratatui = "0.26"
-crossterm = "0.27"
+# TUI 终端渲染引擎
+ratatui = { version = "0.26", features = ["all-widgets"] }
+crossterm = { version = "0.27", features = ["event-stream"] }
+
+# 异步与并发安全
+tokio = { version = "1.35", features = ["full"] }
+futures = "0.3"
+
+# 随机生成与数学计算
+rand = "0.8"
+
+# 序列化与存档防篡改
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
