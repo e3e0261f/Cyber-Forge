@@ -21,7 +21,7 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【身位财帛】 ");
+    .title(" 【身位资产】 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -37,20 +37,45 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
     .split(inner_area);
 
     let strike_text = format!("锤 {:0>4}/{:0>4}", state.current_strikes, state.max_strikes);
-    f.render_widget(Paragraph::new(strike_text).style(Style::default().fg(Color::Rgb(200, 200, 200)).add_modifier(Modifier::BOLD)), chunks[0]);
+    f.render_widget(
+        Paragraph::new(strike_text).style(
+            Style::default()
+            .fg(Color::Rgb(200, 200, 200))
+            .add_modifier(Modifier::BOLD),
+        ),
+        chunks[0],
+    );
 
     let title = TitleSystem::get_title_by_level(state.level);
     let level_text = format!("阶 {:0>3} {}", state.level, title);
-    f.render_widget(Paragraph::new(level_text).style(Style::default().fg(Color::Rgb(180, 180, 180))), chunks[1]);
+    f.render_widget(
+        Paragraph::new(level_text).style(Style::default().fg(Color::Rgb(180, 180, 180))),
+                    chunks[1],
+    );
 
     let exp_label = format!("验 {}/{}", state.current_exp, state.max_exp);
-    let ratio = if state.max_exp > 0 { (state.current_exp as f64 / state.max_exp as f64).clamp(0.0, 1.0) } else { 0.0 };
+    let ratio = if state.max_exp > 0 {
+        (state.current_exp as f64 / state.max_exp as f64).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
     let exp_gauge = Gauge::default()
-    .gauge_style(Style::default().fg(Color::Rgb(100, 100, 100)).bg(Color::Rgb(30, 30, 30)))
+    .gauge_style(
+        Style::default()
+        .fg(Color::Rgb(100, 100, 100))
+        .bg(Color::Rgb(30, 30, 30)),
+    )
     .ratio(ratio)
     .label(exp_label);
     f.render_widget(exp_gauge, chunks[2]);
 
     let coin_formatted = format_compact_number(state.coins);
-    f.render_widget(Paragraph::new(format!("帛 {}", coin_formatted.trim())).style(Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)), chunks[3]);
+    f.render_widget(
+        Paragraph::new(format!("金 {}", coin_formatted.trim())).style(
+            Style::default()
+            .fg(Color::Rgb(255, 215, 0))
+            .add_modifier(Modifier::BOLD),
+        ),
+        chunks[3],
+    );
 }

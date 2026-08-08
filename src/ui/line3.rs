@@ -1,7 +1,8 @@
 use ratatui::{
+    layout::Rect,
     style::{Color, Style},
     widgets::{Block, BorderType, Borders, Paragraph},
-    Frame, layout::Rect,
+    Frame,
 };
 use crate::numbers::format_compact_number;
 
@@ -29,11 +30,18 @@ pub fn render_line_3(f: &mut Frame, area: Rect, state: &Line3State) {
     let house_cost_str = format_compact_number(state.house_cost);
 
     let line3_text = format!(
-        "徒 {}/{} │ 磨{} │ 附{} │ 修{} │ [A]招(${}) [U]房(${})",
-                             state.apprentices, state.max_apprentices,
-                             state.sharpen_workers, state.enchant_workers, state.repair_workers,
-                             cost_str.trim(), house_cost_str.trim()
+        "徒 {}/{} │ 磨剑{} │ 附魔{} │ 精修{} │ [A]招(金{}) [R]房(金{})",
+                             state.apprentices,
+                             state.max_apprentices,
+                             state.sharpen_workers,
+                             state.enchant_workers,
+                             state.repair_workers,
+                             cost_str.trim(),
+                             house_cost_str.trim()
     );
 
-    f.render_widget(Paragraph::new(line3_text).style(Style::default().fg(Color::Rgb(180, 180, 180))), inner_area);
+    f.render_widget(
+        Paragraph::new(line3_text).style(Style::default().fg(Color::Rgb(180, 180, 180))),
+                    inner_area,
+    );
 }

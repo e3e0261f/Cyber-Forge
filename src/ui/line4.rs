@@ -1,9 +1,9 @@
 use ratatui::{
+    layout::Rect,
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
-    layout::Rect,
 };
 use crate::numbers::format_compact_number;
 use crate::types::{Quality, Sword};
@@ -28,12 +28,12 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     let mut lines: Vec<Line> = Vec::new();
 
     lines.push(Line::from(format!(
-        "囊 {}/{} [B]扩(${})",
+        "囊 {}/{} [D]扩(金{})",
                                   state.backpack.len(),
                                   state.max_backpack,
                                   cost.trim()
     )));
-    lines.push(Line::from("[L]架 [R]熔 [S]卖"));
+    lines.push(Line::from("[F]架最贵 [S]全熔"));
 
     if state.backpack.is_empty() {
         lines.push(Line::from(Span::styled(
@@ -63,7 +63,7 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
             };
 
             lines.push(Line::from(Span::styled(
-                format!("{}.{} {}", i + 1, tag, sword.name),
+                format!("{}.{} {} 金{}", i + 1, tag, sword.name, sword.price),
                     Style::default().fg(color),
             )));
         }

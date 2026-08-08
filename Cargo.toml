@@ -1,9 +1,9 @@
 [package]
 name = "cyber-forge"
-version = "2.0.0"
+version = "2.2.0"
 edition = "2021"
 authors = ["CyberCraftsman <forge@heavenly.dev>"]
-description = "锻造大师：赛博工匠与天道炉火 - 硬核 5-Line 控制舱修真挂机游戏 v2.0"
+description = "锻造大师：赛博工匠与天道炉火 - 左中右三栏挂机铸剑 v2.2"
 
 [dependencies]
 ratatui = { version = "0.26", features = ["all-widgets"] }

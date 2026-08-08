@@ -33,14 +33,33 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
 
     let anim_frames = ["🔨 ──► 💥", " 🔨 ─► 💥", "  🔨 ► 💥", "   🔨 💥 "];
     let frame_idx = (state.tick_count as usize) % anim_frames.len();
-    f.render_widget(Paragraph::new(format!("⚙️ {}", anim_frames[frame_idx])).style(Style::default().fg(Color::Rgb(180, 180, 180))), chunks[0]);
+    f.render_widget(
+        Paragraph::new(format!("⚙️ {}", anim_frames[frame_idx]))
+        .style(Style::default().fg(Color::Rgb(180, 180, 180))),
+                    chunks[0],
+    );
 
     let forge_gauge = Gauge::default()
-    .gauge_style(Style::default().fg(Color::Rgb(120, 120, 120)).bg(Color::Rgb(30, 30, 30)))
+    .gauge_style(
+        Style::default()
+        .fg(Color::Rgb(120, 120, 120))
+        .bg(Color::Rgb(30, 30, 30)),
+    )
     .ratio(state.progress.clamp(0.0, 1.0))
     .label(format!("开锋 {:.0}%", state.progress * 100.0));
     f.render_widget(forge_gauge, chunks[1]);
 
-    let (carbon_color, status_str) = if (0.7..=0.9).contains(&state.carbon_ratio) { (Color::Rgb(0, 255, 127), "正") } else { (Color::Rgb(255, 80, 80), "偏") };
-    f.render_widget(Paragraph::new(format!("碳 {:.2}% ({}) │ 息 {:.1}s [F]风", state.carbon_ratio, status_str, state.interval_secs)).style(Style::default().fg(carbon_color)), chunks[2]);
+    let (carbon_color, status_str) = if (0.7..=0.9).contains(&state.carbon_ratio) {
+        (Color::Rgb(0, 255, 127), "正")
+    } else {
+        (Color::Rgb(255, 80, 80), "偏")
+    };
+    f.render_widget(
+        Paragraph::new(format!(
+            "碳 {:.2}% ({}) │ 息 {:.1}s [W]风",
+                               state.carbon_ratio, status_str, state.interval_secs
+        ))
+        .style(Style::default().fg(carbon_color)),
+                    chunks[2],
+    );
 }
