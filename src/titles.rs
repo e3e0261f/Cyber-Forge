@@ -1,6 +1,7 @@
 pub struct TitleSystem;
 
 impl TitleSystem {
+    /// 锁死为恰好 5 个中文字符（在 Ratatui 终端中占用 10 显示列）
     pub fn get_title_by_level(level: u32) -> &'static str {
         match level {
             1..=5    => "凡铁打刀客",

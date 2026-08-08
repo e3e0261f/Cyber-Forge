@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Borders, Gauge, Paragraph},
+    widgets::{Gauge, Paragraph},
     Frame,
 };
 use crate::numbers::format_compact_number;
@@ -17,31 +17,24 @@ pub struct Line1State {
 }
 
 pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
-    let outer_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(0, 229, 255)))
-        .title(" 🔨 赛博天道身位 ");
-
-    let inner_area = outer_block.inner(area);
-    f.render_widget(outer_block, area);
-
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(16),
-            Constraint::Length(20),
-            Constraint::Min(20),
-            Constraint::Length(16),
+            Constraint::Length(16), // 🔨 锤击数区
+            Constraint::Length(20), // 🎓 职称等级区
+            Constraint::Min(25),    // 📈 EXP 进度条区
+            Constraint::Length(16), // 💰 财富区
         ])
-        .split(inner_area);
+        .split(area);
 
+    // 1. 锤击数 (固定 4 位补零)
     let strike_text = format!("🔨 {:0>4}/{:0>4}", state.current_strikes, state.max_strikes);
     f.render_widget(
-        Paragraph::new(strike_text).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Paragraph::new(strike_text).style(Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)),
         chunks[0],
     );
 
+    // 2. 等级与职称
     let title = TitleSystem::get_title_by_level(state.level);
     let level_text = format!("Lv.{:0>3} {}", state.level, title);
     f.render_widget(
@@ -49,7 +42,8 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
         chunks[1],
     );
 
-    let exp_label = format!("EXP {}/{}", state.current_exp, state.max_exp);
+    // 3. EXP 彩色填充进度条
+    let exp_label = format!("EXP {:0>6}/{:0>6}", state.current_exp, state.max_exp);
     let ratio = if state.max_exp > 0 {
         (state.current_exp as f64 / state.max_exp as f64).clamp(0.0, 1.0)
     } else {
@@ -61,10 +55,11 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
         .label(exp_label);
     f.render_widget(exp_gauge, chunks[2]);
 
+    // 4. 金币高亮
     let coin_formatted = format_compact_number(state.coins);
     let coin_text = format!("💰 {}", coin_formatted.trim());
     f.render_widget(
-        Paragraph::new(coin_text).style(Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)),
+        Paragraph::new(coin_text).style(Style::default().fg(Color::Rgb(255, 191, 0)).add_modifier(Modifier::BOLD)),
         chunks[3],
     );
 }

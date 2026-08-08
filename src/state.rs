@@ -1,8 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::types::{GameError, Sword};
+use crate::types::{Quality, Sword};
 
-/// 主游戏状态数据结构声明
 pub struct GameState {
     pub strikes: u32,
     pub max_strikes: u32,
@@ -13,17 +12,51 @@ pub struct GameState {
     pub inventory: Vec<Sword>,
     pub max_inventory: usize,
     pub carbon_ratio: f32,
+    pub apprentices: u32,
+    pub max_apprentices: u32,
 }
 
-/// 线程安全的全局状态指针包装类型声明
+impl GameState {
+    pub fn get_next_apprentice_cost(&self) -> u128 {
+        let count = self.apprentices as u128;
+        200 + count * count * 300
+    }
+
+    pub fn hire_apprentice(&mut self) -> Result<(), &'static str> {
+        if self.apprentices >= self.max_apprentices {
+            return Err("学徒名额已满！");
+        }
+        let cost = self.get_next_apprentice_cost();
+        if self.coins < cost {
+            return Err("铜板不足！");
+        }
+
+        self.coins -= cost;
+        self.apprentices += 1;
+        Ok(())
+    }
+}
+
 #[derive(Clone)]
 pub struct SharedGameState(pub Arc<RwLock<GameState>>);
 
-/// 核心业务逻辑 Trait 契约声明
-#[async_trait::async_trait]
-pub trait ForgingEngine {
-    async fn strikeonce(&self, entropy_delta: u64) -> Result<Option<Sword>, GameError>;
-    async fn sell_item(&self, index: usize) -> Result<u128, GameError>;
-    async fn safe_sell_all(&self, keep_high_rarity: bool) -> u128;
-    async fn expand_inventory(&self) -> Result<usize, GameError>;
+impl SharedGameState {
+    /// 安全一键卖出 (锁定保护史诗/传说/神话装备)
+    pub async fn safe_sell_all(&self, keep_high_rarity: bool) -> u128 {
+        let mut state = self.0.write().await;
+        let mut total_gained = 0u128;
+
+        let mut remaining = Vec::new();
+        for item in state.inventory.drain(..) {
+            if keep_high_rarity && (item.quality == Quality::Epic || item.quality == Quality::Legendary || item.quality == Quality::Mythic) {
+                remaining.push(item);
+            } else {
+                total_gained += item.price;
+            }
+        }
+
+        state.inventory = remaining;
+        state.coins += total_gained;
+        total_gained
+    }
 }
