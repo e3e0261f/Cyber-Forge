@@ -30,14 +30,14 @@ fn quality_color(q: Quality) -> Color {
 
 pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     let outer_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(60, 90, 100)))
-        .title(format!(
-            " 【矩阵背包】{}/{} ",
-            state.backpack.len(),
-            state.max_backpack
-        ));
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(Color::Rgb(60, 90, 100)))
+    .title(format!(
+        " 【矩阵背包】{}/{} ",
+        state.backpack.len(),
+                   state.max_backpack
+    ));
 
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -52,50 +52,39 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     // 顶行：操作简讯（极短，不抢矩阵）
     lines.push(Line::from(Span::styled(
         format!("[D]扩 [F]架 [S]熔 ·{}金", cost.trim()),
-        Style::default().fg(Color::Rgb(90, 90, 90)),
+            Style::default().fg(Color::Rgb(90, 90, 90)),
     )));
 
     // 点阵：每格固定 3 字符宽 [G]，按行铺满
     let cell_w = 3u16;
     let cols = (inner.width / cell_w).max(1) as usize;
-    let rows_avail = inner.height.saturating_sub(1) as usize;
 
-    // 槽位总数：至少 max_backpack，铺满可视格
-    let slots = state.max_backpack.max(cols * rows_avail.min(32));
-    let mut cells: Vec<Option<&Sword>> = state.backpack.iter().map(Some).collect();
-    while cells.len() < slots {
-        cells.push(None);
-    }
+    // 核心修改：严格遵照实际背包上限，拒绝视觉膨胀。下方留黑代表未解锁的空间。
+    let mut current_spans: Vec<Span> = Vec::with_capacity(cols);
 
-    let max_cells = cols * rows_avail;
-    let cells = &cells[..cells.len().min(max_cells)];
-
-    for row in 0..rows_avail {
-        let start = row * cols;
-        if start >= cells.len() {
-            break;
+    for i in 0..state.max_backpack {
+        if i < state.backpack.len() {
+            // 已有飞剑
+            let sword = &state.backpack[i];
+            let g = element_glyph(sword.element);
+            let c = quality_color(sword.quality);
+            current_spans.push(Span::styled(
+                g,
+                Style::default().fg(c).add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            // 已解锁但为空的可用插槽
+            current_spans.push(Span::styled(
+                "[·]",
+                Style::default().fg(Color::Rgb(40, 40, 45)),
+            ));
         }
-        let end = (start + cols).min(cells.len());
-        let mut spans: Vec<Span> = Vec::with_capacity(cols);
-        for slot in &cells[start..end] {
-            match slot {
-                Some(sword) => {
-                    let g = element_glyph(sword.element);
-                    let c = quality_color(sword.quality);
-                    spans.push(Span::styled(
-                        g,
-                        Style::default().fg(c).add_modifier(Modifier::BOLD),
-                    ));
-                }
-                None => {
-                    spans.push(Span::styled(
-                        "[·]",
-                        Style::default().fg(Color::Rgb(40, 40, 45)),
-                    ));
-                }
-            }
+
+        // 满列或到达容量末尾时，换行切断
+        if (i + 1) % cols == 0 || i == state.max_backpack - 1 {
+            lines.push(Line::from(current_spans.clone()));
+            current_spans.clear();
         }
-        lines.push(Line::from(spans));
     }
 
     f.render_widget(Paragraph::new(lines), inner);
