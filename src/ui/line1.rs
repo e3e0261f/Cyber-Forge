@@ -21,7 +21,7 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【锻造师】 ");
+    .title(" 【铁匠信息】 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -36,7 +36,7 @@ pub fn render_line_1(f: &mut Frame, area: Rect, state: &Line1State) {
     ])
     .split(inner_area);
 
-    let strike_text = format!("需要锤击次数{:0>2}/{:0>2}", state.current_strikes, state.max_strikes);
+    let strike_text = format!("锤击次数{:0>2}/{:0>2}", state.current_strikes, state.max_strikes);
     f.render_widget(
         Paragraph::new(strike_text).style(
             Style::default()

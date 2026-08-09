@@ -19,7 +19,7 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【储剑锦囊】 ");
+    .title(" 【背包】 ");
 
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -28,16 +28,16 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     let mut lines: Vec<Line> = Vec::new();
 
     lines.push(Line::from(format!(
-        "囊 {}/{} [D]扩(金{})",
+        "{}/{} [D]升级背包(金{})",
                                   state.backpack.len(),
                                   state.max_backpack,
                                   cost.trim()
     )));
-    lines.push(Line::from("[F]架最贵 [S]全熔"));
+    lines.push(Line::from("[F]上架出售 [S]熔炼"));
 
     if state.backpack.is_empty() {
         lines.push(Line::from(Span::styled(
-            "囊中无剑",
+            "无剑可售",
             Style::default().fg(Color::Rgb(100, 100, 100)),
         )));
     } else {
@@ -63,7 +63,7 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
             };
 
             lines.push(Line::from(Span::styled(
-                format!("{}.{} {} 金{}", i + 1, tag, sword.name, sword.price),
+                format!("{:0>2}.金{} {} {}", i + 1, sword.price, tag, sword.name),
                     Style::default().fg(color),
             )));
         }

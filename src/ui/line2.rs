@@ -13,11 +13,11 @@ pub struct Line2State {
 }
 
 pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
-    let outer_block = Block::default()
+    let outer_block = Block::default().title(" 【锻造台】")
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【锻打技术】 ");
+    .title(" 下一锤倒计时 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -25,9 +25,9 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     let chunks = Layout::default()
     .direction(Direction::Horizontal)
     .constraints([
-        Constraint::Length(18),
-                 Constraint::Min(20),
-                 Constraint::Length(24),
+        Constraint::Length(1),
+                 Constraint::Min(2),
+                 Constraint::Length(1),
     ])
     .split(inner_area);
 
@@ -46,7 +46,8 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     )
     .ratio(time_ratio)
     // 3. 完美动态显示倒计时！
-    .label(format!("下一锤还剩 {:.1}s", remaining_secs));
+    .use_unicode(true)
+    .label(format!("{:.1}s", remaining_secs));
 
     f.render_widget(forge_gauge, chunks[1]);
 

@@ -77,30 +77,30 @@ impl GameState {
     pub fn new() -> Self {
         let mut s = Self {
             strikes: 0,
-            max_strikes: 10,
+            max_strikes: 63,
             level: 1,
             exp: 0,
-            max_exp: 100,
-            coins: 1000,
+            max_exp: 5000,
+            coins: 500,
             backpack: Vec::new(),
-            max_backpack: 8,
+            max_backpack: 20,
             pavilion_market: Vec::new(),
-            max_pavilion: 5,
+            max_pavilion: 20,
             auto_recycle_trash: true,
-            carbon_ratio: 0.85,
+            carbon_ratio: 0.14,
             apprentices: 0,
-            max_apprentices: 5,
+            max_apprentices: 10,
             sharpen_workers: 0,
             enchant_workers: 0,
             repair_workers: 0,
             bellows_level: 1,
-            natural_interval_ticks: 100,
+            natural_interval_ticks: 10,
             repair_progress: 0,
             iron_slag: 0,
-            bonus_god_rate: 0.05,
+            bonus_god_rate: 0.005,
             active_sword_modal: None,
             market_news: "天道熔炉初始化完成，欢迎来到赛博修真工坊！".to_string(),
-            station_mult: [1.0, 1.0, 1.0],
+            station_mult: [11.0, 12.0, 13.0],
             market_tick_counter: 0,
         };
         s.reroll_station_mult(false);
@@ -109,34 +109,34 @@ impl GameState {
 
     pub fn update_max_strikes(&mut self) {
         self.max_strikes = match self.level {
-            1..=10 => 10,
-            11..=20 => 30,
-            21..=35 => 100,
-            36..=50 => 300,
-            51..=70 => 1000,
-            _ => 5000,
+            1..=10 => 63,
+            11..=20 => 127,
+            21..=35 => 255,
+            36..=50 => 511,
+            51..=70 => 1023,
+            _ => 2055,
         };
     }
 
     pub fn get_backpack_upgrade_cost(&self) -> u128 {
-        (500.0 * 1.30f64.powi(self.max_backpack as i32 - 8)) as u128
+        (500.0 * 1.0130f64.powi(self.max_backpack as i32 - 8)) as u128
     }
 
     pub fn get_next_apprentice_cost(&self) -> u128 {
-        (200.0 * 1.35f64.powi(self.apprentices as i32)) as u128
+        (200.0 * 1.0135f64.powi(self.apprentices as i32)) as u128
     }
 
     pub fn get_house_upgrade_cost(&self) -> u128 {
         let house_tier = (self.max_apprentices / 5) as i32 - 1;
-        (1000.0 * 1.50f64.powi(house_tier.max(0))) as u128
+        (1000.0 * 1.019f64.powi(house_tier.max(0))) as u128
     }
 
     pub fn get_pavilion_upgrade_cost(&self) -> u128 {
-        (2000.0 * 1.40f64.powi(self.max_pavilion as i32 - 5)) as u128
+        (2000.0 * 1.0140f64.powi(self.max_pavilion as i32 - 5)) as u128
     }
 
     pub fn get_bellows_upgrade_cost(&self) -> u128 {
-        (500.0 * 1.45f64.powi(self.bellows_level as i32 - 1)) as u128
+        (50.0 * 1.0145f64.powi(self.bellows_level as i32 - 1)) as u128
     }
 
     pub fn sort_backpack(&mut self) {
@@ -146,7 +146,7 @@ impl GameState {
     fn reroll_station_mult(&mut self, announce: bool) {
         let mut rng = rand::thread_rng();
         for m in &mut self.station_mult {
-            *m = rng.gen_range(0.75_f64..1.46_f64);
+            *m = rng.gen_range(0.05_f64..0.46_f64);
         }
         if announce {
             let rumor = RUMORS[rng.gen_range(0..RUMORS.len())];
@@ -185,7 +185,7 @@ impl GameState {
     pub fn upgrade_house(&mut self) {
         let cost = self.get_house_upgrade_cost();
         if self.coins < cost {
-            self.market_news = format!("❌ 扩房失败：需要 金{}。", cost);
+            self.market_news = format!("❌ 扩建房屋失败：需要 金{}。", cost);
             return;
         }
         self.coins -= cost;
@@ -196,7 +196,7 @@ impl GameState {
     pub fn upgrade_pavilion(&mut self) {
         let cost = self.get_pavilion_upgrade_cost();
         if self.coins < cost {
-            self.market_news = format!("❌ 柜扩失败：需要 金{}。", cost);
+            self.market_news = format!("❌ 展位失败：需要 金{}。", cost);
             return;
         }
         self.coins -= cost;
@@ -206,12 +206,12 @@ impl GameState {
 
     pub fn upgrade_bellows(&mut self) {
         if self.natural_interval_ticks <= 10 {
-            self.market_news = "⚡ 风箱已达极限 (1.0s/锤)。".to_string();
+            self.market_news = "⚡ 挥锤速度已达极限 (1.0s/锤)。".to_string();
             return;
         }
         let cost = self.get_bellows_upgrade_cost();
         if self.coins < cost {
-            self.market_news = format!("❌ 风升失败：需要 金{}。", cost);
+            self.market_news = format!("❌ 挥锤速度升级失败：需要 金{}。", cost);
             return;
         }
         self.coins -= cost;
@@ -363,7 +363,7 @@ impl GameState {
                                   listed_price: listing_price,
                                   listing_time: 0,
         });
-        self.market_news = format!("📦 [{}] 已架，价 金{}", sword.name, listing_price);
+        self.market_news = format!("📦 [{}] 已上架， 金{}", sword.name, listing_price);
     }
 
     pub fn melt_all_backpack(&mut self) {
@@ -376,12 +376,12 @@ impl GameState {
         let mut slag = 0u32;
         for sword in self.backpack.drain(..) {
             let add = match sword.quality {
-                Quality::Common => 5,
-                Quality::Fine => 12,
-                Quality::Rare => 30,
-                Quality::Epic => 80,
-                Quality::Legendary => 200,
-                Quality::Mythic => 500,
+                Quality::Common => 50,
+                Quality::Fine => 120,
+                Quality::Rare => 300,
+                Quality::Epic => 800,
+                Quality::Legendary => 2000,
+                Quality::Mythic => 5000,
             };
             slag += add;
         }

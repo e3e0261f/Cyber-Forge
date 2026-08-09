@@ -21,7 +21,7 @@ use tokio::sync::RwLock;
 use cyber_forge::{
     state::{GameState, SharedGameState},
     sword_gen::SwordGenerator,
-    types::{ForgeResult, Quality},
+    types::{ForgeResult},
     ui::{
         help::{render_help_modal, render_quit_confirm},
         line1::{render_line_1, Line1State},
@@ -101,7 +101,7 @@ fn do_strike(state: &mut GameState) {
         if state.exp >= state.max_exp {
             state.level += 1;
             state.exp -= state.max_exp;
-            state.max_exp = (100.0 * 1.25f64.powi(state.level as i32)) as u32;
+            state.max_exp = (5000.0 * 1.25f64.powi(state.level as i32)) as u32;
             state.update_max_strikes();
         }
     }

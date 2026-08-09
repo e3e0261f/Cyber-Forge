@@ -21,7 +21,7 @@ pub fn render_line_3(f: &mut Frame, area: Rect, state: &Line3State) {
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【宗门工坊】 ");
+    .title(" 【铁匠铺】 ");
 
     let inner_area = outer_block.inner(area);
     f.render_widget(outer_block, area);
@@ -30,7 +30,7 @@ pub fn render_line_3(f: &mut Frame, area: Rect, state: &Line3State) {
     let house_cost_str = format_compact_number(state.house_cost);
 
     let line3_text = format!(
-        "徒 {}/{} │ 磨剑{} │ 附魔{} │ 精修{} │ [A]招(金{}) [R]房(金{})",
+        "学徒人数 {}/{} │ 磨剑台 {} · 附魔炉 {} · 精修坊 {} │ [A]需({}金) [R]需({}金)",
                              state.apprentices,
                              state.max_apprentices,
                              state.sharpen_workers,
