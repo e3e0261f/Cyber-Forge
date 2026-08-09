@@ -42,7 +42,7 @@ impl TitleSystem {
 // BodyRefining = 1,   // 1. 炼体   身体强度，
 // QiCondensation,     // 2. 炼气  气感
 // SpiritFocus,        // 3. 练神       精神力多少
-// GoldenCore,         // 4. 金丹    金丹个数、大小、凝缩强度
+// GoldenCore,         // 4. 金丹   金丹个数、大小、凝缩强度
 // NascentSoul,        // 5. 元婴    元婴大小、个数、元婴强度
 // GodTransformation,  // 6. 化神
 // BodyIntegration,    // 7. 合体
