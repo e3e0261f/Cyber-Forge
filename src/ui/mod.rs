@@ -4,5 +4,6 @@ pub mod line3;
 pub mod line4;
 pub mod line5;
 pub mod line6;
+pub mod line7;
 pub mod modal;
 pub mod help;

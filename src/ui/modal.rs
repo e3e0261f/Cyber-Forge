@@ -4,56 +4,130 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
-use crate::types::Sword;
+use crate::types::{Element, Sword};
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
     let popup = Layout::default()
-    .direction(Direction::Vertical)
-    .constraints([
-        Constraint::Percentage((100 - percent_y) / 2),
-                 Constraint::Percentage(percent_y),
-                 Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(area);
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(area);
 
     Layout::default()
-    .direction(Direction::Horizontal)
-    .constraints([
-        Constraint::Percentage((100 - percent_x) / 2),
-                 Constraint::Percentage(percent_x),
-                 Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(popup[1])[1]
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup[1])[1]
+}
+
+fn el_name(e: Element) -> &'static str {
+    match e {
+        Element::Gold => "庚金",
+        Element::Wood => "乙木",
+        Element::Water => "癸水",
+        Element::Fire => "丙火",
+        Element::Earth => "戊土",
+    }
+}
+
+/// 由现有字段推导的可战属性（展示用）
+pub fn derived_stats(sword: &Sword) -> (u64, u64, u64) {
+    let base = sword.quality.atk_base();
+    let sharp_bonus = sword.sharpness as u64;
+    let atk = base + sharp_bonus / 2;
+    let durability = 40 + sword.sharpness as u64 + base / 2;
+    let weight = 8 + (base / 30);
+    (atk, durability, weight)
+}
+
+pub fn format_sword_detail(sword: &Sword) -> String {
+    let (atk, dur, weight) = derived_stats(sword);
+    let ench = sword
+        .enchantment
+        .map(|e| format!("附魔·{}", el_name(e)))
+        .unwrap_or_else(|| "无附魔".into());
+    let flag = if sword.is_reforged {
+        "重铸"
+    } else {
+        "原锻"
+    };
+    format!(
+        "{}\n{}\n\n\
+品质 {}\n五行 {}\n{}\n工艺 {}\n\n\
+攻击 {}\n耐久 {}\n重量 {}\n锋利 {}/100\n\n\
+素质估价 金 {}\n\n\
+（悬停查看 · 移开关闭）",
+        sword.quality.badge(),
+        sword.name,
+        sword.quality.badge(),
+        el_name(sword.element),
+        ench,
+        flag,
+        atk,
+        dur,
+        weight,
+        sword.sharpness,
+        sword.price
+    )
 }
 
 pub fn render_sword_modal(f: &mut Frame, area: Rect, sword: &Sword) {
-    let popup = centered_rect(50, 40, area);
+    let popup = centered_rect(50, 55, area);
     f.render_widget(Clear, popup);
 
     let block = Block::default()
-    .title(" ═══ 🗡️ 天道神兵出炉 ═══ ")
-    .borders(Borders::ALL)
-    .border_type(BorderType::Rounded)
-    .border_style(Style::default().fg(Color::Rgb(255, 215, 0)))
-    .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+        .title(" ═══ 出炉 ═══ ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(255, 215, 0)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
 
     let text = format!(
-        "\n{} {}\n估价 金 {}\n经验 +{}\n\n按任意键收纳",
-        sword.quality.badge(),
-                       sword.name,
-                       sword.price,
-                       sword.quality.bonus_exp()
+        "\n{}\n\n按任意键收纳",
+        format_sword_detail(sword).replace("（悬停查看 · 移开关闭）", "")
     );
 
     f.render_widget(
         Paragraph::new(text)
-        .block(block)
-        .alignment(Alignment::Center)
-        .style(
-            Style::default()
-            .fg(Color::Rgb(220, 220, 220))
-            .add_modifier(Modifier::BOLD),
-        ),
+            .block(block)
+            .alignment(Alignment::Left)
+            .style(
+                Style::default()
+                    .fg(Color::Rgb(220, 220, 220))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        popup,
+    );
+}
+
+/// 背包悬停详情（靠左上浮层）
+pub fn render_hover_detail(f: &mut Frame, area: Rect, sword: &Sword) {
+    // 放在画面中偏左，避开矩阵本身可读性
+    let popup = Rect {
+        x: area.x + area.width * 22 / 100 + 1,
+        y: area.y + 2,
+        width: (area.width * 36 / 100).max(28).min(42),
+        height: 16.min(area.height.saturating_sub(4)),
+    };
+    f.render_widget(Clear, popup);
+
+    let block = Block::default()
+        .title(" 兵器鉴 ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(0, 200, 255)))
+        .style(Style::default().bg(Color::Rgb(12, 16, 22)));
+
+    f.render_widget(
+        Paragraph::new(format_sword_detail(sword))
+            .block(block)
+            .style(Style::default().fg(Color::Rgb(210, 210, 210))),
         popup,
     );
 }

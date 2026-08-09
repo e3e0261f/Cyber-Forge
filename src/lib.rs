@@ -10,3 +10,4 @@ pub use types::{Element, Quality, Sword};
 pub use numbers::format_compact_number;
 pub use titles::TitleSystem;
 pub use state::{GameState, SharedGameState};
+pub use realm::{Realm, RealmState};

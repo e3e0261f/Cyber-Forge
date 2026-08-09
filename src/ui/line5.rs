@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 use crate::numbers::format_compact_number;
-use crate::types::MarketListing;
+use crate::types::{MarketListing, Quality};
 
 pub struct Line5State<'a> {
     pub pavilion: &'a [MarketListing],
@@ -15,25 +15,27 @@ pub struct Line5State<'a> {
     pub expand_cost: u128,
 }
 
+fn q_color(q: Quality) -> Color {
+    q.color()
+}
+
 pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
     let outer_block = Block::default()
-    .borders(Borders::ALL)
-    .border_type(BorderType::Rounded)
-    .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-    .title(" 【藏宝阁拍卖】 ");
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
+        .title(format!(
+            " 【藏宝阁拍卖】{}/{} ",
+            state.pavilion.len(),
+            state.max_pavilion
+        ));
 
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
     let cost = format_compact_number(state.expand_cost);
     let mut lines: Vec<Line> = Vec::new();
-
-    lines.push(Line::from(format!(
-        "{}/{} [E]升级(金{})",
-                                  state.pavilion.len(),
-                                  state.max_pavilion,
-                                  cost.trim()
-    )));
+    lines.push(Line::from(format!("[E]扩柜({}金)  道友可加价", cost.trim())));
 
     if state.pavilion.is_empty() {
         lines.push(Line::from(Span::styled(
@@ -42,14 +44,30 @@ pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
         )));
     } else {
         let max_show = inner.height.saturating_sub(3) as usize;
-        for (i, listing) in state.pavilion.iter().take(max_show).enumerate() {
-            let badge = listing.sword.quality.badge();
-            lines.push(Line::from(format!(
-                "{:0>2}.{}金 {} {}",
-                i + 1,
-                listing.listed_price,
-                badge,
-                listing.sword.name
+        for listing in state.pavilion.iter().take(max_show) {
+            let fair = listing.fair_value.max(listing.sword.price).max(1);
+            let bid = listing.listed_price;
+            let tag = if bid >= fair.saturating_mul(12) / 10 {
+                "天"
+            } else if bid >= fair {
+                "溢"
+            } else if listing.bid_count > 0 {
+                "抬"
+            } else {
+                "拍"
+            };
+            let col = q_color(listing.sword.quality);
+            lines.push(Line::from(Span::styled(
+                format!(
+                    "{}{} 现价{} 估{} ×{} {}",
+                    listing.sword.quality.badge(),
+                    tag,
+                    bid,
+                    fair,
+                    listing.bid_count,
+                    listing.sword.name
+                ),
+                Style::default().fg(col),
             )));
         }
     }
@@ -61,6 +79,6 @@ pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
 
     f.render_widget(
         Paragraph::new(lines).style(Style::default().fg(Color::Rgb(180, 180, 180))),
-                    inner,
+        inner,
     );
 }

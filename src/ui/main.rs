@@ -37,8 +37,8 @@ use cyber_forge::{
     },
 };
 
-const CRIT_LO: f64 = 0.76;
-const CRIT_HI: f64 = 0.88;
+const CRIT_LO: f64 = 0.78;
+const CRIT_HI: f64 = 0.85;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -100,8 +100,6 @@ fn do_strike(state: &mut GameState, qte: bool) {
         Instant::now().elapsed().as_nanos() as u64,
         state.apprentices,
         god,
-        qte_hits,
-        state.max_strikes,
     ) {
         ForgeResult::Success(sword) => {
             state.exp += sword.quality.bonus_exp();
@@ -109,22 +107,14 @@ fn do_strike(state: &mut GameState, qte: bool) {
             if had_qte && sword.quality.is_masterwork_tier() {
                 let mut cult = (sword.price / 5).max(50);
                 cult += ((sword.price as f64) * state.bonus_god_rate * 0.05) as u128;
-                // 完美次数再喂一点修仙经验
-                cult += (qte_hits as u128) * 20;
                 state.realm.add_cultivation(cult);
                 state.realm.masterwork_count = state.realm.masterwork_count.saturating_add(1);
                 state.set_toast(format!(
-                    "代表作！{} {}｜完美×{}｜修仙 +{}",
+                    "代表作！{} {}｜QTE×{}｜修仙经验 +{}",
                     sword.quality.badge(),
                     sword.name,
                     qte_hits,
                     cult
-                ));
-            } else if had_qte {
-                state.set_toast(format!(
-                    "有完美×{}，品阶 {} 未达代表作门槛",
-                    qte_hits,
-                    sword.quality.badge()
                 ));
             }
 
@@ -180,6 +170,7 @@ async fn run_game_loop(
     shared_state: SharedGameState,
 ) -> io::Result<()> {
     let mut tick_counter: u64 = 0;
+    let mut hammer_cycle_start: u64 = 0;
     let mut hammer_cycle_instant = Instant::now();
     let mut reader = EventStream::new();
     let mut tick_interval = tokio::time::interval(Duration::from_millis(16));
@@ -195,7 +186,7 @@ async fn run_game_loop(
             let interval_secs = state.natural_interval_ticks.max(1) as f64 / 10.0;
             let elapsed = hammer_cycle_instant.elapsed().as_secs_f64();
             let progress = (elapsed / interval_secs).min(1.0);
-            let in_crit = progress >= CRIT_LO && progress < CRIT_HI;
+            let in_crit = state.level >= 2 && progress >= CRIT_LO && progress < CRIT_HI;
             (
                 Line1State {
                     level: state.level,
@@ -207,7 +198,7 @@ async fn run_game_loop(
                     progress,
                     tick_count: tick_counter,
                     interval_secs: state.natural_interval_ticks as f32 / 10.0,
-                    show_crit_window: true,
+                    show_crit_window: state.level >= 2,
                     in_crit_zone: in_crit,
                     current_strikes: state.strikes,
                     max_strikes: state.max_strikes,
@@ -431,9 +422,14 @@ async fn run_game_loop(
                                 state.natural_interval_ticks.max(1) as f64 / 10.0;
                             let elapsed = hammer_cycle_instant.elapsed().as_secs_f64();
                             let progress = (elapsed / interval_secs).min(1.0);
-                            let in_crit = progress >= CRIT_LO && progress < CRIT_HI;
-                            // 帧内空格 = 完美击锤；帧外 = 普通锤
-                            do_strike(&mut state, in_crit);
+                            let in_crit =
+                                state.level >= 2 && progress >= CRIT_LO && progress < CRIT_HI;
+                            if state.level < 2 {
+                                do_strike(&mut state, false);
+                            } else {
+                                do_strike(&mut state, in_crit);
+                            }
+                            hammer_cycle_start = tick_counter;
                             hammer_cycle_instant = Instant::now();
                         }
                         _ => {}
@@ -470,6 +466,7 @@ async fn run_game_loop(
                     let interval_secs = interval_ticks as f64 / 10.0;
                     if hammer_cycle_instant.elapsed().as_secs_f64() >= interval_secs {
                         do_strike(&mut state, false);
+                        hammer_cycle_start = tick_counter;
                         hammer_cycle_instant = Instant::now();
                     }
                 }
