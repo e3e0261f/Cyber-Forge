@@ -27,7 +27,7 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     .constraints([
         Constraint::Length(1),
                  Constraint::Min(2),
-                 Constraint::Length(1),
+                 Constraint::Length(10),
     ])
     .split(inner_area);
 
@@ -58,8 +58,8 @@ pub fn render_line_2(f: &mut Frame, area: Rect, state: &Line2State) {
     };
     f.render_widget(
         Paragraph::new(format!(
-            "{:.1}s│{:.2}%碳({}) ",
-                              state.interval_secs, state.carbon_ratio, status_str
+            "{:.2}%碳量 ",
+                              state.carbon_ratio
         ))
         .style(Style::default().fg(carbon_color)),
                     chunks[2],
