@@ -53,11 +53,15 @@ pub async fn run_game_loop(
                     let (mx, my) = (me.column, me.row);
                     if matches!(me.kind, MouseEventKind::Moved | MouseEventKind::Drag(_)) {
                         if my >= 1 && my < main_h && mx < left_w {
-                            let (inner_x, inner_y) = (mx.saturating_sub(1), my.saturating_sub(1));
-                            if inner_y >= 1 {
+                            let inner_x = mx.saturating_sub(1);
+                            let inner_y = my.saturating_sub(1);
+                            
+                            // 修正：0行操作指引，1行货币仪盘，点阵从第 2 行 (inner_y >= 2) 精确对齐！
+                            if inner_y >= 2 {
                                 let cell_w = 4u16;
                                 let cols = ((left_w.saturating_sub(2)) / cell_w).max(1);
-                                let (row, col) = ((inner_y - 1) as usize, (inner_x / cell_w) as usize);
+                                let row = (inner_y - 2) as usize; // 偏移量修正为 -2
+                                let col = (inner_x / cell_w) as usize;
                                 let idx = row * cols as usize + col;
                                 let state = shared_state.0.read().await;
                                 if idx < state.backpack.len() { hover_idx = Some(idx); } else { hover_idx = None; }

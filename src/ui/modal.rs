@@ -8,22 +8,22 @@ use crate::types::{Element, Sword};
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
     let popup = Layout::default()
-    .direction(Direction::Vertical)
-    .constraints([
-        Constraint::Percentage((100 - percent_y) / 2),
-                 Constraint::Percentage(percent_y),
-                 Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(area);
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(area);
 
     Layout::default()
-    .direction(Direction::Horizontal)
-    .constraints([
-        Constraint::Percentage((100 - percent_x) / 2),
-                 Constraint::Percentage(percent_x),
-                 Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(popup[1])[1]
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup[1])[1]
 }
 
 fn el_name(e: Element) -> &'static str {
@@ -48,30 +48,46 @@ pub fn derived_stats(sword: &Sword) -> (u64, u64, u64) {
 pub fn format_sword_detail(sword: &Sword) -> String {
     let (atk, dur, weight) = derived_stats(sword);
     let ench = sword
-    .enchantment
-    .map(|e| format!("附魔·{}", el_name(e)))
-    .unwrap_or_else(|| "无附魔".into());
+        .enchantment
+        .map(|e| format!("附魔·{}", el_name(e)))
+        .unwrap_or_else(|| "无附魔".into());
     let flag = if sword.is_reforged {
         "重铸"
     } else {
         "原锻"
     };
+
+    // 货币单位矫正：盲锻凡品标注【铜钱】，其余标注【金币】
+    let (currency_unit, price_val) = if sword.quality.rank() == 0 || sword.name.contains("盲锻") {
+        ("铜钱", sword.price)
+    } else {
+        ("金币", sword.price)
+    };
+
+    // 品质层级清晰展现
+    let quality_desc = if sword.quality.rank() == 0 {
+        "[无] (无品阶 / 凡间农具)".to_string()
+    } else {
+        format!("{} ({}/59阶)", sword.quality.badge(), sword.quality.rank())
+    };
+
     format!(
         "{}\n{}\n\n\
 品质 {}\n五行 {}\n{}\n工艺 {}\n\n\
 攻击 {}\n耐久 {}\n重量 {}\n锋利 {}/100\n\n\
-素质估价 金 {}",
-sword.quality.badge(),
-            sword.name,
-            sword.quality.badge(),
-            el_name(sword.element),
-            ench,
-            flag,
-            atk,
-            dur,
-            weight,
-            sword.sharpness,
-            sword.price
+素质估价 {} {}",
+        sword.quality.badge(),
+        sword.name,
+        quality_desc,
+        el_name(sword.element),
+        ench,
+        flag,
+        atk,
+        dur,
+        weight,
+        sword.sharpness,
+        currency_unit,
+        price_val
     )
 }
 
@@ -80,11 +96,11 @@ pub fn render_sword_modal(f: &mut Frame, area: Rect, sword: &Sword, remaining_se
     f.render_widget(Clear, popup);
 
     let block = Block::default()
-    .title(" ═══ 🗡️ 天道代表作降世 ═══ ")
-    .borders(Borders::ALL)
-    .border_type(BorderType::Rounded)
-    .border_style(Style::default().fg(Color::Rgb(255, 215, 0)))
-    .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+        .title(" ═══ 🗡️ 天道代表作降世 ═══ ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(255, 215, 0)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
 
     let detail = format_sword_detail(sword);
 
@@ -95,13 +111,13 @@ pub fn render_sword_modal(f: &mut Frame, area: Rect, sword: &Sword, remaining_se
 
     f.render_widget(
         Paragraph::new(text)
-        .block(block)
-        .alignment(Alignment::Center)
-        .style(
-            Style::default()
-            .fg(Color::Rgb(220, 220, 220))
-            .add_modifier(Modifier::BOLD),
-        ),
+            .block(block)
+            .alignment(Alignment::Center)
+            .style(
+                Style::default()
+                    .fg(Color::Rgb(220, 220, 220))
+                    .add_modifier(Modifier::BOLD),
+            ),
         popup,
     );
 }
@@ -116,16 +132,16 @@ pub fn render_hover_detail(f: &mut Frame, area: Rect, sword: &Sword) {
     f.render_widget(Clear, popup);
 
     let block = Block::default()
-    .title(" 兵器鉴 ")
-    .borders(Borders::ALL)
-    .border_type(BorderType::Rounded)
-    .border_style(Style::default().fg(Color::Rgb(0, 200, 255)))
-    .style(Style::default().bg(Color::Rgb(12, 16, 22)));
+        .title(" 兵器鉴 ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(0, 200, 255)))
+        .style(Style::default().bg(Color::Rgb(12, 16, 22)));
 
     f.render_widget(
         Paragraph::new(format!("{}\n\n（悬停查看 · 移开关闭）", format_sword_detail(sword)))
-        .block(block)
-        .style(Style::default().fg(Color::Rgb(210, 210, 210))),
-                    popup,
+            .block(block)
+            .style(Style::default().fg(Color::Rgb(210, 210, 210))),
+        popup,
     );
 }
