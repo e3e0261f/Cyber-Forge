@@ -20,22 +20,28 @@ fn q_color(q: Quality) -> Color {
 }
 
 pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
+    let cost = format_compact_number(state.expand_cost);
+
+    // 将扩柜按键 [E] 与金钱费用直接融入标题栏
     let outer_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
-        .title(format!(
-            " 【藏宝阁拍卖】{}/{} ",
-            state.pavilion.len(),
-            state.max_pavilion
-        ));
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(Color::Rgb(80, 80, 80)))
+    .title(format!(
+        " 【藏宝阁拍卖】{}/{} [E]扩(金{}) ",
+                   state.pavilion.len(),
+                   state.max_pavilion,
+                   cost.trim()
+    ));
 
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
-    let cost = format_compact_number(state.expand_cost);
     let mut lines: Vec<Line> = Vec::new();
-    lines.push(Line::from(format!("[E]扩柜({}金)  道友可加价", cost.trim())));
+    lines.push(Line::from(Span::styled(
+        "倒计时归零落槌 道友竞价",
+        Style::default().fg(Color::Rgb(120, 120, 120)),
+    )));
 
     if state.pavilion.is_empty() {
         lines.push(Line::from(Span::styled(
@@ -47,24 +53,15 @@ pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
         for listing in state.pavilion.iter().take(max_show) {
             let fair = listing.fair_value.max(listing.sword.price).max(1);
             let bid = listing.listed_price;
-            let tag = if bid >= fair.saturating_mul(12) / 10 {
-                "天"
-            } else if bid >= fair {
-                "溢"
-            } else if listing.bid_count > 0 {
-                "抬"
-            } else {
-                "拍"
-            };
             let col = q_color(listing.sword.quality);
+
             lines.push(Line::from(Span::styled(
                 format!(
-                    "{}{} 现价{} 估{} ×{} {}",
-                    listing.sword.quality.badge(),
-                    tag,
+                    "⏱️{:02}s 现价{} ×{} 估价{} {}",
+                    listing.listing_time,
                     bid,
-                    fair,
                     listing.bid_count,
+                    fair,
                     listing.sword.name
                 ),
                 Style::default().fg(col),
@@ -79,6 +76,6 @@ pub fn render_line_5(f: &mut Frame, area: Rect, state: &Line5State) {
 
     f.render_widget(
         Paragraph::new(lines).style(Style::default().fg(Color::Rgb(180, 180, 180))),
-        inner,
+                    inner,
     );
 }

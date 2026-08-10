@@ -111,6 +111,12 @@ pub struct RealmState {
     pub masterwork_count: u32,
 }
 
+impl Default for RealmState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RealmState {
     pub fn new() -> Self {
         Self {

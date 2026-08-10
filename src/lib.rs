@@ -5,6 +5,7 @@ pub mod sword_gen;
 pub mod state;
 pub mod ui;
 pub mod realm;
+pub mod forge_loop;
 
 pub use types::{Element, Quality, Sword};
 pub use numbers::format_compact_number;
