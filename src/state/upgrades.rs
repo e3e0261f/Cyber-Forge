@@ -92,7 +92,7 @@ impl GameState {
         }
         self.coins -= cost;
         self.bellows_level += 1;
-
+        
         let secs = (10.0 - (self.bellows_level as f64 - 1.0) * (9.0 / 499.0)).max(1.0);
         self.natural_interval_ticks = (secs * 10.0) as u64;
 
@@ -150,12 +150,12 @@ impl GameState {
 
         let mut rng = rand::thread_rng();
 
-        // 1. 盲锻坊：凡间凡品农具（15~80 铜钱估价，绝对白色凡品）
+        // 1. 盲锻坊：产出绝对 [无] 品阶 (Quality::new(0)) 农具工具，估价 15~80 铜钱
         if self.forge_workers > 0 {
             let gold_burn = (self.forge_workers as u128) * 10;
             if self.coins >= gold_burn {
                 self.coins -= gold_burn;
-
+                
                 let slag_gain = self.forge_workers;
                 self.add_iron_slag(slag_gain);
 
@@ -170,16 +170,16 @@ impl GameState {
                         id: rng.gen(),
                         name: format!("盲锻 · {}", base_type),
                         element: Element::Earth,
-                        quality: Quality::new(rng.gen_range(1..=4)), // 100% 绝对白色凡品
-                        price: rng.gen_range(15..=80), // 估价 15~80 铜钱，凡间老百姓买得起
+                        quality: Quality::new(0), // 100% 绝对 [无] 品阶（无品阶/无灵气）
+                        price: rng.gen_range(15..=80), // 15~80 铜钱
                         carbon_ratio: 0.10,
                         forged_timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
-                            sharpness: 0,
-                            enchantment: None,
-                            is_reforged: false,
+                        sharpness: 0,
+                        enchantment: None,
+                        is_reforged: false,
                     };
 
-                    let log_msg = format!("徒弟盲锻出炉：[{}]（估价 {} 铜钱，凡间农具）", sword.name, sword.price);
+                    let log_msg = format!("徒弟盲锻出炉：[{}]（无品阶，估价 {} 铜钱）", sword.name, sword.price);
                     self.backpack.push(sword);
                     self.sort_backpack();
                     self.push_log(log_msg, false, false);
@@ -231,11 +231,11 @@ impl GameState {
                     self.level,
                     self.carbon_ratio,
                     rng.gen(),
-                                                                                  self.apprentices,
-                                                                                  0.0,
-                                                                                  0,
-                                                                                  63,
-                                                                                  qi_bonus,
+                    self.apprentices,
+                    0.0,
+                    0,
+                    63,
+                    qi_bonus,
                 ) {
                     sword.name = format!("精修 · {}", base_type);
                     sword.sharpness = 100;
