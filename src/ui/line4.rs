@@ -12,6 +12,9 @@ pub struct Line4State<'a> {
     pub backpack: &'a [Sword],
     pub max_backpack: usize,
     pub expand_cost: u128,
+    pub copper: u128,
+    pub coins: u128,
+    pub jade: u128,
 }
 
 fn quality_color(q: Quality) -> Color {
@@ -21,13 +24,12 @@ fn quality_color(q: Quality) -> Color {
 pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     let cost = format_compact_number(state.expand_cost);
 
-    // 将扩容按键 [D] 与金钱费用直接融入标题栏
     let outer_block = Block::default()
     .borders(Borders::ALL)
     .border_type(BorderType::Rounded)
     .border_style(Style::default().fg(Color::Rgb(60, 90, 100)))
     .title(format!(
-        " 【矩阵背包】{}/{} [D]扩(金{}) ",
+        " 【矩阵锦囊】{}/{} [D]扩(金{}) ",
                    state.backpack.len(),
                    state.max_backpack,
                    cost.trim()
@@ -36,19 +38,32 @@ pub fn render_line_4(f: &mut Frame, area: Rect, state: &Line4State) {
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
-    if inner.width < 4 || inner.height < 2 {
+    if inner.width < 4 || inner.height < 3 {
         return;
     }
 
     let mut lines: Vec<Line> = Vec::new();
 
-    // 内部顶行：精简操作提示
+    // 1. 顶行：快捷功能指引
     lines.push(Line::from(Span::styled(
         "[F]架最贵 [S]熔最低",
         Style::default().fg(Color::Rgb(120, 120, 120)),
     )));
 
-    // 点阵：每格固定 4 字符宽 [剑]，全角绝对对齐
+    // 2. 三体资产仪表盘（铜钱 │ 金币 │ 仙玉）
+    let copper_str = format_compact_number(state.copper);
+    let coins_str = format_compact_number(state.coins);
+    let jade_str = format_compact_number(state.jade);
+
+    lines.push(Line::from(vec![
+        Span::styled(format!("铜钱:{}", copper_str.trim()), Style::default().fg(Color::Rgb(200, 150, 100))),
+                          Span::styled(" │ ", Style::default().fg(Color::Rgb(80, 80, 80))),
+                          Span::styled(format!("金币:{}", coins_str.trim()), Style::default().fg(Color::Rgb(255, 215, 0))),
+                          Span::styled(" │ ", Style::default().fg(Color::Rgb(80, 80, 80))),
+                          Span::styled(format!("仙玉:{}", jade_str.trim()), Style::default().fg(Color::Rgb(0, 255, 200))),
+    ]));
+
+    // 3. 矩阵点阵：全角 [剑][刀][具][件][物] 绝对对齐
     let cell_w = 4u16;
     let cols = (inner.width / cell_w).max(1) as usize;
 

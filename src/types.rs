@@ -131,14 +131,25 @@ pub struct MarketListing {
     pub sword: Sword,
     pub listed_price: u128,
     #[serde(default = "default_auction_time")]
-    pub listing_time: u64, // 竞拍倒计时（秒）
+    pub listing_time: u64,
     #[serde(default)]
     pub fair_value: u128,
     #[serde(default)]
     pub bid_count: u32,
+    #[serde(default)]
+    pub is_sold: bool,
+    #[serde(default)]
+    pub sold_timer: u32,
+    #[serde(default = "default_hype_factor")]
+    pub hype_factor: f64,
+    #[serde(default)]
+    pub momentum: f64,
+    #[serde(default)]
+    pub chant_timer: u32,
 }
 
-fn default_auction_time() -> u64 { 120 } // 修正为 2 分钟 (120 秒)
+fn default_auction_time() -> u64 { 120 }
+fn default_hype_factor() -> f64 { 1.0 }
 
 pub enum ForgeResult {
     Success(Sword),

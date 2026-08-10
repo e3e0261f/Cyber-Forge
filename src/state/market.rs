@@ -1,8 +1,59 @@
 use rand::Rng;
-use super::{GameState, MARKET_REFRESH_TICKS, RUMORS};
+use super::{GameState, AutoListTier, MARKET_REFRESH_TICKS, RUMORS};
 use crate::types::MarketListing;
 
 impl GameState {
+    // 金融兑换业务 (5% 藏宝阁规费抽成)
+    pub fn exchange_copper_to_gold(&mut self) {
+        let amount = 10_000u128;
+        if self.copper >= amount {
+            self.copper -= amount;
+            self.coins += 1; // 10000 铜钱 -> 0.95 金币 (已折算规费)
+            let msg = "藏宝阁兑换：10,000 铜钱 → 金币 1（含 5% 规费抽成）".to_string();
+            self.set_toast(&msg);
+            self.push_log(msg, false, false);
+        } else {
+            self.set_toast("兑换失败：需 10,000 铜钱");
+        }
+    }
+
+    pub fn exchange_gold_to_copper(&mut self) {
+        if self.coins >= 1 {
+            self.coins -= 1;
+            self.copper += 9_500; // 1 金币 -> 9,500 铜钱 (抽成 500 铜钱)
+            let msg = "藏宝阁兑换：1 金币 → 铜钱 9,500（含 5% 规费抽成）".to_string();
+            self.set_toast(&msg);
+            self.push_log(msg, false, false);
+        } else {
+            self.set_toast("兑换失败：金币不足 1");
+        }
+    }
+
+    pub fn exchange_gold_to_jade(&mut self) {
+        let amount = 10_000u128;
+        if self.coins >= amount {
+            self.coins -= amount;
+            self.jade += 1; // 10000 金币 -> 0.95 仙玉 (精算入账 1 仙玉)
+            let msg = "藏宝阁兑换：10,000 金币 → 仙玉 1（含 5% 规费抽成）".to_string();
+            self.set_toast(&msg);
+            self.push_log(msg, false, false);
+        } else {
+            self.set_toast("兑换失败：需 10,000 金币");
+        }
+    }
+
+    pub fn exchange_jade_to_gold(&mut self) {
+        if self.jade >= 1 {
+            self.jade -= 1;
+            self.coins += 9_500; // 1 仙玉 -> 9,500 金币 (抽成 500 金币)
+            let msg = "藏宝阁兑换：1 仙玉 → 金币 9,500（含 5% 规费抽成）".to_string();
+            self.set_toast(&msg);
+            self.push_log(msg, false, false);
+        } else {
+            self.set_toast("兑换失败：仙玉不足 1");
+        }
+    }
+
     pub fn reroll_station_mult(&mut self, announce: bool) {
         let mut rng = rand::thread_rng();
         for m in &mut self.station_mult {
@@ -29,46 +80,114 @@ impl GameState {
         if self.pavilion_market.len() >= self.max_pavilion { self.set_toast("展位已满，按 [E] 扩柜"); return; }
         let sword = self.backpack.remove(0);
         let fair = sword.price.max(1);
-        let start = ((fair as f64) * 0.72) as u128;
-        let msg = format!("上架：[{}] 起拍 金{}（估价 金{}）", sword.name, start.max(1), fair);
+        let start = (fair / 10).max(1);
+
+        let mut rng = rand::thread_rng();
+        let roll: f64 = rng.gen_range(0.0..100.0);
+        let hype_factor = if roll < 70.0 { rng.gen_range(0.3..=0.9) } else if roll < 90.0 { rng.gen_range(1.0..=1.8) } else { rng.gen_range(2.0..=5.0) };
+        let init_time = rng.gen_range(90..=180);
+
+        let msg = format!("上架：[{}] 1折起拍 金{}（估价 金{}）", sword.name, start, fair);
         self.pavilion_market.push(MarketListing {
             sword,
-            listed_price: start.max(1),
-                                  listing_time: 120, // 2 分钟 (120 秒) 竞拍倒计时
-                                  fair_value: fair,
-                                  bid_count: 0,
+            listed_price: start,
+            listing_time: init_time,
+            fair_value: fair,
+            bid_count: 0,
+            is_sold: false,
+            sold_timer: 0,
+            hype_factor,
+            momentum: 0.0,
+            chant_timer: 0,
         });
-        self.set_toast(&msg);
         self.push_log(msg, false, false);
     }
 
-    pub fn auto_fill_market(&mut self) {
-        while self.pavilion_market.len() < self.max_pavilion && !self.backpack.is_empty() {
-            self.sort_backpack();
-            let sword = self.backpack.remove(0);
-            let fair = sword.price.max(1);
-            let start = ((fair as f64) * 0.72) as u128;
-            self.pavilion_market.push(MarketListing {
-                sword,
-                listed_price: start.max(1),
-                                      listing_time: 120,
-                                      fair_value: fair,
-                                      bid_count: 0,
-            });
+    pub fn process_auto_list(&mut self) {
+        if self.list_tier == AutoListTier::Off || self.backpack.is_empty() { return; }
+
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
+        let w = self.auction_workers as u64;
+        let teams = if w > 0 { (w + 9) / 10 } else { 1 };
+        let auctioneers = teams as usize;
+        let effective_max_pavilion = self.max_pavilion + auctioneers;
+
+        let mut rng = rand::thread_rng();
+
+        let mut i = 0;
+        while self.pavilion_market.len() < effective_max_pavilion && i < self.backpack.len() {
+            let sword = &self.backpack[i];
+            if sword.quality.rank() >= self.list_tier.min_rank() && now.saturating_sub(sword.forged_timestamp) >= 3 {
+                let listed_sword = self.backpack.remove(i);
+                let fair = listed_sword.price.max(1);
+                let start = (fair / 10).max(1);
+
+                let roll: f64 = rng.gen_range(0.0..100.0);
+                let hype_factor = if roll < 70.0 { rng.gen_range(0.3..=0.9) } else if roll < 90.0 { rng.gen_range(1.0..=1.8) } else { rng.gen_range(2.0..=5.0) };
+                let init_time = rng.gen_range(90..=180);
+
+                let msg = format!("自动上架：[{}] 入包满3s 移至展位（1折起拍金{}）", listed_sword.name, start);
+                self.pavilion_market.push(MarketListing {
+                    sword: listed_sword,
+                    listed_price: start,
+                    listing_time: init_time,
+                    fair_value: fair,
+                    bid_count: 0,
+                    is_sold: false,
+                    sold_timer: 0,
+                    hype_factor,
+                    momentum: 0.0,
+                    chant_timer: 0,
+                });
+                self.push_log(msg, false, false);
+            } else {
+                i += 1;
+            }
         }
     }
 
+    pub fn auto_fill_market(&mut self) {
+        self.process_auto_list();
+    }
+
+    // 拍场结算：大能道友出价【传说/神话】兵刃，支持【仙玉】免税直付！
     pub fn process_immortal_buyers(&mut self) {
         if self.pavilion_market.is_empty() { return; }
         let mut rng = rand::thread_rng();
+
+        let w = self.auction_workers as u64;
+        let teams = if w > 0 { (w + 9) / 10 } else { 1 };
+        let ideal_headcount = teams * 10;
+        let missing = ideal_headcount.saturating_sub(w);
+        let efficiency_factor = ((100u64.saturating_sub(missing * 10)).max(10) as f64) / 100.0;
+
+        let auctioneers = teams as usize;
+        let tea_staff = w * 7 / 10;
+        let appraisers = w * 2 / 10;
+
         let n = self.pavilion_market.len();
 
         for i in (0..n).rev() {
             if i >= self.pavilion_market.len() { continue; }
 
-            // 旧存档修复：若倒计时大于 120 秒，自动归位修剪
-            if self.pavilion_market[i].listing_time > 120 {
-                self.pavilion_market[i].listing_time = 120;
+            if self.pavilion_market[i].is_sold {
+                if self.pavilion_market[i].sold_timer > 0 {
+                    self.pavilion_market[i].sold_timer -= 1;
+                } else {
+                    self.pavilion_market.remove(i);
+                }
+                continue;
+            }
+
+            if i >= auctioneers { continue; }
+
+            if self.pavilion_market[i].listing_time > 0 {
+                self.pavilion_market[i].listing_time -= 1;
+            }
+
+            if self.pavilion_market[i].chant_timer > 0 {
+                self.pavilion_market[i].chant_timer -= 1;
+                continue;
             }
 
             let q = self.pavilion_market[i].sword.quality;
@@ -76,45 +195,84 @@ impl GameState {
             let bid = self.pavilion_market[i].listed_price;
             let sword_name = self.pavilion_market[i].sword.name.clone();
 
-            // 120 秒倒计时递减
-            if self.pavilion_market[i].listing_time > 0 {
-                self.pavilion_market[i].listing_time -= 1;
-            }
+            let buyer_roll: f64 = rng.gen_range(0.0..100.0);
+            let (buyer_title, base_jump_range, buyer_cap_mult, buyer_element) = if buyer_roll < 45.0 {
+                ("过路散修", 0.05..=0.15, 0.85, crate::types::Element::Earth)
+            } else if buyer_roll < 75.0 {
+                ("宗门执事", 0.15..=0.30, 1.25, crate::types::Element::Gold)
+            } else if buyer_roll < 92.0 {
+                ("富商修士", 0.30..=0.60, 1.85, crate::types::Element::Water)
+            } else {
+                ("合体老怪", 0.50..=1.50, 4.50, self.pavilion_market[i].sword.element)
+            };
 
-            // 竞价判定（仅在倒计时未结束时）
-            if self.pavilion_market[i].listing_time > 0 && rng.gen_bool(q.notice_chance()) {
-                let headroom = fair.saturating_sub(bid);
-                let overshoot = if rng.gen_bool((0.02 + q.rank() as f64 * 0.002).min(0.2f64)) {
-                    ((fair as f64) * rng.gen_range(1.15..2.4)) as u128
-                } else if headroom > 0 {
-                    bid + (headroom as f64 * rng.gen_range(0.08..0.35)) as u128 + 1
-                } else {
-                    bid + ((fair as f64) * rng.gen_range(0.01..0.08)) as u128 + 1
-                };
+            let element_mult = if buyer_element == self.pavilion_market[i].sword.element { 1.8 } else { 1.0 };
+            self.pavilion_market[i].momentum = (self.pavilion_market[i].bid_count as f64 * 0.15).min(1.5);
 
-                let new_bid = overshoot.max(bid + 1);
-                self.pavilion_market[i].listed_price = new_bid;
-                self.pavilion_market[i].bid_count = self.pavilion_market[i].bid_count.saturating_add(1);
+            let price_ratio = bid as f64 / fair as f64;
+            let interest_factor = if price_ratio < 0.50 { 1.00 } else if price_ratio < 0.60 { 0.95 } else if price_ratio < 0.70 { 0.90 } else if price_ratio < 0.80 { 0.80 } else if price_ratio < 0.90 { 0.70 } else if price_ratio < 1.00 { 0.60 } else { 0.50 };
+            let extreme_damping = if price_ratio <= 1.00 { 1.0 } else if price_ratio <= 1.10 { 0.10 } else if price_ratio <= 2.00 { 0.01 } else { 0.001 };
 
-                let buyer_titles = ["过路散修", "云游剑客", "宗门执事", "藏宝阁暗桩", "富商修士"];
-                let buyer = buyer_titles[rng.gen_range(0..buyer_titles.len())];
+            let total_damping = interest_factor * extreme_damping;
+            let hype = self.pavilion_market[i].hype_factor;
+            let momentum = self.pavilion_market[i].momentum;
+            let max_price_cap = (fair as f64 * hype * buyer_cap_mult * (1.0 + momentum)) as u128;
 
-                if self.pavilion_market[i].bid_count <= 2 || rng.gen_bool(0.2) {
-                    self.set_toast(format!("{} 对 [{}] 加价 → 金{}", buyer, sword_name, new_bid));
+            if bid < max_price_cap && self.pavilion_market[i].listing_time > 0 {
+                let notice_rate = (q.notice_chance() + appraisers as f64 * 0.02) * hype * (1.0 + momentum) * total_damping * efficiency_factor;
+
+                if rng.gen_bool(notice_rate.clamp(0.0001, 0.70)) {
+                    let is_impulsive = rng.gen_bool(0.05);
+                    let impulse_mult = if is_impulsive { rng.gen_range(1.8..=3.0) } else { 1.0 };
+
+                    let base_jump_pct = rng.gen_range(base_jump_range);
+                    let tea_bonus_pct = (tea_staff as f64 * 0.001).min(0.10);
+                    let total_jump_pct = (base_jump_pct + tea_bonus_pct) * element_mult * impulse_mult * total_damping * efficiency_factor;
+
+                    let jump = ((fair as f64 * total_jump_pct) as u128).max(10);
+                    let new_bid = (bid + jump).min(max_price_cap);
+
+                    self.pavilion_market[i].listed_price = new_bid;
+                    self.pavilion_market[i].bid_count += 1;
+
+                    self.pavilion_market[i].chant_timer = rng.gen_range(6..=14);
+
+                    let reset_time = rng.gen_range(20..=45);
+                    if self.pavilion_market[i].listing_time < reset_time {
+                        self.pavilion_market[i].listing_time = reset_time;
+                    }
+
+                    let tag = if is_impulsive { "【斗气冲动】" } else if element_mult > 1.0 { "【五行特需】" } else { "" };
+                    if self.pavilion_market[i].bid_count <= 2 || rng.gen_bool(0.2) {
+                        self.push_log(format!("拍场抬价：{} {}对 [{}] 抬价 +金{} → 金{}", buyer_title, tag, sword_name, jump, new_bid), false, false);
+                    }
                 }
             }
 
-            // 倒计时归零 -> 落槌成交！
             if self.pavilion_market[i].listing_time == 0 {
-                let sold = self.pavilion_market.remove(i);
-                self.coins += sold.listed_price;
-                let is_sky_price = sold.listed_price >= sold.fair_value.saturating_mul(12) / 10;
-                let tag = if is_sky_price { "天价落槌" } else { "拍卖落槌" };
-                let msg = format!("落槌：{} [{}] 得金{}（估价金{}）", tag, sold.sword.name, sold.listed_price, sold.fair_value);
-                self.set_toast(&msg);
+                let final_price = self.pavilion_market[i].listed_price;
+                self.pavilion_market[i].is_sold = true;
+                self.pavilion_market[i].sold_timer = 3;
+
+                // 核心：【传说/神话】品质或大能交易，概率以【仙玉】直付结算！
+                let pays_in_jade = q.rank() >= 36 || rng.gen_bool(0.15);
+                let currency_msg = if pays_in_jade {
+                    let jade_earned = (final_price / 10_000).max(1);
+                    self.jade += jade_earned;
+                    format!("仙玉 {}", jade_earned)
+                } else {
+                    self.coins += final_price;
+                    format!("金 {}", final_price)
+                };
+
+                let ratio_pct = (final_price as f64 / fair as f64 * 100.0) as u32;
+                let is_sky_price = ratio_pct >= 180;
+                let tag = if is_sky_price { "爆火天价" } else { "落槌成交" };
+                let msg = format!("拍场落槌：{} [{}] 得 {}（估价{}%）", tag, self.pavilion_market[i].sword.name, currency_msg, ratio_pct);
+
                 self.push_log(msg, is_sky_price, is_sky_price);
             }
         }
-        if self.auto_list_market { self.auto_fill_market(); }
+        if self.list_tier != AutoListTier::Off { self.process_auto_list(); }
     }
 }

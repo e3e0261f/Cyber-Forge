@@ -1,48 +1,55 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::Paragraph,
     Frame,
 };
 
-// 拥有型结构体：脱离 RwLock 读锁生命周期限制，无 Borrow 冲突
-pub struct Line7State {
-    pub auto_melt: bool,
-    pub auto_list: bool,
-    pub toast: String,
+pub struct Line7State<'a> {
+    pub melt_tier_name: &'static str,
+    pub melt_tier_color: Color,
+    pub list_tier_name: &'static str,
+    pub list_tier_color: Color,
+    pub pending_breakthrough: bool,
+    pub market_news: &'a str,
 }
 
 pub fn render_line_7(f: &mut Frame, area: Rect, state: &Line7State) {
-    let mut spans = Vec::new();
+    let chunks = Layout::default()
+    .direction(Direction::Horizontal)
+    .constraints([
+        Constraint::Min(42),
+                 Constraint::Length(38),
+    ])
+    .split(area);
 
-    // 1. 动态消息通知
-    if !state.toast.is_empty() {
-        spans.push(Span::styled("📢 ", Style::default().fg(Color::Rgb(255, 215, 0))));
-        spans.push(Span::styled(
-            &state.toast,
-            Style::default().fg(Color::Rgb(255, 220, 120)).add_modifier(Modifier::BOLD),
-        ));
-        spans.push(Span::styled("  │  ", Style::default().fg(Color::Rgb(80, 80, 80))));
+    let mut left_spans = Vec::new();
+
+    if state.pending_breakthrough {
+        left_spans.push(Span::styled("⚡[B]突破引劫 ", Style::default().fg(Color::Rgb(255, 215, 0)).add_modifier(Modifier::BOLD)));
+        left_spans.push(Span::styled("│ ", Style::default().fg(Color::Rgb(80, 80, 80))));
     }
 
-    // 2. 彩色开关标识：开(亮绿) / 关(暗灰)
-    spans.push(Span::styled("[T]熔凡品:", Style::default().fg(Color::Rgb(180, 180, 180))));
-    if state.auto_melt {
-        spans.push(Span::styled("开 ", Style::default().fg(Color::Rgb(0, 255, 127)).add_modifier(Modifier::BOLD)));
-    } else {
-        spans.push(Span::styled("关 ", Style::default().fg(Color::Rgb(120, 120, 120))));
+    // [T] 多阶熔炼彩色名呈现
+    left_spans.push(Span::styled("[T]熔炼:", Style::default().fg(Color::Rgb(180, 180, 180))));
+    left_spans.push(Span::styled(state.melt_tier_name, Style::default().fg(state.melt_tier_color).add_modifier(Modifier::BOLD)));
+
+    // [G] 多阶上架彩色门槛呈现
+    left_spans.push(Span::styled(" [G]上架:", Style::default().fg(Color::Rgb(180, 180, 180))));
+    left_spans.push(Span::styled(state.list_tier_name, Style::default().fg(state.list_tier_color).add_modifier(Modifier::BOLD)));
+
+    left_spans.push(Span::styled(" │ [L]日志 [H]指南 [空格]锤", Style::default().fg(Color::Rgb(140, 140, 140))));
+
+    f.render_widget(Paragraph::new(Line::from(left_spans)), chunks[0]);
+
+    if !state.market_news.is_empty() {
+        let news_text = format!("杂闻: {}", state.market_news);
+        f.render_widget(
+            Paragraph::new(news_text)
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::Rgb(180, 160, 100))),
+                        chunks[1],
+        );
     }
-
-    spans.push(Span::styled("[G]自动上架:", Style::default().fg(Color::Rgb(180, 180, 180))));
-    if state.auto_list {
-        spans.push(Span::styled("开 ", Style::default().fg(Color::Rgb(0, 255, 127)).add_modifier(Modifier::BOLD)));
-    } else {
-        spans.push(Span::styled("关 ", Style::default().fg(Color::Rgb(120, 120, 120))));
-    }
-
-    // 3. 常驻功能指引
-    spans.push(Span::styled(" │ [L]日志 [H]指南 [空格]锤击", Style::default().fg(Color::Rgb(140, 140, 140))));
-
-    f.render_widget(Paragraph::new(Line::from(spans)), area);
 }

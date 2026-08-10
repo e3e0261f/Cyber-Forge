@@ -1,6 +1,7 @@
 use rand::Rng;
 use super::GameState;
-use crate::types::{Element, Quality, Sword};
+use crate::sword_gen::SwordGenerator;
+use crate::types::{Element, ForgeResult, Quality, Sword};
 
 impl GameState {
     pub fn get_backpack_upgrade_cost(&self) -> u128 {
@@ -18,6 +19,21 @@ impl GameState {
     }
     pub fn get_bellows_upgrade_cost(&self) -> u128 {
         (50.0 * 1.0145f64.powi(self.bellows_level as i32 - 1)) as u128
+    }
+
+    pub fn upgrade_hammer(&mut self) {
+        let cost = self.get_hammer_upgrade_cost();
+        if self.coins < cost {
+            self.set_toast(format!("升级锤子失败：需要 金{}", cost));
+            return;
+        }
+        self.coins -= cost;
+        self.hammer_level += 1;
+        let name = self.hammer_name();
+        let power = self.hammer_power();
+        let msg = format!("重锤升阶：[{}] Lv.{}（1锤={:.1}下）", name, self.hammer_level, power);
+        self.set_toast(&msg);
+        self.push_log(msg, true, false);
     }
 
     pub fn hire_apprentice(&mut self) {
@@ -66,7 +82,7 @@ impl GameState {
 
     pub fn upgrade_bellows(&mut self) {
         if self.natural_interval_ticks <= 10 {
-            self.set_toast("挥锤速度已达极限 (1.0s/锤)");
+            self.set_toast("风箱已达 500 阶天道极限 (1.0s/锤)");
             return;
         }
         let cost = self.get_bellows_upgrade_cost();
@@ -76,8 +92,11 @@ impl GameState {
         }
         self.coins -= cost;
         self.bellows_level += 1;
-        self.natural_interval_ticks = (self.natural_interval_ticks - 5).max(10);
-        let msg = format!("风箱升级：Lv.{}，锤速 {:.1}s/锤", self.bellows_level, self.natural_interval_ticks as f32 / 10.0);
+
+        let secs = (10.0 - (self.bellows_level as f64 - 1.0) * (9.0 / 499.0)).max(1.0);
+        self.natural_interval_ticks = (secs * 10.0) as u64;
+
+        let msg = format!("风箱升级：Lv.{}/500，锤速 {:.1}s/锤", self.bellows_level, secs);
         self.set_toast(&msg);
         self.push_log(msg, false, false);
     }
@@ -91,22 +110,84 @@ impl GameState {
             1 => {
                 if self.enchant_workers > 0 { self.enchant_workers -= 1; self.sharpen_workers += 1; }
                 else if self.repair_workers > 0 { self.repair_workers -= 1; self.sharpen_workers += 1; }
+                else if self.forge_workers > 0 { self.forge_workers -= 1; self.sharpen_workers += 1; }
+                else if self.auction_workers > 0 { self.auction_workers -= 1; self.sharpen_workers += 1; }
             }
             2 => {
                 if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.enchant_workers += 1; }
                 else if self.repair_workers > 0 { self.repair_workers -= 1; self.enchant_workers += 1; }
+                else if self.forge_workers > 0 { self.forge_workers -= 1; self.enchant_workers += 1; }
+                else if self.auction_workers > 0 { self.auction_workers -= 1; self.enchant_workers += 1; }
             }
             3 => {
                 if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.repair_workers += 1; }
                 else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.repair_workers += 1; }
+                else if self.forge_workers > 0 { self.forge_workers -= 1; self.repair_workers += 1; }
+                else if self.auction_workers > 0 { self.auction_workers -= 1; self.repair_workers += 1; }
+            }
+            4 => {
+                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.forge_workers += 1; }
+                else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.forge_workers += 1; }
+                else if self.repair_workers > 0 { self.repair_workers -= 1; self.forge_workers += 1; }
+                else if self.auction_workers > 0 { self.auction_workers -= 1; self.forge_workers += 1; }
+            }
+            5 => {
+                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.auction_workers += 1; }
+                else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.auction_workers += 1; }
+                else if self.repair_workers > 0 { self.repair_workers -= 1; self.auction_workers += 1; }
+                else if self.forge_workers > 0 { self.forge_workers -= 1; self.auction_workers += 1; }
             }
             _ => {}
         }
-        self.set_toast(format!("磨剑台 {} · 附魔炉 {} · 精修坊 {}", self.sharpen_workers, self.enchant_workers, self.repair_workers));
+        self.set_toast(format!(
+            "磨剑 {} · 附魔 {} · 精修 {} · 盲锻 {} · 拍卖 {}",
+            self.sharpen_workers, self.enchant_workers, self.repair_workers, self.forge_workers, self.auction_workers
+        ));
     }
 
     pub fn process_apprentice_work(&mut self) {
         if self.apprentices == 0 { return; }
+
+        let mut rng = rand::thread_rng();
+
+        // 1. 盲锻坊：凡间凡品农具（15~80 铜钱估价，绝对白色凡品）
+        if self.forge_workers > 0 {
+            let gold_burn = (self.forge_workers as u128) * 10;
+            if self.coins >= gold_burn {
+                self.coins -= gold_burn;
+
+                let slag_gain = self.forge_workers;
+                self.add_iron_slag(slag_gain);
+
+                self.apprentice_forge_progress += self.forge_workers as f64;
+
+                while self.apprentice_forge_progress >= 630.0 && self.backpack.len() < self.max_backpack {
+                    self.apprentice_forge_progress -= 630.0;
+
+                    let base_type = SwordGenerator::random_base_type(&mut rng);
+
+                    let sword = Sword {
+                        id: rng.gen(),
+                        name: format!("盲锻 · {}", base_type),
+                        element: Element::Earth,
+                        quality: Quality::new(rng.gen_range(1..=4)), // 100% 绝对白色凡品
+                        price: rng.gen_range(15..=80), // 估价 15~80 铜钱，凡间老百姓买得起
+                        carbon_ratio: 0.10,
+                        forged_timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+                            sharpness: 0,
+                            enchantment: None,
+                            is_reforged: false,
+                    };
+
+                    let log_msg = format!("徒弟盲锻出炉：[{}]（估价 {} 铜钱，凡间农具）", sword.name, sword.price);
+                    self.backpack.push(sword);
+                    self.sort_backpack();
+                    self.push_log(log_msg, false, false);
+                }
+            }
+        }
+
+        // 2. 磨剑台
         if self.sharpen_workers > 0 && !self.backpack.is_empty() {
             let mult = self.station_mult[0];
             let workers = self.sharpen_workers;
@@ -119,10 +200,11 @@ impl GameState {
             }
             self.sort_backpack();
         }
+
+        // 3. 附魔炉
         if self.enchant_workers > 0 && !self.backpack.is_empty() {
             let mult = self.station_mult[1];
             let workers = self.enchant_workers;
-            let mut rng = rand::thread_rng();
             for sword in &mut self.backpack {
                 if sword.enchantment.is_none() && rng.gen_bool((0.15 * workers as f64).min(1.0)) {
                     let elements = [Element::Gold, Element::Wood, Element::Water, Element::Fire, Element::Earth];
@@ -133,33 +215,39 @@ impl GameState {
             }
             self.sort_backpack();
         }
+
+        // 4. 精修坊
         if self.repair_workers > 0 && self.iron_slag >= 100 {
-            self.repair_progress += self.repair_workers * 5;
-            if self.repair_progress >= 100 {
+            let progress_add = (self.repair_workers * 2).min(100);
+            self.repair_progress += progress_add;
+            if self.repair_progress >= 1000 {
                 self.repair_progress = 0;
                 self.iron_slag -= 100;
-                let mult = self.station_mult[2];
-                let mut rng = rand::thread_rng();
-                let price = ((15_000f64) * mult) as u128;
-                let reforged = Sword {
-                    id: rng.gen(),
-                    name: "天道重铸 · 极光飞剑".to_string(),
-                    element: Element::Fire,
-                    quality: Quality::new(32),
-                    price,
-                    carbon_ratio: 0.85,
-                    forged_timestamp: 0,
-                        sharpness: 100,
-                        enchantment: Some(Element::Fire),
-                        is_reforged: true,
-                };
-                if self.backpack.len() < self.max_backpack {
-                    let msg = format!("精修出炉：重铸史诗飞剑 [{}]", reforged.name);
-                    self.backpack.push(reforged.clone());
+
+                let base_type = SwordGenerator::random_base_type(&mut rng);
+                let qi_bonus = (self.realm.body.qi_sense / 50) as u8;
+
+                if let ForgeResult::Success(mut sword) = SwordGenerator::generate(
+                    self.level,
+                    self.carbon_ratio,
+                    rng.gen(),
+                                                                                  self.apprentices,
+                                                                                  0.0,
+                                                                                  0,
+                                                                                  63,
+                                                                                  qi_bonus,
+                ) {
+                    sword.name = format!("精修 · {}", base_type);
+                    sword.sharpness = 100;
+                    sword.is_reforged = true;
+
+                    let mult = self.station_mult[2];
+                    sword.price = ((sword.price as f64 * 0.30 * mult) as u128).max(1);
+
+                    let log_msg = format!("学徒精修出炉：[{}]（估价金{}）", sword.name, sword.price);
+                    self.backpack.push(sword);
                     self.sort_backpack();
-                    self.active_sword_modal = Some(reforged);
-                    self.set_toast(&msg);
-                    self.push_log(msg, true, true);
+                    self.push_log(log_msg, false, false);
                 }
             }
         }

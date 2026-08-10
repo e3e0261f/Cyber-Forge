@@ -75,9 +75,8 @@ sword.quality.badge(),
     )
 }
 
-// 出炉极品代表作弹窗（精确居中 + 动态 10s 倒计时提示）
 pub fn render_sword_modal(f: &mut Frame, area: Rect, sword: &Sword, remaining_secs: u32) {
-    let popup = centered_rect(46, 52, area); // 精确 46% x 52% 黄金比例居中
+    let popup = centered_rect(46, 52, area);
     f.render_widget(Clear, popup);
 
     let block = Block::default()
@@ -97,7 +96,7 @@ pub fn render_sword_modal(f: &mut Frame, area: Rect, sword: &Sword, remaining_se
     f.render_widget(
         Paragraph::new(text)
         .block(block)
-        .alignment(Alignment::Center) // 绝对居中展示，彻底消除右偏错觉
+        .alignment(Alignment::Center)
         .style(
             Style::default()
             .fg(Color::Rgb(220, 220, 220))

@@ -109,12 +109,12 @@ pub struct RealmState {
     pub cultivation_exp: u128,
     pub body: BodyStats,
     pub masterwork_count: u32,
+    #[serde(default)]
+    pub pending_breakthrough: bool,
 }
 
 impl Default for RealmState {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 impl RealmState {
@@ -125,6 +125,7 @@ impl RealmState {
             cultivation_exp: 0,
             body: BodyStats::default(),
             masterwork_count: 0,
+            pending_breakthrough: false,
         }
     }
 
@@ -134,57 +135,36 @@ impl RealmState {
 
     pub fn soft_remap_from_exp(&mut self) {
         let exp = self.cultivation_exp;
-        let mut realm_idx = 1u32;
-        let mut need = 100u128;
-        let mut remain = exp;
-        while realm_idx < 12 && remain >= need {
-            remain -= need;
-            realm_idx += 1;
-            need = need.saturating_mul(3).saturating_add(50);
+        let realm_idx = self.realm as u32;
+        let need = 100u128 * (10u128.pow(realm_idx - 1));
+
+        let current_sub = ((exp / (need / 15).max(1)) as u32).max(1);
+        if current_sub >= 10 {
+            self.pending_breakthrough = true;
         }
-        let sub = if need > 0 {
-            ((remain * 15) / need).clamp(1, 15) as u32
-        } else {
-            1
-        };
-        self.realm = Realm::from_index(realm_idx.min(12));
-        self.sub_level = sub.max(1);
+        self.sub_level = current_sub;
+
         let tl = self.total_level() as u64;
-        self.body.physique = tl * 10 + 1;
-        if realm_idx >= 2 {
-            self.body.qi_sense = tl * 8;
-        }
-        if realm_idx >= 3 {
-            self.body.spirit = tl * 6;
-        }
-        if realm_idx >= 4 {
-            self.body.core_count = (tl / 20).max(1) as u32;
-            self.body.core_size = tl * 3;
-            self.body.core_refine = (tl / 10) as u32;
-        }
-        if realm_idx >= 5 {
-            self.body.infant_size = tl * 2;
-            self.body.infant_count = (tl / 30).max(1) as u32;
-            self.body.infant_power = tl * 5;
-        }
-        if realm_idx >= 6 {
-            self.body.qi_machine = tl * 4;
-            self.body.matrix = tl;
-        }
-        if realm_idx >= 7 {
-            self.body.law_shards = (tl / 15) as u32;
-            self.body.anti_gravity = tl;
-        }
-        if realm_idx >= 8 {
-            self.body.tribulation = tl * 2;
-            self.body.causality = tl;
+        if realm_idx >= 4 { self.body.core_count = (tl / 20).max(1) as u32; self.body.core_size = tl * 3; self.body.core_refine = (tl / 10) as u32; }
+        if realm_idx >= 5 { self.body.infant_size = tl * 2; self.body.infant_count = (tl / 30).max(1) as u32; self.body.infant_power = tl * 5; }
+        if realm_idx >= 6 { self.body.qi_machine = tl * 4; self.body.matrix = tl; }
+        if realm_idx >= 7 { self.body.law_shards = (tl / 15) as u32; self.body.anti_gravity = tl; }
+        if realm_idx >= 8 { self.body.tribulation = tl * 2; self.body.causality = tl; }
+    }
+
+    pub fn manual_breakthrough(&mut self) -> bool {
+        if self.sub_level >= 10 && (self.realm as u32) < 12 {
+            self.realm = Realm::from_index(self.realm as u32 + 1);
+            self.sub_level = 1;
+            self.pending_breakthrough = false;
+            true
+        } else {
+            false
         }
     }
 
     pub fn add_cultivation(&mut self, amount: u128) {
-        if amount == 0 {
-            return;
-        }
+        if amount == 0 { return; }
         self.cultivation_exp = self.cultivation_exp.saturating_add(amount);
         self.soft_remap_from_exp();
     }
