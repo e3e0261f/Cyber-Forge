@@ -9,6 +9,7 @@ use game::dao_origin::DaoOrigin;
 use game::numbers::format_compact_number;
 use game::state::GameState;
 use game::strike::do_strike;
+use rand::Rng;
 
 struct AppInner {
     state: GameState,
@@ -346,19 +347,42 @@ fn action(app: State<'_, AppState>, key: String) -> Result<UiSnapshot, String> {
         "t" | "T" => s.toggle_auto_melt(),
         "g" | "G" => s.toggle_auto_list(),
         "e" | "E" => s.upgrade_pavilion(),
+        "0" => {
+            s.toggle_debug_mode();
+        }
         "b" | "B" => {
             if s.realm.sub_level < 10 {
                 s.set_toast(format!("尚未圆满：当前 {}层，需≥10层", s.realm.sub_level));
-            } else if s.realm.manual_breakthrough() {
-                let msg = format!("天道引劫：成功突破至 [{}]！", s.realm.realm.name());
-                s.set_toast(&msg); s.push_log(msg, true, true);
-            } else { s.set_toast("引劫失败"); }
-        }
-        "0" => { s.toggle_debug_mode(); }
-        "p" | "P" | "save" => {
-            if s.save_to_disk() {
-                s.set_toast(format!("存档 {}", game::state::save_file_path().display()));
-            } else { s.set_toast("存档失败"); }
+            } else {
+                // 🌟 阶梯概率计算
+                let success_rate = match s.realm.sub_level {
+                    10 => 0.75,
+                    11 => 0.80,
+                    12 => 0.90,
+                    13 => 0.91,
+                    l if l > 13 => (0.91 + (l - 13) as f64 * 0.01).min(0.99),
+                    _ => 0.75,
+                };
+
+                let mut rng = rand::thread_rng();
+                // 判定是否渡劫成功
+                if rng.gen_bool(success_rate) && s.realm.manual_breakthrough() {
+                    let msg = format!("天道引劫：成功突破至 [{}]！(概率 {:.0}%)", s.realm.realm.name(), success_rate * 100.0);
+                    s.set_toast(&msg);
+                    s.push_log(msg, true, true);
+                } else {
+                    // 💥 渡劫失败惩罚：修为尽失，打回炼体境一重！
+                    s.realm.realm = crate::game::realm::Realm::BodyRefining;
+                    s.realm.sub_level = 1;
+                    s.realm.realm_exp = 0;
+                    s.realm.pending_breakthrough = false;
+                    s.sync_body_stats();
+
+                    let fail_msg = format!("天劫反噬：渡劫失败（概率 {:.0}% 翻车）！真元溃散，贬回炼体境一重！", success_rate * 100.0);
+                    s.set_toast(&fail_msg);
+                    s.push_log(fail_msg, true, true);
+                }
+            }
         }
         "1" => s.reassign_workers(1),
         "2" => s.reassign_workers(2),

@@ -106,16 +106,20 @@ impl Default for BodyStats {
 pub struct RealmState {
     pub realm: Realm,
     pub sub_level: u32,
-    /// 生涯累计修仙经验（只增不减，供展示）
     pub cultivation_exp: u128,
-    /// 本境界经验池（突破大境界时按规则结算）
     #[serde(default)]
     pub realm_exp: u128,
     pub body: BodyStats,
     pub masterwork_count: u32,
     #[serde(default)]
     pub pending_breakthrough: bool,
+
+    // 🌟 新增：历史最高战力底蕴字段
+    #[serde(default = "default_max_level")]
+    pub max_total_level: u32,
 }
+
+fn default_max_level() -> u32 { 1 }
 
 impl Default for RealmState {
     fn default() -> Self { Self::new() }
@@ -131,61 +135,61 @@ impl RealmState {
             body: BodyStats::default(),
             masterwork_count: 0,
             pending_breakthrough: false,
+            max_total_level: 1, // 🌟 必须在这里初始化
         }
     }
 
     pub fn total_level(&self) -> u32 {
-        // 每境最多按 13 层计（10 圆满 + 3 极境）
-        (self.realm as u32 - 1) * 13 + self.sub_level.min(13)
+        let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+        std::cmp::max(current_calc, self.max_total_level)
     }
 
-    /// 本境界达到第 `layer` 层所需的累计经验（层内阈值）
-    /// - 1～10：平滑爬到圆满；第 10 层阈值 = base(境界)
-    /// - 11 / 12 / 13：相对第 10 层分别为 10× / 100× / 1000×
     pub fn cumulative_exp_for_layer(realm_idx: u32, layer: u32) -> u128 {
-        let layer = layer.max(1).min(20);
+        let layer = layer.max(1);
         let t10 = Self::exp_to_perfection(realm_idx);
         if layer <= 10 {
-            // 平方曲线：前几层快一点体感，接近圆满变沉
             let l = layer as u128;
             (t10 * l * l) / 100
         } else {
-            // 11→10x, 12→100x, 13→1000x, 再往上继续 ×10
-            let mult = 10u128.pow((layer - 10) as u32);
+            let extra = layer - 10;
+            let mult = 10u128.saturating_mul(3u128.pow(extra.min(30) as u32));
             t10.saturating_mul(mult)
         }
     }
 
-    /// 该境界「10 层圆满」所需累计经验
-    /// 炼体 1e4，炼气 1e5，… 每境 ×10
     pub fn exp_to_perfection(realm_idx: u32) -> u128 {
         let idx = realm_idx.max(1).min(12);
         10_000u128.saturating_mul(10u128.pow(idx - 1))
     }
 
-    /// 当前层升级到下一层还差多少
     pub fn exp_to_next_layer(&self) -> u128 {
-        let next = self.sub_level.saturating_add(1).min(13);
+        let next = self.sub_level.saturating_add(1);
         let need = Self::cumulative_exp_for_layer(self.realm as u32, next);
         need.saturating_sub(self.realm_exp)
     }
 
     pub fn soft_remap_from_exp(&mut self) {
         let realm_idx = self.realm as u32;
-        // 旧档仅有生涯经验时：不把生涯总量灌进本境池（否则会一键满层）
-        // realm_exp 从 0 起重新走本境曲线；cultivation_exp 仍保留生涯展示
-
         let exp = self.realm_exp;
         let mut layer = 1u32;
-        for l in 1..=13 {
+
+        let mut l = 1u32;
+        while l < 100 {
             if exp >= Self::cumulative_exp_for_layer(realm_idx, l) {
                 layer = l;
+                l += 1;
             } else {
                 break;
             }
         }
         self.sub_level = layer;
         self.pending_breakthrough = layer >= 10;
+
+        // 🌟 核心：每次刷新时，自动更新历史巅峰等级，确保突破绝不回退
+        let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+        if current_calc > self.max_total_level {
+            self.max_total_level = current_calc;
+        }
 
         let tl = self.total_level() as u64;
         if realm_idx >= 4 {
@@ -215,13 +219,18 @@ impl RealmState {
     pub fn manual_breakthrough(&mut self) -> bool {
         if self.sub_level >= 10 && (self.realm as u32) < 12 {
             let old_idx = self.realm as u32;
-            // 极境突破：消耗达到当前层的累计经验，余量不带入下一境（防一键飞升）
             let spent = Self::cumulative_exp_for_layer(old_idx, self.sub_level);
             self.realm_exp = 0;
             let _ = spent;
             self.realm = Realm::from_index(old_idx + 1);
             self.sub_level = 1;
             self.pending_breakthrough = false;
+
+            // 突破后立刻重新计算并固化巅峰等级
+            let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+            if current_calc > self.max_total_level {
+                self.max_total_level = current_calc;
+            }
             true
         } else {
             false
@@ -237,6 +246,7 @@ impl RealmState {
         self.soft_remap_from_exp();
     }
 
+    // 🌟 找回丢失的 title 方法
     pub fn title(&self) -> &'static str {
         TitleSystem::get_title_by_level(self.total_level().max(1))
     }

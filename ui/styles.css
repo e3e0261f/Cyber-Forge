@@ -140,13 +140,55 @@ html, body {
 .currency-row span:nth-child(2) { color: #e6c35c; }
 .currency-row span:nth-child(3) { color: #5ed0b0; }
 
-/* —— 中栏纵向比例（对应 Length 3,3,3,11,Min）—— */
+/* --- 🌟 中栏整体：改用绝对可控的 Flex 垂直布局 --- */
 .col-mid {
-  display: grid;
-  grid-template-rows: 52px 120px 52px minmax(140px, 1.2fr) minmax(80px, 1fr);
-  gap: 6px;
-  min-height: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
+
+/* 1. 铁匠信息：固定高度，绝不压缩 */
+.col-mid > .line1 {
+  flex: 0 0 52px !important;
+}
+
+/* 2. 🌟 核心锻造台：赋予最高权重（flex-grow: 3），窗口压缩时它最后缩，且自带最小高度保底 */
+.col-mid > .line2 {
+  flex: 3 1 160px !important;
+  min-height: 140px !important;
+  overflow-y: auto !important;
+}
+
+/* 3. 铁匠铺学徒：固定高度，不压缩 */
+.col-mid > .line3 {
+  flex: 0 0 80px !important;
+}
+
+/* 4. 身体素质：低优先级，空间不够时允许适度压缩，内部可滚动 */
+.col-mid > .line6 {
+  flex: 1 1 90px !important;
+  min-height: 60px !important;
+  overflow-y: auto !important;
+}
+/* 5. 天道纪事·日志：最低优先级，空间不足时优先压缩它，内容溢出时在内部滚动 */
+.col-mid > .line8 {
+  flex: 1 2 70px !important;
+  min-height: 40px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 日志内部的滚动条容器 */
+.col-mid > .line8 .log-list {
+  flex: 1 1 auto !important;
+  min-height: 10px !important;
+  overflow-y: auto !important;
+}
+
 .line { min-height: 0; }
 .line1-body {
   display: flex; align-items: center; gap: 10px;
@@ -340,24 +382,62 @@ html, body {
 }
 .body-grid .sec:first-child { border-top: none; margin-top: 0 !important; }
 
+/* 锻造台多并发矩阵总容器：强制撑满中栏宽度 */
 .forge-stations {
-  display: grid; gap: 4px; margin: 4px 10px 6px; padding: 4px 6px;
-  border-radius: 8px; border: 1px solid rgba(100,180,220,.22); background: rgba(0,0,0,.28);
-  max-height: 140px; overflow-y: auto;
+  display: grid;
+  gap: 6px;
+  margin: 6px 12px 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(100,180,220,.28);
+  background: rgba(0,0,0,.35);
+  box-sizing: border-box;
 }
+
+/* 单个锻造台卡片：确保内部元素完美撑满 */
 .forge-station {
-  border: 1px solid rgba(160,120,255,.18); border-radius: 6px;
-  padding: 3px 5px 4px; background: rgba(12,16,24,.55);
+  border: 1px solid rgba(160,120,255,.25);
+  border-radius: 6px;
+  padding: 5px 8px 6px;
+  background: rgba(12,16,24,.75);
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* 防止 Flex/Grid 子项撑破容器 */
 }
-.forge-station-label { font-size: 9px; color: #9ab0c8; margin-bottom: 2px; }
-.forge-station .mh-lanes { display: flex; flex-direction: column; gap: 2px; }
+
+.forge-station-label {
+  font-size: 10px;
+  color: #9ab0c8;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+/* 并发轨道容器：强制 100% 宽度 */
+.forge-station .mh-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+/* 单条并发进度条轨道：拉满 */
 .mh-lane {
-  height: 5px; border-radius: 2px; background: rgba(0,0,0,.45);
-  overflow: hidden; border: 1px solid rgba(160,120,255,.22);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.55);
+  overflow: hidden;
+  border: 1px solid rgba(160,120,255,.3);
+  width: 100%;
+  box-sizing: border-box;
 }
+
+/* 进度条填充物 */
 .mh-fill {
-  height: 100%; width: 0%;
+  height: 100%;
+  width: 0%;
   background: linear-gradient(90deg, #6a3cff, #b48cff 55%, #ffe6a0);
+  box-shadow: 0 0 6px rgba(180, 140, 255, 0.4);
+  transition: width 0.1s linear;
 }
 .concurrent-tag { color: #c9a8ff; font-weight: 600; margin-left: 6px; font-size: 11px; }
 
@@ -372,4 +452,4 @@ html, body {
 .cell:hover .stash-tip { display: block; }
 
 .stash, #stash { overflow-y: auto !important; align-content: start !important; }
-.cell { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-height: 36px; }*/
+.cell { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-height: 36px; }

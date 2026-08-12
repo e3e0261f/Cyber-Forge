@@ -15,15 +15,15 @@ box-sizing: border-box !important;
 }
 #line2 #anvil .bar-wrap,
 #anvil .bar-wrap {
-top: 18px !important;
+top: 0px !important;
 bottom: auto !important;
-height: 14px !important;
-left: 6% !important;
-right: 6% !important;
+height: 1px !important;
+left: 1% !important;
+right: 1% !important;
 }
 #line2 #anvil .bar-meta,
 #anvil .bar-meta {
-top: 40px !important;
+top: 4px !important;
 bottom: auto !important;
 left: 0 !important;
 right: 0 !important;
@@ -148,80 +148,108 @@ pointer-events: none; /* 确保泛光层不影响任何鼠标点击事件 */
 
 
 
-
-
-
-
-/* 1. 进度条外部容器 */
-#line2 .bar-wrap {
-width: 100%;            /* 充满父级容器宽度 */
-height: 12px;           /* 设置一个合适的高度 */
-background-color: #111; /* 极暗的背景色，体现深邃感 */
-border-radius: 6px;     /* 圆角 */
-overflow: hidden;       /* 隐藏内部溢出，保持圆角 */
-position: relative;
-margin-top: 8px;        /* 与上方标题留出间距 */
-
-/* 💡 高端细节：内嵌阴影，增加凹陷感 */
-box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+/* 默认未达标：暗淡/灰色 */
+#breakHint {
+color: var(--dim);
+opacity: 0.5;
+cursor: default;
+transition: all 0.3s var(--ease);
 }
 
-/* 2. 进度条填充区域 (核心：控制长度变化) */
-#line2 #fill {
-height: 100%;
-width: 0%;              /* 🌟 初始宽度为 0%，由 JS 动态控制 */
-
-/* 🌟 关键：熔岩渐变背景 */
-background: linear-gradient(
-  to right,
-  #ff3300,  /* 深红 (尾部) */
-  #ff8c00,  /* 橙色 */
-  #ffd700   /* 金黄 (头部) */
-);
-
-border-radius: 6px;     /* 保持圆角 */
-
-/* 🌟 关键：平滑过渡效果 (制造呼吸感或跟随锤击的动感) */
-transition: width 0.2s ease-out;
-
-position: relative;
-
-/* 💡 高端细节：给填充物加一点内发光，看起来像能量在流动 */
-box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4);
+/* 达标可突破：发光/高亮 */
+#breakHint.can-break {
+color: #ffd700; /* 亮金色 */
+opacity: 1;
+cursor: pointer;
+text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+animation: breakPulse 1.5s ease-in-out infinite; /* 呼吸发光动画 */
 }
 
-/* 3. 进度条头部的光点 */
-#line2 .fill-head {
-position: absolute;
-top: 0;
-right: -6px;            /* 🌟 始终定位在填充条的最右侧 */
-width: 6px;             /* 光点宽度 */
-height: 100%;
-background-color: white;
-
-/* 🌟 强烈的发光特效 */
-box-shadow:
-0 0 6px white,
-0 0 10px #ffd700,
-0 0 20px #ff8c00;
-
-border-radius: 3px;
-
-/* 💡 高端细节：让光点稍微超出一点，看起来更锐利 */
-filter: blur(0.5px);
+@keyframes breakPulse {
+  0%, 100% { text-shadow: 0 0 4px rgba(255, 215, 0, 0.4); }
+  50% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.9); }
 }
 
-/* 4. (可选) 暴击区域标记 */
-#line2 #crit {
-position: absolute;
-top: 0;
-left: 70%;              /* 假设 79% 的位置是暴击点 */
-width: 20px;             /* 很细的一条线 */
-height: 100%;
-background-color: rgba(255, 255, 0, 0.2); /* 半透明黄色 */
-z-index: 2;             /* 确保在填充条上方 */
 
-/* 给暴击线也加一点微弱泛光 */
-box-shadow: 0 0 4px yellow;
+/* --- 2. 重新分配中栏空间：收紧锻造台留白，把多余空间全给日志 --- */
+.col-mid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important; /* 减小各面板之间的间隙，省空间 */
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
+/* 铁匠信息：固定 */
+.col-mid > .line1 {
+  flex: 0 0 48px !important;
+}
+
+/* 锻造台：适度压缩其弹性膨胀，不再产生大片空白 */
+.col-mid > .line2 {
+  flex: 0 1 auto !important; /* 调整为只按需占用高度，不盲目撑大 */
+  min-height: 165px !important;
+  max-height: 220px !important; /* 设定最大上限，杜绝空白 */
+  overflow-y: auto !important;
+}
+
+/* 学徒面板：固定 */
+.col-mid > .line3 {
+  flex: 0 0 72px !important;
+}
+
+/* 身体素质：适度紧凑 */
+.col-mid > .line6 {
+  flex: 0 1 110px !important;
+  min-height: 50px !important;
+  overflow-y: auto !important;
+}
+
+/* 🌟 天道纪事·日志：接管所有剩余的空白空间，变得宽敞好用！ */
+.col-mid > .line8 {
+  flex: 1 1 auto !important; /* 填满中栏下方所有剩余空间 */
+  min-height: 120px !important; /* 保证日志有足够的初始高度 */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.col-mid > .line8 .log-list {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+}
+
+
+
+
+
+/* --- 1. 极致压缩锻造台主窗口内边距，为第二排台子腾出空间 --- */
+#line2 #anvil,
+#anvil {
+height: 18px !important; /* 从 52px 进一步压扁，释放纵向空间 */
+margin: 4px 1px !important;
+}
+
+/* 调整横向读条的位置，使其在压扁的 #anvil 中完美居中 */
+#line2 #anvil .bar-wrap,
+#anvil .bar-wrap {
+width: 98% !important;
+height: 8px !important;  /* 读条稍微变细一点点，更显精致 */
+margin-top: 3px !important;
+}
+
+/* 隐藏或极度压缩原本底部的多余间距 */
+.bar-meta {
+  display: none !important;
+}
+
+/* 优化多并发台子（.forge-stations）的网格间距，确保双排紧凑显示 */
+.forge-stations {
+  display: grid;
+  gap: 4px !important;
+  margin: 4px 10px !important;
+  padding: 4px 6px !important;
+  max-height: 110px !important; /* 限制最大高度，防止撑坏 */
+  overflow-y: auto !important;
+}

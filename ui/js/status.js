@@ -1,6 +1,7 @@
 /** 资财仪盘、铁匠信息、各面板标题、底部 Line7 */
 import { $, formatNum } from './core.js';
 
+
 export function updateCurrency(s) {
   const copper = $('copperText') || $('copper');
   if (copper) copper.textContent = formatNum(s.copper);
@@ -34,7 +35,16 @@ export function updateTitles(s) {
     (stations > 1 || hammers > 1 ? ` · 台×${stations} 并发×${hammers}` : '');
   const line2 = $('line2Title');
   if (line2 && line2.textContent !== t2) line2.textContent = t2;
-
+  // 🌟 只更新锤子信息部分，不破坏标题和右侧的 QTE 标签
+  const hammerInfoEl = $('hammerInfoText');
+  if (hammerInfoEl) {
+    const t2 =
+    `${s.hammer_name} (Lv.${s.hammer_level} · ${s.hammer_power}) [U]·金${s.cost_hammer || '?'} [W]·金${s.cost_bellows || '?'}` +
+    (stations > 1 || hammers > 1 ? ` · 台×${stations} 并发×${hammers}` : '');
+    if (hammerInfoEl.textContent !== t2) {
+      hammerInfoEl.textContent = t2;
+    }
+  }
   const t4 = `【矩阵锦囊】${(s.backpack || []).length}/${s.max_backpack} [D]·金${s.cost_backpack || '?'}`;
   const line4 = $('line4Title');
   if (line4 && line4.textContent !== t4) line4.textContent = t4;
@@ -67,9 +77,17 @@ export function updateBottomBar(s) {
   }
   const bh = $('breakHint');
   if (bh) {
-    bh.textContent = s.pending_breakthrough
-      ? '⚡[B]可突破'
-      : `[B]突破(${s.sub_level || 1}/10)`;
+    const subLevel = s.sub_level || 1;
+    // 🌟 当达到 10 层或状态显示可突破时，加上 can-break 类名让它发光
+    if (subLevel >= 10 || s.pending_breakthrough) {
+      bh.textContent = `⚡[B] 准备引劫 (${subLevel}层)`;
+      bh.classList.add('can-break');
+      bh.classList.remove('hidden');
+    } else {
+      bh.textContent = `[B] 突破(${subLevel}/10)`;
+      bh.classList.remove('can-break');
+      bh.classList.remove('hidden');
+    }
   }
   const news = $('news');
   if (news) news.textContent = '杂闻：' + (s.market_news || '—');

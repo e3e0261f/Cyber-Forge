@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cyber-Forge · 铁匠铺</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-append.css" />
 
 </head>
@@ -53,31 +52,28 @@
           </div>
         </div>
 
-<!-- Line2 锻造台 · 读条锚点 (最外层：流光容器) -->
+<!-- Line2 锻造台 · 读条锚点 -->
 <div class="panel line line2" id="line2">
-
-  <!-- 🌟 新增这一行：内层容器 -->
   <div class="panel-inner">
 
-    <header class="ptitle" id="line2Title">【锻造台】</header>
+    <!-- 🌟 修改这里：把 QTE 融合进标题行 -->
+    <header class="ptitle" id="line2Title">
+      【锻造台】<span id="hammerInfoText"></span>
+      <span id="titleQte" style="color: var(--crit, #ff4d7a); float: right;">完美 0.0</span>
+    </header>
+
     <div id="anvil">
       <div class="anvil-glow" id="anvilGlow"></div>
       <canvas id="sparks"></canvas>
+
       <div class="bar-wrap">
         <div id="crit"></div>
         <div id="fill"><span class="fill-head"></span></div>
       </div>
-      <div class="bar-meta">
-        <span id="barLabel">下一锤 —</span>
-        <span id="strikes">0/63</span>
-        <span id="qteHits">完美 0</span>
-        <span id="forgeLayoutTag" class="concurrent-tag"></span>
-      </div>
     </div>
+
     <div class="forge-stations" id="forgeStations" hidden></div>
-
-  </div> <!-- 🌟 新增这一行：内层结束 -->
-
+  </div>
 </div>
 
         <!-- Line3 铁匠铺学徒 -->

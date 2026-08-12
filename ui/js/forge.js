@@ -4,7 +4,8 @@ import { $ } from './core.js';
 const fill = $('fill');
 const barLabel = $('barLabel');
 const strikesEl = $('strikes');
-const qteHits = $('qteHits');
+const qteHits = $('qteHits'); // 旧的，如果 DOM 删了或隐藏了也无所谓
+const titleQte = $('titleQte'); // 🌟 新增：标题上的 QTE 显示元素
 const anvil = $('anvil');
 const anvilGlow = $('anvilGlow');
 
@@ -12,6 +13,11 @@ let stationsBuilt = { stations: 0, hammers: 0 };
 
 export function updateProgress(s) {
   const p = s.progress || 0;
+  const titleQte = $('titleQte');
+  if (titleQte) {
+    const hits = Number(s.forge_qte_hits || 0).toFixed(1);
+    titleQte.textContent = `完美 ${hits}`;
+  }
   if (fill) fill.style.width = (p * 100).toFixed(1) + '%';
   if (barLabel) {
     barLabel.textContent = `${(Math.max(0, 1 - p) * (s.interval_secs || 1)).toFixed(1)}s`;
@@ -19,11 +25,21 @@ export function updateProgress(s) {
   if (strikesEl) {
     strikesEl.textContent = `${Math.floor(s.sub_strikes || 0)}/${s.max_strikes || 0}`;
   }
+
+  // 🌟 核心修改：将 QTE 数据同步到标题上的 #titleQte 元素中
+  if (titleQte) {
+    const hits = Number(s.forge_qte_hits || 0).toFixed(1);
+    titleQte.textContent = `完美 ${hits}`;
+  }
+  // 同时也兼容旧的 qteHits 防止报错
   if (qteHits) {
     qteHits.textContent = `完美 ${Number(s.forge_qte_hits || 0).toFixed(1)}`;
   }
+
   if (anvil) anvil.classList.toggle('crit-near', !!s.in_crit);
   if (anvilGlow) anvilGlow.style.opacity = s.flash ? '1' : '0';
+
+  // ... 后续的并发锤与矩阵台代码保持原样 ...
 
   const hammers = Math.max(1, s.concurrent_hammers | 0);
   const stations = Math.max(1, s.matrix_slots | 0);
@@ -46,7 +62,8 @@ export function updateProgress(s) {
   }
 
   box.hidden = false;
-  const cols = stations <= 2 ? stations : Math.min(4, Math.ceil(Math.sqrt(stations)));
+  // 优化：如果是 5 个台子，我们可以让它完美排布成 5列1行，或者自适应铺满
+  const cols = stations <= 3 ? stations : (stations === 5 ? 5 : Math.min(4, stations));
   box.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
   if (stationsBuilt.stations !== stations || stationsBuilt.hammers !== hammers) {
