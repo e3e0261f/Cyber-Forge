@@ -8,7 +8,7 @@ const stash = $('stash');
 const lotsEl = $('lots');
 const logList = $('logList');
 const canvas = $('sparks');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 const anvil = $('anvil');
 const anvilGlow = $('anvilGlow');
 const toastEl = $('toast');
@@ -43,7 +43,7 @@ function formatNum(val) {
 }
 
 function resize() {
-  if (!anvil) return;
+  if (!anvil || !canvas || !ctx) return;
   const dpr = Math.min(devicePixelRatio || 1, 1.25);
   canvas.width = Math.max(1, anvil.clientWidth * dpr);
   canvas.height = Math.max(1, anvil.clientHeight * dpr);
@@ -53,7 +53,7 @@ resize();
 window.addEventListener('resize', resize);
 
 function sparkAtHead(crit) {
-  if (particles.length > 32) return;
+  if (!anvil || !ctx || particles.length > 32) return;
   const w = anvil.clientWidth, h = anvil.clientHeight;
   const p = lastSnap ? lastSnap.progress : 0.5;
   const x = w * (0.06 + 0.88 * Math.min(0.98, Math.max(0.02, p)));
@@ -70,7 +70,7 @@ function sparkAtHead(crit) {
 }
 
 function showToast(msg) {
-  if (!msg) return;
+  if (!msg || !toastEl) return;
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(showToast._t);
@@ -97,11 +97,11 @@ function cellLabel(it) {
 
 function updateProgress(s) {
   const p = s.progress || 0;
-  fill.style.width = (p * 100).toFixed(1) + '%';
-  barLabel.textContent = `${(Math.max(0, 1 - p) * (s.interval_secs || 1)).toFixed(1)}s`;
-  strikesEl.textContent = `${Math.floor(s.sub_strikes || 0)}/${s.max_strikes || 0}`;
-  qteHits.textContent = `完美 ${Number(s.forge_qte_hits || 0).toFixed(1)}`;
-  anvil.classList.toggle('crit-near', !!s.in_crit);
+  if (fill) fill.style.width = (p * 100).toFixed(1) + '%';
+  if (barLabel) barLabel.textContent = `${(Math.max(0, 1 - p) * (s.interval_secs || 1)).toFixed(1)}s`;
+  if (strikesEl) strikesEl.textContent = `${Math.floor(s.sub_strikes || 0)}/${s.max_strikes || 0}`;
+  if (qteHits) qteHits.textContent = `完美 ${Number(s.forge_qte_hits || 0).toFixed(1)}`;
+  if (anvil) anvil.classList.toggle('crit-near', !!s.in_crit);
   if (anvilGlow) anvilGlow.style.opacity = s.flash ? '1' : '0';
 
   const hammers = Math.max(1, s.concurrent_hammers | 0);
@@ -151,6 +151,7 @@ function updateProgress(s) {
 }
 
 function renderStash(items, max) {
+  if (!stash) return;
   const list = items || [];
   const slots = Math.max(max || 10, list.length);
   const key = list.slice(0, slots).map((it) =>
@@ -184,6 +185,7 @@ function renderStash(items, max) {
 }
 
 function renderLots(lots) {
+  if (!lotsEl) return;
   const list = lots || [];
   const key = list.map((l) => `${l.name}|${l.bid}|${l.time}|${l.waiting}|${l.sold}`).join(';');
   if (key === lastLotsKey) return;
@@ -312,11 +314,10 @@ function applySnap(s) {
   if (s.flash && (!prev || !prev.flash)) sparkAtHead(true);
 }
 
-/* 快捷键双轨防误触与独立控速配置 */
-const FAST_HOLD = new Set(['Space']);
-
-const FAST_DELAY = 100; // 快速按键（空格挥锤 / 1~5 岗位调配）连发间隔：120ms
-const SLOW_DELAY = 200; // 慢速功能键（升级 / 扩容 / 切换 / 兑换）防误触间隔：400ms
+/* 快捷键双轨防误触与 1/10/100 批量分派 */
+const FAST_HOLD = new Set(['Space', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5']);
+const FAST_DELAY = 100;
+const SLOW_DELAY = 20;
 
 const KEY_MAP = {
   Space: 'strike',
@@ -325,12 +326,40 @@ const KEY_MAP = {
   KeyI: 'i', KeyO: 'o',
   Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5', KeyP: 'p',
 };
+
+// 全局记录按键开始时间 // 全局记录按键开始时间
+let keyStartTime = {};
+
+window.addEventListener('keydown', async (e) => {
+  if (!KEY_MAP[e.code]) return;
+
+  // 记录按键起始时间，用于计算长按增量
+  if (!keyStartTime[e.code]) keyStartTime[e.code] = performance.now();
+
+  e.preventDefault();
+  const duration = performance.now() - keyStartTime[e.code];
+
+  if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(e.code)) {
+    const k = KEY_MAP[e.code];
+    // 发送按键及其持续时间给后端进行动态增量计算
+    const t = await invoke('reassign', { job: parseInt(k), duration: duration });
+    if (t) applySnap(t);
+  } else {
+    await fireKey(e.code);
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  delete keyStartTime[e.code]; // 松开按键清空计时
+  held.delete(e.code);
+});
+// 全局记录按键开始时间 // 全局记录按键开始时间
 const held = new Set();
 let holdTimer = null;
 let actionBusy = false;
-let lastKeyTimes = {}; // 各按键独立冷却时间记录
+let lastKeyTimes = {};
 
-async function fireKey(code, shiftKey = false) {
+async function fireKey(code, shiftKey = false, ctrlKey = false) {
   if (actionBusy) return;
   let k = KEY_MAP[code];
   if (!k) return;
@@ -338,12 +367,19 @@ async function fireKey(code, shiftKey = false) {
   if (code === 'KeyI' && shiftKey) k = 'I';
   if (code === 'KeyO' && shiftKey) k = 'O';
 
-  // 双轨控速：根据按键所属集合精准选择冷却延迟
+  if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
+    if (ctrlKey) {
+      k = k + '_100';
+    } else if (shiftKey) {
+      k = k + '_10';
+    }
+  }
+
   const now = performance.now();
   const last = lastKeyTimes[code] || 0;
   const minDelay = FAST_HOLD.has(code) ? FAST_DELAY : SLOW_DELAY;
 
-  if (now - last < minDelay) return; // 未到冷却门槛则拦截
+  if (now - last < minDelay) return;
   lastKeyTimes[code] = now;
 
   actionBusy = true;
@@ -360,10 +396,9 @@ async function fireKey(code, shiftKey = false) {
 
 function startHoldLoop() {
   if (holdTimer) return;
-  // 轮询定时器设定为 30ms 极高精度，具体触发频率由 fireKey 中的 minDelay 精确裁决
   holdTimer = setInterval(async () => {
     if (!held.size) { clearInterval(holdTimer); holdTimer = null; return; }
-    for (const code of [...held]) await fireKey(code, false);
+    for (const code of [...held]) await fireKey(code, false, false);
   }, 30);
 }
 
@@ -376,14 +411,14 @@ window.addEventListener('keydown', async (e) => {
   }
   if (e.code === 'KeyH') {
     e.preventDefault();
-    showToast('Space/1~5 控速连发(120ms) · 功能按键防误触(400ms)');
+    showToast('Shift+1~5 调配10人 · Ctrl+1~5 调配100人');
     return;
   }
   if (!KEY_MAP[e.code]) return;
   e.preventDefault();
   if (e.repeat) return;
   held.add(e.code);
-  await fireKey(e.code, e.shiftKey);
+  await fireKey(e.code, e.shiftKey, e.ctrlKey);
   startHoldLoop();
 });
 window.addEventListener('keyup', (e) => {
@@ -396,7 +431,7 @@ window.addEventListener('blur', () => {
 });
 
 function frame() {
-  if (particles.length) {
+  if (particles.length && ctx && anvil) {
     ctx.clearRect(0, 0, anvil.clientWidth, anvil.clientHeight);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];

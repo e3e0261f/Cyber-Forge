@@ -114,7 +114,7 @@ impl GameState {
         }
         self.coins -= cost;
         self.bellows_level += 1;
-        
+
         let secs = (10.0 - (self.bellows_level as f64 - 1.0) * (9.0 / 499.0)).max(1.0);
         self.natural_interval_ticks = (secs * 10.0) as u64;
 
@@ -177,7 +177,7 @@ impl GameState {
             let gold_burn = (self.forge_workers as u128) * 10;
             if self.coins >= gold_burn {
                 self.coins -= gold_burn;
-                
+
                 let slag_gain = self.forge_workers;
                 self.add_iron_slag(slag_gain);
 

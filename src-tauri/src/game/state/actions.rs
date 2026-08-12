@@ -1,9 +1,72 @@
-use super::{GameState, AutoMeltTier, AutoListTier, GOD_RATE_SOFT_CAP, LogFilter};
+use super::{GameState, AutoMeltTier, GOD_RATE_SOFT_CAP, LogFilter};
 use crate::game::types::Quality;
 
 fn slag_of(q: Quality) -> u32 { q.slag_value() }
 
 impl GameState {
+    // 智能调度：根据按住按键的时间长度，动态计算步长
+    // duration_ms: 按键持续的时间
+    pub fn get_step_by_duration(duration_ms: u64) -> u32 {
+        if duration_ms > 5000 { 50 }      // 5秒后，50人/Tick
+        else if duration_ms > 2000 { 10 }  // 2秒后，10人/Tick
+        else if duration_ms > 500 { 2 }    // 0.5秒后，2人/Tick
+        else { 1 }                         // 初始，1人/Tick
+    }
+
+    pub fn reassign_workers_dynamic(&mut self, target_type: u8, duration_ms: u64) {
+        if self.apprentices == 0 { return; }
+        let step = Self::get_step_by_duration(duration_ms);
+
+        // 实际调配人数 = min(剩余学徒数, step)
+        let mut moved = 0u32;
+        while moved < step {
+            let before = moved;
+            // 调度逻辑：从其他有人的岗位中抽取
+            let source_ptr = match target_type {
+                1 => if self.enchant_workers > 0 { &mut self.enchant_workers }
+                else if self.repair_workers > 0 { &mut self.repair_workers }
+                else if self.forge_workers > 0 { &mut self.forge_workers }
+                else if self.auction_workers > 0 { &mut self.auction_workers }
+                else { break },
+                    2 => if self.sharpen_workers > 0 { &mut self.sharpen_workers }
+                    else if self.repair_workers > 0 { &mut self.repair_workers }
+                    else if self.forge_workers > 0 { &mut self.forge_workers }
+                    else if self.auction_workers > 0 { &mut self.auction_workers }
+                    else { break },
+                        3 => if self.sharpen_workers > 0 { &mut self.sharpen_workers }
+                        else if self.enchant_workers > 0 { &mut self.enchant_workers }
+                        else if self.forge_workers > 0 { &mut self.forge_workers }
+                        else if self.auction_workers > 0 { &mut self.auction_workers }
+                        else { break },
+                            4 => if self.sharpen_workers > 0 { &mut self.sharpen_workers }
+                            else if self.enchant_workers > 0 { &mut self.enchant_workers }
+                            else if self.repair_workers > 0 { &mut self.repair_workers }
+                            else if self.auction_workers > 0 { &mut self.auction_workers }
+                            else { break },
+                                5 => if self.sharpen_workers > 0 { &mut self.sharpen_workers }
+                                else if self.enchant_workers > 0 { &mut self.enchant_workers }
+                                else if self.repair_workers > 0 { &mut self.repair_workers }
+                                else if self.forge_workers > 0 { &mut self.forge_workers }
+                                else { break },
+                                    _ => break,
+            };
+
+            *source_ptr -= 1;
+            match target_type {
+                1 => self.sharpen_workers += 1,
+                2 => self.enchant_workers += 1,
+                3 => self.repair_workers += 1,
+                4 => self.forge_workers += 1,
+                5 => self.auction_workers += 1,
+                _ => {}
+            }
+            moved += 1;
+        }
+        if moved > 0 {
+            self.set_toast(format!("调配+{}：磨{} 附{} 精{} 盲{} 拍{}", moved, self.sharpen_workers, self.enchant_workers, self.repair_workers, self.forge_workers, self.auction_workers));
+        }
+    }
+    // ... 其他原有方法保持不变 ...
     pub fn push_log(&mut self, msg: String, is_important: bool, is_masterwork: bool) {
         let allow = match self.log_filter {
             LogFilter::All => true,
