@@ -215,11 +215,11 @@ filter: blur(0.5px);
 #line2 #crit {
 position: absolute;
 top: 0;
-left: 79%;              /* 假设 79% 的位置是暴击点 */
-width: 2px;             /* 很细的一条线 */
+left: 70%;              /* 假设 79% 的位置是暴击点 */
+width: 20px;             /* 很细的一条线 */
 height: 100%;
-background-color: rgba(255, 255, 0, 0.5); /* 半透明黄色 */
-z-index: 1;             /* 确保在填充条上方 */
+background-color: rgba(255, 255, 0, 0.2); /* 半透明黄色 */
+z-index: 2;             /* 确保在填充条上方 */
 
 /* 给暴击线也加一点微弱泛光 */
 box-shadow: 0 0 4px yellow;
