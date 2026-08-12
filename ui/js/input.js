@@ -21,7 +21,9 @@ const KEY_MAP = {
   KeyS: 's',
   KeyB: 'b',
   KeyI: 'i',
+  KeyI: 'I',
   KeyO: 'o',
+  KeyO: 'O',
   Digit0: '0',
   Digit1: '1',
   Digit2: '2',
@@ -36,7 +38,7 @@ let holdTimer = null;
 let actionBusy = false;
 const lastKeyTimes = {};
 
-async function fireKey(code, shiftKey = false, ctrlKey = false) {
+async function fireKey(code, shiftKey = true, ctrlKey = true) {
   if (actionBusy) return;
   let k = KEY_MAP[code];
   if (!k) return;
