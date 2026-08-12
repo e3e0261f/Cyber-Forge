@@ -1,0 +1,23 @@
+[package]
+name = "cyber-forge-tauri"
+version = "2.4.1"
+description = "Cyber-Forge Tauri 2 — full game + ionic UI"
+authors = ["CyberCraftsman"]
+edition = "2021"
+
+[lib]
+name = "cyber_forge_tauri_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+sha2 = { version = "0.10", features = ["std"] }
+
+[profile.release]
+panic = "abort"

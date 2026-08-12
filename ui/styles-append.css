@@ -1,0 +1,11 @@
+
+.stash, #stash {
+  overflow-y: auto !important;
+  align-content: start !important;
+}
+.cell {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-height: 36px;
+}

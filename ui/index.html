@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cyber-Forge · 铁匠铺</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!--
+    严格对齐终端 Ratatui 布局（forge_loop/render.rs）：
+    横向 22% | 50% | 28%
+    左：Line4 矩阵锦囊
+    中：Line1 铁匠信息 → Line2 锻造台 → Line3 铁匠铺 → Line6 身体素质 → Line8 天道纪事
+    右：Line5 藏宝阁拍卖
+    底：Line7 熔炼/上架档 + 市井杂闻
+  -->
+  <div id="root">
+    <div id="main">
+
+      <!-- LEFT 22% · Line4 -->
+      <section class="panel col-left" id="line4">
+<!-- 资财仪盘小窗口 -->
+<div class="panel currency-panel" id="currencyPanel">
+  <!--  <header class="ptitle">【资财仪盘】</header> -->
+  <div class="currency-body">
+    <span class="curr-item copper">铜钱 <strong id="copperText">0</strong></span>
+    <span class="curr-divider">│</span>
+    <span class="curr-item gold">金币 <strong id="goldText">0</strong></span>
+    <span class="curr-divider">│</span>
+    <span class="curr-item jade">仙玉 <strong id="jadeText">0</strong></span>
+  </div>
+</div>
+        <header class="ptitle" id="line4Title">【矩阵锦囊】0/20 [D]扩</header>
+        <div class="matrix" id="stash"></div>
+        <div class="currency-row">
+          <span id="copper">铜 —</span>
+          <span id="coins">金 —</span>
+          <span id="jade">玉 —</span>
+        </div>
+      </section>
+
+      <!-- CENTER 50% · middle stack -->
+      <section class="col-mid">
+        <!-- Line1 -->
+        <div class="panel line line1" id="line1">
+          <header class="ptitle">【铁匠信息】</header>
+          <div class="line1-body">
+            <span id="level">LV.1</span>
+            <div class="exp-wrap"><div class="exp-fill" id="expFill"></div></div>
+            <span id="expText">0/0</span>
+          </div>
+        </div>
+
+        <!-- Line2 锻造台 · 读条锚点 -->
+        <div class="panel line line2" id="line2">
+          <header class="ptitle" id="line2Title">【锻造台】</header>
+          <div id="anvil">
+            <div class="anvil-glow" id="anvilGlow"></div>
+            <canvas id="sparks"></canvas>
+            <div class="bar-wrap">
+              <div id="crit"></div>
+              <div id="fill"><span class="fill-head"></span></div>
+            </div>
+            <div class="bar-meta">
+              <span id="barLabel">下一锤 —</span>
+              <span id="strikes">0/63</span>
+              <span id="qteHits">完美 0</span>
+              <span id="forgeLayoutTag" class="concurrent-tag"></span>
+            </div>
+          </div>
+          <div class="forge-stations" id="forgeStations" hidden></div>
+        </div>
+
+        <!-- Line3 铁匠铺学徒 -->
+        <div class="panel line line3" id="line3">
+          <header class="ptitle" id="line3Title">【铁匠铺】学徒 0/10 [A]招 [R]扩</header>
+          <div class="apprentice-grid" id="apprenticeRow">
+            <div class="job"><span class="job-name">[1]磨</span><span class="job-n" id="jobSharpen">0</span></div>
+            <div class="job"><span class="job-name">[2]附</span><span class="job-n" id="jobEnchant">0</span></div>
+            <div class="job"><span class="job-name">[3]修</span><span class="job-n" id="jobRepair">0</span></div>
+            <div class="job"><span class="job-name">[4]锻</span><span class="job-n" id="jobForge">0</span></div>
+            <div class="job"><span class="job-name">[5]拍</span><span class="job-n" id="jobAuction">0</span></div>
+          </div>
+        </div>
+
+        <!-- Line6 身体素质 -->
+        <div class="panel line line6" id="line6">
+          <header class="ptitle" id="line6Title">【身体素质】</header>
+          <div class="body-grid" id="bodyGrid"></div>
+        </div>
+
+        <!-- Line8 日志 -->
+        <div class="panel line line8" id="line8">
+          <header class="ptitle">【天道纪事·日志】</header>
+          <div class="log-list" id="logList"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT 28% · Line5 -->
+      <section class="panel col-right" id="line5">
+        <header class="ptitle" id="line5Title">【藏宝阁拍卖】0/20 [E]扩</header>
+        <div class="pavilion-hint">倒计时零落槌 · 加价重置 · 阶梯阻尼</div>
+        <div class="lots" id="lots"></div>
+        <footer class="ptitle-bottom" id="line5Bottom">云集道友 —</footer>
+      </section>
+    </div>
+
+    <!-- BOTTOM · Line7 -->
+    <footer class="line7" id="line7">
+      <div class="line7-left">
+        <span id="meltTier">[T]熔炼 关</span>
+        <span id="listTier">[G]上架 关</span>
+        <span id="breakHint" class="hidden">⚡[B]突破引劫</span>
+      </div>
+      <div class="line7-right" id="news">杂闻：—</div>
+    </footer>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
