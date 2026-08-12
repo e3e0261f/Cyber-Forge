@@ -317,7 +317,7 @@ function applySnap(s) {
 /* 快捷键双轨防误触与 1/10/100 批量分派 */
 const FAST_HOLD = new Set(['Space', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5']);
 const FAST_DELAY = 100;
-const SLOW_DELAY = 20;
+const SLOW_DELAY = 200;
 
 const KEY_MAP = {
   Space: 'strike',
