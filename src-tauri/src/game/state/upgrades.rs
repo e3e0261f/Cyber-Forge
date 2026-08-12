@@ -167,6 +167,66 @@ impl GameState {
         ));
     }
 
+    /// 批量调配：把 n 名学徒调到指定岗位（从其他岗位抽）
+    pub fn reassign_workers_n(&mut self, target_type: u8, n: u32) {
+        if n == 0 { return; }
+        if self.apprentices == 0 {
+            self.set_toast("无学徒，按 [A] 招募");
+            return;
+        }
+        let mut moved = 0u32;
+        for _ in 0..n {
+            let moved_one = match target_type {
+                1 => {
+                    if self.enchant_workers > 0 { self.enchant_workers -= 1; self.sharpen_workers += 1; true }
+                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.sharpen_workers += 1; true }
+                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.sharpen_workers += 1; true }
+                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.sharpen_workers += 1; true }
+                    else { false }
+                }
+                2 => {
+                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.enchant_workers += 1; true }
+                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.enchant_workers += 1; true }
+                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.enchant_workers += 1; true }
+                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.enchant_workers += 1; true }
+                    else { false }
+                }
+                3 => {
+                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.repair_workers += 1; true }
+                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.repair_workers += 1; true }
+                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.repair_workers += 1; true }
+                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.repair_workers += 1; true }
+                    else { false }
+                }
+                4 => {
+                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.forge_workers += 1; true }
+                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.forge_workers += 1; true }
+                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.forge_workers += 1; true }
+                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.forge_workers += 1; true }
+                    else { false }
+                }
+                5 => {
+                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.auction_workers += 1; true }
+                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.auction_workers += 1; true }
+                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.auction_workers += 1; true }
+                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.auction_workers += 1; true }
+                    else { false }
+                }
+                _ => false,
+            };
+            if !moved_one { break; }
+            moved += 1;
+        }
+        if moved > 0 {
+            self.set_toast(format!(
+                "批量×{}：磨{} 附{} 精{} 盲{} 拍{}",
+                moved, self.sharpen_workers, self.enchant_workers, self.repair_workers, self.forge_workers, self.auction_workers
+            ));
+        } else {
+            self.set_toast("无可调配学徒");
+        }
+    }
+
     pub fn process_apprentice_work(&mut self) {
         if self.apprentices == 0 { return; }
 

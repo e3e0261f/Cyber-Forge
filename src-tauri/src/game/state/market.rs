@@ -104,6 +104,7 @@ impl GameState {
             hype_factor,
             momentum: 0.0,
             chant_timer: 0,
+            last_buyer_title: String::new(),
         });
         self.push_log(msg, false, false);
     }
@@ -149,6 +150,7 @@ impl GameState {
                     hype_factor,
                     momentum: 0.0,
                     chant_timer: 0,
+                    last_buyer_title: String::new(),
                 });
                 self.push_log(msg, false, false);
             } else {
@@ -163,8 +165,14 @@ impl GameState {
 
     // 拍场结算：大能道友出价【传说/神话】兵刃，支持【仙玉】免税直付！
     pub fn process_immortal_buyers(&mut self) {
-        if self.pavilion_market.is_empty() { return; }
         let mut rng = rand::thread_rng();
+        // 云集道友 ABM：更新在场/竞价人数（即使暂无拍品也驱动进出）
+        let active_lots = self.pavilion_market.iter().filter(|l| !l.is_sold).count();
+        let hype = 1.0 + (self.auction_workers as f64 * 0.01).min(0.5);
+        let traffic = 0.5 + (self.apprentices as f64 * 0.005).min(0.5);
+        let _intents = self.market_swarm.step(&mut rng, active_lots, hype, traffic);
+
+        if self.pavilion_market.is_empty() { return; }
 
         let w = self.auction_workers as u64;
         let teams = if w > 0 { (w + 9) / 10 } else { 1 };
@@ -245,6 +253,7 @@ impl GameState {
 
                     self.pavilion_market[i].listed_price = new_bid;
                     self.pavilion_market[i].bid_count += 1;
+                    self.pavilion_market[i].last_buyer_title = buyer_title.to_string();
 
                     self.pavilion_market[i].chant_timer = rng.gen_range(6..=14);
 
@@ -282,6 +291,15 @@ impl GameState {
                 let msg = format!("拍场落槌：{} [{}] 得 {}（估价{}%）", tag, self.pavilion_market[i].sword.name, currency_msg, ratio_pct);
 
                 self.push_log(msg, is_sky_price, is_sky_price);
+
+                // 买家过境铁浆（element_match 用本帧 roll 近似即可；主要看头衔与成交）
+                // 先 clone，避免 immutable borrow 与 &mut self 冲突
+                let buyer = if self.pavilion_market[i].last_buyer_title.is_empty() {
+                    "过路散修".to_string()
+                } else {
+                    self.pavilion_market[i].last_buyer_title.clone()
+                };
+                self.grant_visitor_slag(&buyer, element_mult > 1.0, false, true);
             }
         }
         if self.list_tier != AutoListTier::Off { self.process_auto_list(); }

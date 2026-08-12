@@ -8,6 +8,7 @@ export function renderBody(s) {
   if (!g) return;
   const key = [
     s.realm_name,
+    s.title,
     s.sub_level,
     s.physique,
     s.qi_sense,
@@ -25,9 +26,10 @@ export function renderBody(s) {
   const row = (k, v) => `<span class="k">${k}</span><span class="v">${v ?? '—'}</span>`;
   const sec = (t) => `<span class="sec">${t}</span>`;
   const n = (x) => (x === 0 || x ? String(x) : '0');
+  const title = s.title ? ` · ${s.title}` : '';
 
   g.innerHTML = [
-    sec(`${s.realm_name || ''} · ${s.sub_level || 1}层`),
+    //sec(`${s.realm_name || ''} · ${s.sub_level || 1}层${title}`),
     row('本境', s.realm_exp),
     row('下层', s.exp_to_next),
     row('累计', s.cultivation),

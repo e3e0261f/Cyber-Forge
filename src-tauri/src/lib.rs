@@ -73,6 +73,7 @@ struct UiSnapshot {
     melt_color: String,
     list_color: String,
     realm_name: String,
+    title: String,
     sub_level: u32,
     realm_exp: String,
     exp_to_next: String,
@@ -211,6 +212,7 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
         melt_color: s.melt_tier.color_hex().to_string(),
         list_color: s.list_tier.color_hex().to_string(),
         realm_name: s.realm.realm.name().to_string(),
+        title: s.realm.title().to_string(),
         sub_level: s.realm.sub_level,
         realm_exp: format_compact_number(s.realm.realm_exp),
         exp_to_next: format_compact_number(s.realm.exp_to_next_layer()),
@@ -304,7 +306,10 @@ fn game_tick(app: State<'_, AppState>) -> Result<UiSnapshot, String> {
     }
     inner.state.process_auto_melt();
     inner.state.process_auto_list();
-    // apprentice ticks light
+    // 学徒岗位产出（盲锻/磨剑/附魔/精修）
+    if inner.state.market_tick_counter % 5 == 0 {
+        inner.state.process_apprentice_work();
+    }
     // AFK hammer
     let interval = inner.state.effective_interval_secs().max(0.01);
     if inner.cycle_start.elapsed().as_secs_f64() >= interval {
@@ -360,6 +365,16 @@ fn action(app: State<'_, AppState>, key: String) -> Result<UiSnapshot, String> {
         "3" => s.reassign_workers(3),
         "4" => s.reassign_workers(4),
         "5" => s.reassign_workers(5),
+        "1_10" => s.reassign_workers_n(1, 10),
+        "2_10" => s.reassign_workers_n(2, 10),
+        "3_10" => s.reassign_workers_n(3, 10),
+        "4_10" => s.reassign_workers_n(4, 10),
+        "5_10" => s.reassign_workers_n(5, 10),
+        "1_100" => s.reassign_workers_n(1, 100),
+        "2_100" => s.reassign_workers_n(2, 100),
+        "3_100" => s.reassign_workers_n(3, 100),
+        "4_100" => s.reassign_workers_n(4, 100),
+        "5_100" => s.reassign_workers_n(5, 100),
         "i" => s.exchange_copper_to_gold(),
         "I" => s.exchange_gold_to_copper(),
         "o" => s.exchange_gold_to_jade(),

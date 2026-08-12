@@ -1,0 +1,105 @@
+/* —— 挂机锤 v2：高对比暗色滑动开关（修「只剩一个黑点」） —— */
+
+.line7 {
+  position: relative;
+}
+
+.line7-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  min-width: 0;
+}
+
+/* 把开关 + 文字包在一起，避免被 space-between 拉开 */
+.auto-strike-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.auto-strike-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: relative;
+  box-sizing: border-box;
+  display: inline-block !important;
+  width: 44px !important;
+  height: 20px !important;
+  min-width: 44px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid #3d4654 !important;
+  /* 轨道要比底栏亮一档，否则融进背景 */
+  background: #1a1f28 !important;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 0, 0, 0.25) !important;
+  cursor: pointer;
+  vertical-align: middle;
+  overflow: visible !important;
+  color: transparent !important;
+  font-size: 10px !important; /* 别用 0，部分环境会塌高度 */
+  line-height: 20px !important;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 滑块 */
+.auto-strike-btn::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 50% !important;
+  background: #8b93a3 !important;
+  border: none !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s ease, box-shadow 0.25s ease !important;
+  z-index: 2 !important;
+}
+
+.auto-strike-btn:hover {
+  border-color: #5a6578 !important;
+  background: #222833 !important;
+}
+.auto-strike-btn:hover::before {
+  background: #a8b0c0 !important;
+}
+
+/* ON */
+.auto-strike-btn.on {
+  border-color: #c87838 !important;
+  background: #2a1a10 !important;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(255, 120, 40, 0.25) !important;
+}
+.auto-strike-btn.on::before {
+  transform: translateX(24px) !important;
+  background: #ff9a4a !important;
+  box-shadow:
+    0 0 6px rgba(255, 140, 60, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.auto-strike-label {
+  font-size: 11px !important;
+  color: #7a8494 !important;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1;
+}
+.auto-strike-btn.on ~ .auto-strike-label,
+.auto-strike-wrap:has(.auto-strike-btn.on) .auto-strike-label {
+  color: #d4a878 !important;
+}

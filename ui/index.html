@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cyber-Forge · 铁匠铺</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles-append.css" />
 </head>
 <body>
   <!--
@@ -49,35 +51,42 @@
           </div>
         </div>
 
-        <!-- Line2 锻造台 · 读条锚点 -->
-        <div class="panel line line2" id="line2">
-          <header class="ptitle" id="line2Title">【锻造台】</header>
-          <div id="anvil">
-            <div class="anvil-glow" id="anvilGlow"></div>
-            <canvas id="sparks"></canvas>
-            <div class="bar-wrap">
-              <div id="crit"></div>
-              <div id="fill"><span class="fill-head"></span></div>
-            </div>
-            <div class="bar-meta">
-              <span id="barLabel">下一锤 —</span>
-              <span id="strikes">0/63</span>
-              <span id="qteHits">完美 0</span>
-              <span id="forgeLayoutTag" class="concurrent-tag"></span>
-            </div>
-          </div>
-          <div class="forge-stations" id="forgeStations" hidden></div>
-        </div>
+<!-- Line2 锻造台 · 读条锚点 (最外层：流光容器) -->
+<div class="panel line line2" id="line2">
+
+  <!-- 🌟 新增这一行：内层容器 -->
+  <div class="panel-inner">
+
+    <header class="ptitle" id="line2Title">【锻造台】</header>
+    <div id="anvil">
+      <div class="anvil-glow" id="anvilGlow"></div>
+      <canvas id="sparks"></canvas>
+      <div class="bar-wrap">
+        <div id="crit"></div>
+        <div id="fill"><span class="fill-head"></span></div>
+      </div>
+      <div class="bar-meta">
+        <span id="barLabel">下一锤 —</span>
+        <span id="strikes">0/63</span>
+        <span id="qteHits">完美 0</span>
+        <span id="forgeLayoutTag" class="concurrent-tag"></span>
+      </div>
+    </div>
+    <div class="forge-stations" id="forgeStations" hidden></div>
+
+  </div> <!-- 🌟 新增这一行：内层结束 -->
+
+</div>
 
         <!-- Line3 铁匠铺学徒 -->
         <div class="panel line line3" id="line3">
           <header class="ptitle" id="line3Title">【铁匠铺】学徒 0/10 [A]招 [R]扩</header>
           <div class="apprentice-grid" id="apprenticeRow">
-            <div class="job"><span class="job-name">[1]磨</span><span class="job-n" id="jobSharpen">0</span></div>
-            <div class="job"><span class="job-name">[2]附</span><span class="job-n" id="jobEnchant">0</span></div>
-            <div class="job"><span class="job-name">[3]修</span><span class="job-n" id="jobRepair">0</span></div>
-            <div class="job"><span class="job-name">[4]锻</span><span class="job-n" id="jobForge">0</span></div>
-            <div class="job"><span class="job-name">[5]拍</span><span class="job-n" id="jobAuction">0</span></div>
+            <div class="job"><span class="job-name">磨剑台</span><span class="job-n" id="jobSharpen">0</span></div>
+            <div class="job"><span class="job-name">附魔台</span><span class="job-n" id="jobEnchant">0</span></div>
+            <div class="job"><span class="job-name">熔铸台</span><span class="job-n" id="jobRepair">0</span></div>
+            <div class="job"><span class="job-name">锻造台</span><span class="job-n" id="jobForge">0</span></div>
+            <div class="job"><span class="job-name">拍卖行</span><span class="job-n" id="jobAuction">0</span></div>
           </div>
         </div>
 
@@ -106,10 +115,19 @@
     <!-- BOTTOM · Line7 -->
     <footer class="line7" id="line7">
       <div class="line7-left">
-        <span id="meltTier">[T]熔炼 关</span>
-        <span id="listTier">[G]上架 关</span>
-        <span id="breakHint" class="hidden">⚡[B]突破引劫</span>
+          <div class="line7-left">
+            <span id="meltTier">[T]熔炼 …</span>
+            <span id="listTier">[G]上架 …</span>
+            <span id="breakHint" class="hidden">…</span>
+            <span class="auto-strike-wrap">
+            </span>
+          </div>
+          <span id="breakHint" class="hidden">⚡[B]突破引劫</span>
       </div>
+<span class="cf-toggle-wrap">
+  <button type="button" class="cf-toggle" id="autoStrikeBtn"></button>
+  <span class="cf-toggle-label">K-挂机锤</span>
+</span>
       <div class="line7-right" id="news">杂闻：—</div>
     </footer>
   </div>

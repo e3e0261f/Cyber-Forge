@@ -158,6 +158,9 @@ pub struct MarketListing {
     pub momentum: f64,
     #[serde(default)]
     pub chant_timer: u32,
+    /// 最近一次抬价买家头衔（落槌发铁浆用）
+    #[serde(default)]
+    pub last_buyer_title: String,
 }
 
 fn default_auction_time() -> u64 { 120 }

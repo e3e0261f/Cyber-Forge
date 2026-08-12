@@ -48,7 +48,8 @@ export function updateTitles(s) {
   const line5Bottom = $('line5Bottom');
   if (line5Bottom && line5Bottom.textContent !== bot) line5Bottom.textContent = bot;
 
-  const t6 = `【身体素质】${s.realm_name || ''} ${s.sub_level || 1}层`;
+  const titleBit = s.title ? ` · ${s.title}` : '';
+  const t6 = `【身体素质】${s.realm_name || ''} ${s.sub_level || 1}层${titleBit}`;
   const line6 = $('line6Title');
   if (line6 && line6.textContent !== t6) line6.textContent = t6;
 }

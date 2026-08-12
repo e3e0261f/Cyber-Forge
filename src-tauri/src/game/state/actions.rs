@@ -20,7 +20,6 @@ impl GameState {
         // 实际调配人数 = min(剩余学徒数, step)
         let mut moved = 0u32;
         while moved < step {
-            // let before = moved;
             // 调度逻辑：从其他有人的岗位中抽取
             let source_ptr = match target_type {
                 1 => if self.enchant_workers > 0 { &mut self.enchant_workers }

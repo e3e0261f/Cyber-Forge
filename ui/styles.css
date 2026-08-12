@@ -57,6 +57,7 @@ html, body {
   text-overflow: ellipsis;
 }
 .ptitle-bottom {
+  text-align: center;
   flex: 0 0 auto;
   font-size: 10px;
   color: var(--dim);

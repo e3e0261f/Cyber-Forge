@@ -3,9 +3,11 @@ import { getInvoke, invoke } from './core.js';
 import { startParticles } from './particles.js';
 import { applySnap } from './apply.js';
 import { setupInput } from './input.js';
+import { setupAutoStrike } from './auto_strike.js';
 
 startParticles();
 setupInput();
+setupAutoStrike();
 
 (async function boot() {
   if (!getInvoke()) {
