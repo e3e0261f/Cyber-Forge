@@ -101,23 +101,16 @@ margin: 0 !important;
 
 
 #line2 {
-/* 1. 声明 1px 透明边框 */
-border: 0.1px solid transparent;
-
-/* 2. 双层背景：第一层是原先的暗色背景（这里用 #1a1a1a，可换成你原先的颜色），第二层是火焰渐变 */
+border: 1px solid transparent;
 background-image:
 linear-gradient(#1a1a1a, #1a1a1a),
-linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500); /* 熔岩火焰配色 */
-
-/* 3. 放大背景尺寸供平移流动 */
+linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500);
 background-size: 100% 100%, 300% 300%;
 background-origin: border-box;
 background-clip: padding-box, border-box;
 
-/* 4. 绑定往复流光动画 */
-animation: forge-glow-flow 6s ease infinite;
-
-/* 原先的其他样式（如 border-radius、width、padding 等）保持不变 */
+/* 🌟 核心修改：将 6s 改为 60s（1分钟往复一次） */
+animation: forge-glow-flow 60s ease infinite;
 }
 
 /* 🌟 往复流光关键帧动画 */
