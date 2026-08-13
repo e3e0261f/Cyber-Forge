@@ -4,6 +4,8 @@ use crate::game::types::Quality;
 fn slag_of(q: Quality) -> u32 { q.slag_value() }
 
 impl GameState {
+
+
     // 智能调度：根据按住按键的时间长度，动态计算步长
     // duration_ms: 按键持续的时间
     pub fn get_step_by_duration(duration_ms: u64) -> u32 {
@@ -242,3 +244,6 @@ impl GameState {
         (self.bonus_god_rate + qte_bonus).min(GOD_RATE_SOFT_CAP + qte_bonus)
     }
 }
+
+
+

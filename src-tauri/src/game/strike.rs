@@ -56,43 +56,44 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
         rank_boost,
     ) {
         ForgeResult::Success(sword) => {
-            state.exp = state.exp.saturating_add((sword.quality.bonus_exp() as f64 * state.exp_multiplier()).round() as u32);
-            if sword.quality.is_masterwork_tier() && is_manual_qte {
-                let cult_bonus = ((sword.price / 50_000).max(10)).min(200);
-                state.realm.add_cultivation(cult_bonus);
-                state.realm.masterwork_count = state.realm.masterwork_count.saturating_add(1);
-                state.bonus_god_rate = (state.bonus_god_rate + 0.0005).min(0.33);
-                let log_msg = format!(
-                    "手动代表作：{} {}（估价金{}，修仙+{}）",
-                    sword.quality.badge(), sword.name, sword.price, cult_bonus
-                );
-                state.push_log(log_msg, true, true);
+            // 🌟 核心：计算矩阵总倍率 = 矩阵台数 × 单台并发数
+            let stations = state.matrix_slots().max(1) as u64;
+            let hammers = state.concurrent_hammers().max(1) as u64;
+            let total_multiplier = stations * hammers; // 例如 5 * 7 = 35 倍！
+
+            // 经验按总倍率暴增
+            state.exp = state.exp.saturating_add(
+                (sword.quality.bonus_exp() as f64 * state.exp_multiplier() * total_multiplier as f64).round() as u32
+            );
+
+            // 🌟 矩阵批量产出：一口气生成 35 把剑塞进背包！
+            let mut produced_count = 0u64;
+            for i in 0..total_multiplier {
                 if state.backpack.len() < state.max_backpack {
-                    state.backpack.push(sword.clone());
-                    state.sort_backpack();
-                    state.active_sword_modal = Some(sword);
-                }
-            } else if sword.quality.is_masterwork_tier() {
-                let log_msg = format!("挂机极品：{} {}（估价金{}）", sword.quality.badge(), sword.name, sword.price);
-                state.push_log(log_msg, true, false);
-                if state.backpack.len() < state.max_backpack {
-                    state.backpack.push(sword.clone());
-                    state.sort_backpack();
-                    if state.list_tier != AutoListTier::Off {
-                        state.auto_fill_market();
-                    }
-                }
-            } else {
-                let log_msg = format!("出炉：{} {}（估价金{}）", sword.quality.badge(), sword.name, sword.price);
-                state.push_log(log_msg, false, false);
-                if state.backpack.len() < state.max_backpack {
-                    state.backpack.push(sword.clone());
-                    state.sort_backpack();
-                    if state.list_tier != AutoListTier::Off {
-                        state.auto_fill_market();
-                    }
+                    let mut cloned_sword = sword.clone();
+                    // 混淆 ID 避免冲突
+                    cloned_sword.id ^= i.wrapping_mul(0x9e3779b97f4a7c15);
+                    state.backpack.push(cloned_sword);
+                    produced_count += 1;
+                } else {
+                    // 背包满了，触发提示并停止继续塞
+                    break;
                 }
             }
+            state.sort_backpack();
+
+            // 自动上架逻辑：如果开了自动上架，海量新剑会自动涌入藏宝阁拍卖
+            if state.list_tier != AutoListTier::Off {
+                state.auto_fill_market();
+            }
+
+            // 霸气的日志输出
+            let total_price = sword.price * total_multiplier as u128;
+            let log_msg = format!(
+                "矩阵全开 [台×{}·并发×{}]：35脉齐鸣，一口气量产出炉 ×{} 柄 [{}]（总估价金{}）",
+                stations, hammers, produced_count, sword.name, total_price
+            );
+            state.push_log(log_msg, produced_count >= 10, false);
         }
         ForgeResult::Shattered { slag_gained } => {
             state.add_iron_slag(slag_gained);
