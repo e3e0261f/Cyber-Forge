@@ -30,10 +30,10 @@ export function sparkAtHead(crit) {
       x,
       y,
       vx: Math.cos(ang) * spd,
-      vy: Math.sin(ang) * spd,
-      life: 1,
-      crit,
-      size: crit ? 2 + Math.random() : 1.2 + Math.random(),
+                   vy: Math.sin(ang) * spd,
+                   life: 1,
+                   crit,
+                   size: crit ? 2 + Math.random() : 1.2 + Math.random(),
     });
   }
 }
@@ -54,8 +54,8 @@ function frame() {
       const a = Math.max(0, p.life);
       ctx.beginPath();
       ctx.fillStyle = p.crit
-        ? `rgba(255,${130 + ((a * 90) | 0)},180,${a})`
-        : `rgba(255,${170 + ((a * 50) | 0)},70,${a})`;
+      ? `rgba(255,${130 + ((a * 90) | 0)},180,${a})`
+      : `rgba(255,${170 + ((a * 50) | 0)},70,${a})`;
       ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
       ctx.fill();
     }

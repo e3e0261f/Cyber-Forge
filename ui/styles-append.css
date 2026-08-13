@@ -68,7 +68,7 @@ z-index: -1;
 background-image: linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500);
 background-size: 300% 300%;
 animation: forge-glow-flow 120s ease infinite;
-filter: blur(16px);
+/*filter: blur(16px); */
 opacity: 0.45;
 border-radius: inherit;
 pointer-events: none;

@@ -34,8 +34,13 @@
     <span class="curr-item jade">仙玉 <strong id="jadeText">0</strong></span>
   </div>
 </div>
-        <header class="ptitle" id="line4Title">【矩阵锦囊】0/20 [D]扩</header>
-        <div class="matrix" id="stash"></div>
+<header class="ptitle" id="line4Title" style="display: flex; justify-content: space-between; align-items: center;">
+  <span>【矩阵锦囊】0/20 [D]扩</span>
+  <button type="button" class="panel-toggle-btn" data-target="stashBody" style="background:none; border:1px solid var(--edge); color:var(--text); cursor:pointer; padding:0 4px; font-size:10px; border-radius:3px;">[_]</button>
+</header>
+<div id="stashBody" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+  <div class="matrix" id="stash"></div>
+</div>
         <div class="currency-row">
         </div>
       </section>
@@ -96,16 +101,26 @@
 
         <!-- Line8 日志 -->
         <div class="panel line line8" id="line8">
-          <header class="ptitle">【天道纪事·日志】</header>
-          <div class="log-list" id="logList"></div>
+<header class="ptitle" style="display: flex; justify-content: space-between; align-items: center;">
+  <span>【天道纪事·日志】</span>
+  <button type="button" class="panel-toggle-btn" data-target="logBody" style="background:none; border:1px solid var(--edge); color:var(--text); cursor:pointer; padding:0 4px; font-size:10px; border-radius:3px;">[_]</button>
+</header>
+<div id="logBody" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+  <div class="log-list" id="logList"></div>
+</div>
         </div>
       </section>
 
       <!-- RIGHT 28% · Line5 -->
       <section class="panel col-right" id="line5">
-        <header class="ptitle" id="line5Title">【藏宝阁拍卖】0/20 [E]扩</header>
-        <div class="pavilion-hint">倒计时零落槌 · 加价重置 · 阶梯阻尼</div>
-        <div class="lots" id="lots"></div>
+<header class="ptitle" id="line5Title" style="display: flex; justify-content: space-between; align-items: center;">
+  <span>【藏宝阁拍卖】0/20 [E]扩</span>
+  <button type="button" class="panel-toggle-btn" data-target="auctionBody" style="background:none; border:1px solid var(--edge); color:var(--text); cursor:pointer; padding:0 4px; font-size:10px; border-radius:3px;">[_]</button>
+</header>
+<div id="auctionBody" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+  <div class="pavilion-hint">倒计时零落槌 · 加价重置 · 阶梯阻尼</div>
+  <div class="lots" id="lots"></div>
+</div>
         <footer class="ptitle-bottom" id="line5Bottom">云集道友 —</footer>
       </section>
     </div>
@@ -133,6 +148,7 @@
     </footer>
   </div>
   <div id="toast" class="toast"></div>
+  <script src="pixi.js"></script>
   <script type="module" src="js/app.js"></script>
   <script src="js/progressbar.js"></script>
 </body>
