@@ -111,10 +111,19 @@ pointer-events: none;
 
 .col-mid > .line3 { flex: 0 0 72px !important; }
 
-/* 身体素质：按需分配 */
+/* --- 修复身体素质（Line6）高度被切割的问题 --- */
 .col-mid > .line6 {
-  flex: 0 1 140px !important;
-  min-height: 80px !important;
+  flex: 0 1 auto !important;           /* 允许根据内容自动调整，不写死固定高度 */
+  min-height: 210px !important;        /* 给一个舒适的默认最小高度 */
+  max-height: 260px !important;        /* 设定一个安全上限，防止它吃掉太多日志空间 */
+  overflow-y: auto !important;         /* 🌟 核心：内容超出时，内部出现滚动条，绝不生硬切割 */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 确保内部的身体素质网格能够正常随容器滚动 */
+.col-mid > .line6 .body-grid {
+  flex: 1 1 auto !important;
   overflow-y: auto !important;
 }
 
