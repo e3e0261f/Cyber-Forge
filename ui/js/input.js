@@ -1,12 +1,12 @@
-/** 快捷键：双轨防误触 + 基于触发点数的阶梯步进加速（除空格外全键盘通用） */
+/** 快捷键：双轨防误触 + 默认全键盘阶梯步进（仅少数黑名单除外） */
 import { invoke, showToast } from './core.js';
 import { applySnap } from './apply.js';
 import { sparkAtHead } from './particles.js';
 
-// 🌟 1. 允许长按连发的按键（除了 Space 以外，所有升级、建造、调配键全包了）
-const HOLDABLE_KEYS = new Set([
-  'KeyU', 'KeyW', 'KeyA', 'KeyR', 'KeyD', 'KeyE',
-  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5' // 确保这里有数字键
+// 🌟 1. 极小的黑名单：只有少数“绝对不能长按连发”的键才需要放这里
+// 比如空格（挥锤需要精确节奏）、存档、帮助等
+const EXCLUDE_KEYS = new Set([
+  'Space', 'KeyP', 'KeyH', 'Digit0'
 ]);
 
 const KEY_MAP = {
@@ -40,7 +40,6 @@ let holdLoopTimer = null;
 let actionBusy = false;
 
 async function fireKey(code, shiftKey, ctrlKey) {
-  // 空格（挥锤）允许稍微高频，其他升级动作防冲突
   if (actionBusy && code !== 'Space') return;
   let k = KEY_MAP[code];
   if (!k) return;
@@ -48,31 +47,9 @@ async function fireKey(code, shiftKey, ctrlKey) {
   if (code === 'KeyI' && shiftKey) k = 'I';
   if (code === 'KeyO' && shiftKey) k = 'O';
 
-  // 🌟 1~5 与 A、U、W 等键完全同构：统一享受基于点数的阶梯步进算法
-  if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
-    let currentHits = (keyHitCounts.get(code) || 0) + 1;
-    keyHitCounts.set(code, currentHits);
-
-    let step = 1;
-    if (currentHits > 1000) {
-      step = 1000;
-    } else if (currentHits > 100) {
-      step = 100;
-    } else if (currentHits > 10) {
-      step = 10;
-    } else {
-      step = 1;
-    }
-
-    // 将岗位类型（1-5）与阶梯步进（如 1_10, 2_100）拼装传给后端
-    if (step > 1) {
-      k = `${k}_${step}`;
-    }
-  }
-
-  // 🌟 2. 核心点数阶梯逻辑：计算当前按键的累计触发点数
+  // 🌟 2. 默认全键盘自动阶梯步进（只要不在黑名单里）
   let step = 1;
-  if (code !== 'Space') {
+  if (!EXCLUDE_KEYS.has(code)) {
     let currentHits = (keyHitCounts.get(code) || 0) + 1;
     keyHitCounts.set(code, currentHits);
 
@@ -86,8 +63,14 @@ async function fireKey(code, shiftKey, ctrlKey) {
       step = 1;
     }
 
-    // 针对升级类按键（u, w, a, r, d, e），将步进拼装为后端支持的后缀（如 u_10, u_100...）
-    if (['u', 'w', 'a', 'r', 'd', 'e'].includes(k) && step > 1) {
+    // 针对学徒岗位（1-5）
+    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
+      if (ctrlKey) k = k + '_100';
+      else if (shiftKey) k = k + '_10';
+      else if (step > 1) k = `${k}_${step}`;
+    }
+    // 🌟 核心：任何其他字母键（u, w, a, r, d, e, i, I, o, O 等）如果支持批量，自动带上阶梯后缀！
+    else if (step > 1) {
       k = `${k}_${step}`;
     }
   }
@@ -109,7 +92,9 @@ async function fireKey(code, shiftKey, ctrlKey) {
   }
 }
 
-// 连发循环心跳（35ms - 40ms 保证跟手且丝滑）
+// 🎛️ 连发心跳速度调节（毫秒）
+const HOLD_INTERVAL_MS = 250;
+
 function startHoldLoop() {
   if (holdLoopTimer) return;
 
@@ -123,7 +108,7 @@ function startHoldLoop() {
     for (const code of keyHitCounts.keys()) {
       await fireKey(code, false, false);
     }
-  }, 35);
+  }, HOLD_INTERVAL_MS);
 }
 
 export function setupInput() {
@@ -136,30 +121,28 @@ export function setupInput() {
     }
     if (e.code === 'KeyH') {
       e.preventDefault();
-      showToast('【阶梯步进】按住 U/W/A/R/D/E 不放：10点(+1) -> 100点(+10) -> 1000点(+100)');
+      showToast('【全键盘默认加速】按住任意键不放：自动实现 10点->100点->1000点 阶梯狂飙！');
       return;
     }
 
     if (!KEY_MAP[e.code]) return;
-    if (e.repeat) return; // 忽略系统自带的慢速重复
+    if (e.repeat) return; // 忽略系统慢速重复
 
-    // 如果是允许长按的键（且不是空格）
-    if (HOLDABLE_KEYS.has(e.code)) {
+    // 🌟 3. 只要不在黑名单里，全部默认自动开启长按连发与阶梯步进！
+    if (!EXCLUDE_KEYS.has(e.code)) {
       e.preventDefault();
       if (!keyHitCounts.has(e.code)) {
-        keyHitCounts.set(e.code, 0); // 初始化点数
+        keyHitCounts.set(e.code, 0);
         await fireKey(e.code, e.shiftKey, e.ctrlKey);
         startHoldLoop();
       }
     } else {
-      // 空格或其他单次触发键
       if (e.code === 'Space') e.preventDefault();
       await fireKey(e.code, e.shiftKey, e.ctrlKey);
     }
   });
 
   window.addEventListener('keyup', (e) => {
-    // 🌟 松开按键时，清空该按键的点数计数器，下次按下从 +1 重新开始
     keyHitCounts.delete(e.code);
     if (!keyHitCounts.size && holdLoopTimer) {
       clearInterval(holdLoopTimer);

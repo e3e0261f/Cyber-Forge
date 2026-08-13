@@ -22,7 +22,7 @@ initFpsMeter(); // 🌟 2. 启动 FPS 实时监控
   setInterval(async () => {
     const t = await invoke('game_tick');
     if (t) applySnap(t);
-  }, 200);
+  }, 59);
 })();
 
 

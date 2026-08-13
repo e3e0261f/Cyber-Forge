@@ -462,20 +462,30 @@ fn action(app: State<'_, AppState>, key: String) -> Result<UiSnapshot, String> {
             }
         }
 
-        "1_10" => s.reassign_workers_n(1, 10),
-        "2_10" => s.reassign_workers_n(2, 10),
-        "3_10" => s.reassign_workers_n(3, 10),
-        "4_10" => s.reassign_workers_n(4, 10),
-        "5_10" => s.reassign_workers_n(5, 10),
-        "1_100" => s.reassign_workers_n(1, 100),
-        "2_100" => s.reassign_workers_n(2, 100),
-        "3_100" => s.reassign_workers_n(3, 100),
-        "4_100" => s.reassign_workers_n(4, 100),
-        "5_100" => s.reassign_workers_n(5, 100),
         "i" => s.exchange_copper_to_gold(),
+        k if k.starts_with("i_") => {
+            if let Ok(n) = k.trim_start_matches("i_").parse::<u32>() {
+                for _ in 0..n { s.exchange_copper_to_gold(); }
+            }
+        }
         "I" => s.exchange_gold_to_copper(),
+        k if k.starts_with("I_") => {
+            if let Ok(n) = k.trim_start_matches("I_").parse::<u32>() {
+                for _ in 0..n { s.exchange_gold_to_copper(); }
+            }
+        }
         "o" => s.exchange_gold_to_jade(),
+        k if k.starts_with("o_") => {
+            if let Ok(n) = k.trim_start_matches("o_").parse::<u32>() {
+                for _ in 0..n { s.exchange_gold_to_jade(); }
+            }
+        }
         "O" => s.exchange_jade_to_gold(),
+        k if k.starts_with("O_") => {
+            if let Ok(n) = k.trim_start_matches("O_").parse::<u32>() {
+                for _ in 0..n { s.exchange_jade_to_gold(); }
+            }
+        }
         _ => {}
     }
     Ok(snapshot(&inner))
