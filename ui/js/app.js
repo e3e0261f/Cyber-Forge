@@ -4,10 +4,12 @@ import { startParticles } from './particles.js';
 import { applySnap } from './apply.js';
 import { setupInput } from './input.js';
 import { setupAutoStrike } from './auto_strike.js';
+import { initFpsMeter } from './fps.js'; // 🌟 1. 引入 FPS 模块
 
 startParticles();
 setupInput();
 setupAutoStrike();
+initFpsMeter(); // 🌟 2. 启动 FPS 实时监控
 
 (async function boot() {
   if (!getInvoke()) {

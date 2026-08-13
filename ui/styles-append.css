@@ -1,286 +1,6 @@
-/* ========== styles-append.css · 整理版 ========== */
-
-
-/* ---------- 锻造台：读条与文字分离 ---------- */
-#line2 #anvil,
-#anvil {
-height: 72px !important;
-margin: 4px 12px 8px !important;
-position: relative !important;
-box-sizing: border-box !important;
-}
-#line2 #anvil .bar-wrap,
-#anvil .bar-wrap {
-top: 0px !important;
-bottom: auto !important;
-height: 1px !important;
-left: 1% !important;
-right: 1% !important;
-}
-#line2 #anvil .bar-meta,
-#anvil .bar-meta {
-top: 4px !important;
-bottom: auto !important;
-left: 0 !important;
-right: 0 !important;
-display: flex !important;
-justify-content: center !important;
-gap: 16px !important;
-font-size: 11px !important;
-line-height: 1.2 !important;
-z-index: 5 !important;
-color: #9aa8b8 !important;
-pointer-events: none;
-}
-
-/* ---------- 铁匠铺学徒 ---------- */
-.col-mid > .line3,
-#line3 {
-min-height: 0 !important;
-overflow: hidden !important;
-display: flex !important;
-flex-direction: column !important;
-box-sizing: border-box !important;
-padding: 6px 10px 8px !important;
-}
-#line3 .ptitle,
-#line3Title {
-flex: 0 0 auto !important;
-padding: 2px 2px 4px !important;
-margin: 0 !important;
-}
-#line3 .apprentice-grid,
-.apprentice-grid {
-  flex: 1 1 auto !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 2px 0 4px !important;
-  box-sizing: border-box !important;
-}
-.apprentice-grid .job {
-  flex: 1 1 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 5px !important;
-  padding: 6px 8px !important;
-  min-height: 28px !important;
-  border-radius: 6px !important;
-  font-size: 11px !important;
-  background: rgba(0, 0, 0, 0.28) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-  min-width: 0;
-}
-.apprentice-grid .job-name {
-  color: #8a96a6 !important;
-  margin: 0 !important;
-}
-.apprentice-grid .job-n {
-  font-weight: 700 !important;
-  color: #e8c070 !important;
-  font-size: 12px !important;
-  margin: 0 !important;
-}
-
-/* ---------- 身体素质：去掉重复首行 ---------- */
-.body-grid .sec:first-child {
-  display: none !important;
-}
-
-
-
-
-#line2 {
-position: relative; /* 确保绝对定位的泛光层能以它为基准 */
-border: 1px solid transparent;
-background-image:
-linear-gradient(#1a1a1a, #1a1a1a),
-linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500);
-background-size: 100% 100%, 300% 300%;
-background-origin: border-box;
-background-clip: padding-box, border-box;
-
-/* 慢速流光（这里以 120s 为例） */
-animation: forge-glow-flow 120s ease infinite;
-}
-
-/* 🌟 新增：外部彩色动态泛光层 */
-#line2::after {
-content: '';
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-z-index: -1; /* 放在卡片正后方 */
-
-/* 采用与边框完全一致的渐变色和尺寸 */
-background-image: linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500);
-background-size: 300% 300%;
-
-/* 采用完全一致的动画，实现光影同步 */
-animation: forge-glow-flow 120s ease infinite;
-
-/* 🌟 核心：高斯模糊产生柔和泛光 */
-filter: blur(16px);
-opacity: 0.45; /* 泛光亮度，可以根据喜好微调 */
-
-border-radius: inherit; /* 自动继承原面板的圆角 */
-pointer-events: none; /* 确保泛光层不影响任何鼠标点击事件 */
-}
-
-@keyframes forge-glow-flow {
-  0% { background-position: 0 0, 0% 50%; }
-  50% { background-position: 0 0, 100% 50%; }
-  100% { background-position: 0 0, 0% 50%; }
-}
-
-
-
-
-
-/* 默认未达标：暗淡/灰色 */
-#breakHint {
-color: var(--dim);
-opacity: 0.5;
-cursor: default;
-transition: all 0.3s var(--ease);
-}
-
-/* 达标可突破：发光/高亮 */
-#breakHint.can-break {
-color: #ffd700; /* 亮金色 */
-opacity: 1;
-cursor: pointer;
-text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
-animation: breakPulse 1.5s ease-in-out infinite; /* 呼吸发光动画 */
-}
-
-@keyframes breakPulse {
-  0%, 100% { text-shadow: 0 0 4px rgba(255, 215, 0, 0.4); }
-  50% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.9); }
-}
-
-
-/* --- 2. 重新分配中栏空间：收紧锻造台留白，把多余空间全给日志 --- */
-.col-mid {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important; /* 减小各面板之间的间隙，省空间 */
-  min-height: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-}
-
-/* 铁匠信息：固定 */
-.col-mid > .line1 {
-  flex: 0 0 48px !important;
-}
-
-/* 锻造台：适度压缩其弹性膨胀，不再产生大片空白 */
-.col-mid > .line2 {
-  flex: 0 1 auto !important; /* 调整为只按需占用高度，不盲目撑大 */
-  min-height: 165px !important;
-  max-height: 220px !important; /* 设定最大上限，杜绝空白 */
-  overflow-y: auto !important;
-}
-
-/* 学徒面板：固定 */
-.col-mid > .line3 {
-  flex: 0 0 72px !important;
-}
-
-/* 身体素质：适度紧凑 */
-.col-mid > .line6 {
-  flex: 0 1 110px !important;
-  min-height: 50px !important;
-  overflow-y: auto !important;
-}
-
-/* 🌟 天道纪事·日志：接管所有剩余的空白空间，变得宽敞好用！ */
-.col-mid > .line8 {
-  flex: 1 1 auto !important; /* 填满中栏下方所有剩余空间 */
-  min-height: 120px !important; /* 保证日志有足够的初始高度 */
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-
-.col-mid > .line8 .log-list {
-  flex: 1 1 auto !important;
-  overflow-y: auto !important;
-}
-
-
-
-
-
-/* --- 1. 极致压缩锻造台主窗口内边距，为第二排台子腾出空间 --- */
-#line2 #anvil,
-#anvil {
-height: 18px !important; /* 从 52px 进一步压扁，释放纵向空间 */
-margin: 4px 1px !important;
-}
-
-/* 调整横向读条的位置，使其在压扁的 #anvil 中完美居中 */
-#line2 #anvil .bar-wrap,
-#anvil .bar-wrap {
-width: 98% !important;
-height: 8px !important;  /* 读条稍微变细一点点，更显精致 */
-margin-top: 3px !important;
-}
-
-/* 隐藏或极度压缩原本底部的多余间距 */
-.bar-meta {
-  display: none !important;
-}
-
-/* 优化多并发台子（.forge-stations）的网格间距，确保双排紧凑显示 */
-.forge-stations {
-  display: grid;
-  gap: 4px !important;
-  margin: 4px 10px !important;
-  padding: 4px 6px !important;
-  max-height: 110px !important; /* 限制最大高度，防止撑坏 */
-  overflow-y: auto !important;
-}
-
-
 /* ==========================================================
- *  🌟 锻造台 UI 阶段演进自适应
+ *  🎯 Cyber-Forge · styles-append.css 终极整洁版
  *  ========================================================== */
-
-/* 默认（初期）：单台、单锤阶段 —— 让锻造台高度自动收缩，极致紧凑、干净 */
-#line2 {
-transition: all 0.3s ease;
-}
-
-/* 后期（当开启了多并发或多矩阵台时）：自动赋予空间呼吸感和流光泛光 */
-/* 我们利用 CSS 的 :has() 选择器检测内部的 forge-stations 是否处于显示状态（非 hidden） */
-#line2:has(.forge-stations:not([hidden])) {
-/* 后期多台模式下的整体样式微调，如果需要的话 */
-}
-
-/* 早期单台时，#anvil 保持极简高雅 */
-#line2:has(.forge-stations[hidden]) #anvil {
-height: 48px !important;
-margin: 6px 12px !important;
-}
-
-
-
-
-
-
-
-
-
-/* ========== styles-append.css · 终极完美版 ========== */
 
 /* 1. 铁匠铺学徒面板 */
 .col-mid > .line3, #line3 {
@@ -368,45 +88,59 @@ pointer-events: none;
   50% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.9); }
 }
 
-/* 5. 中栏空间重新分配：彻底消灭锻造台下方的空白，全给日志 */
+/* --- 5. 中栏空间重新分配：给予锻造台与身体素质更充足的高度 --- */
+/* --- 🎯 中栏总控：让锻造台真正实现“内容有多高，窗口就多高”的自适应 --- */
 .col-mid {
   display: flex !important;
   flex-direction: column !important;
-  gap: 1px !important;
+  gap: 6px !important;
   min-height: 0 !important;
   height: 100% !important;
   overflow: hidden !important;
 }
+
 .col-mid > .line1 { flex: 0 0 48px !important; }
 
-/* 🌟 核心：初期单台时自适应收缩，后期多台时自动撑开，绝不大面积留白 */
+/* 🌟 核心：锻造台（Line2）改由内部内容自适应 (fit-content / auto) */
 .col-mid > .line2 {
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important; /* 关键：不强行拉伸，有多少内容就占多高 */
+  min-height: 70px !important; /* 初始单台时的最小保底高度 */
+  max-height: 60vh !important; /* 设置一个安全上限，防止极端情况下撑爆屏幕 */
+  overflow-y: auto !important;  /* 如果台子太多超出上限，内部滚动 */
+}
+
+.col-mid > .line3 { flex: 0 0 72px !important; }
+
+/* 身体素质：按需分配 */
+.col-mid > .line6 {
+  flex: 0 1 140px !important;
   min-height: 80px !important;
   overflow-y: auto !important;
 }
 
-.col-mid > .line3 { flex: 0 0 72px !important; }
-.col-mid > .line6 { flex: 0 1 110px !important; min-height: 50px !important; overflow-y: auto !important; }
+/* 🌟 天道纪事·日志：吃掉中间释放出来的所有剩余空间 */
 .col-mid > .line8 {
   flex: 1 1 auto !important;
-  min-height: 120px !important;
   display: flex !important;
   flex-direction: column !important;
+  min-height: 80px !important;
   overflow: hidden !important;
 }
-.col-mid > .line8 .log-list { flex: 1 1 auto !important; overflow-y: auto !important; }
 
-/* 6. 🌟 修复双轨重叠：极致精简 #anvil 内部，消除下方空白轨道 */
+.col-mid > .line8 .log-list {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+}
+
+/* 6. 锻造台主读条精简与居中 */
 #line2 #anvil, #anvil {
-height: 36px !important; /* 完美单行高度 */
+height: 36px !important;
 margin: 6px 12px !important;
 position: relative !important;
 background: transparent !important;
 border: none !important;
 }
 
-/* 单条主读条完美居中 */
 #line2 #anvil .bar-wrap, #anvil .bar-wrap {
 position: absolute !important;
 top: 50% !important;
@@ -420,7 +154,6 @@ overflow: hidden !important;
 box-shadow: inset 0 1px 3px rgba(0,0,0,0.8) !important;
 }
 
-/* 隐藏不再需要的多余元数据容器 */
 .bar-meta { display: none !important; }
 
 /* 多并发台子样式（后期解锁时生效） */

@@ -97,7 +97,7 @@ impl AutoListTier {
 
 fn default_melt_tier() -> AutoMeltTier { AutoMeltTier::Off }
 fn default_list_tier() -> AutoListTier { AutoListTier::Off }
-
+// 找到 GameState 结构体，在里面追加这一行：
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     pub strikes: u32,
@@ -107,9 +107,9 @@ pub struct GameState {
     pub level: u32,
     pub exp: u32,
     pub max_exp: u32,
-    pub coins: u128,               // 金币
-    #[serde(default)] pub copper: u128, // 铜钱 (凡间通用)
-    #[serde(default)] pub jade: u128,   // 仙玉 (大能至高契约)
+    pub coins: u128,
+    #[serde(default)] pub copper: u128,
+    #[serde(default)] pub jade: u128,
     pub backpack: Vec<Sword>,
     pub max_backpack: usize,
     pub pavilion_market: Vec<MarketListing>,
@@ -149,6 +149,10 @@ pub struct GameState {
     #[serde(default)] pub missed_encounter_count: u64,
     #[serde(default)] pub debug_mode: bool,
     #[serde(default)] pub market_swarm: crate::game::market_swarm::MarketSwarm,
+
+    // 🌟 1. 在这里新增矩阵轨道独立进度记录
+    #[serde(default)]
+    pub matrix_progresses: Vec<f64>,
 }
 
 fn default_station_mult() -> [f64; 3] { [1.0, 1.0, 1.0] }
@@ -222,6 +226,9 @@ impl GameState {
             toast: String::new(), toast_ticks: 0, station_mult: [1.0, 1.0, 1.0], market_tick_counter: 0, forge_qte_hits: 0.0, realm: RealmState::new(),
             logs: VecDeque::with_capacity(30), log_filter: LogFilter::All, log_scroll_offset: 0, flash_ticks: 0, hammer_level: 1, encounter_timer: 1800,
             master_shattered_count: 0, apprentice_shattered_count: 0, missed_encounter_count: 0, debug_mode: false, market_swarm: Default::default(),
+
+            // 🌟 2. 初始化预留 64 个并发轨道位置
+            matrix_progresses: vec![0.0; 64],
         };
         s.reroll_station_mult(false);
         s.sync_body_stats();
