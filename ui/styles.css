@@ -1,0 +1,455 @@
+/*/* 比例锁定：22 / 50 / 28 · 中栏纵向约 3+3+3+11+min */
+:root {
+  --bg: #07080c;
+  --panel: rgba(14, 16, 22, 0.92);
+  --edge: rgba(90, 100, 120, 0.35);
+  --text: #c8cdd6;
+  --dim: #6a7380;
+  --warm: #e0a050;
+  --crit: #ff4d7a;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --left: 22%;
+  --mid: 50%;
+  --right: 28%;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  overflow: hidden; user-select: none;
+}
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 6px;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 12%, rgba(255, 90, 30, 0.06), transparent 55%),
+    var(--bg);
+}
+#main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--left) var(--mid) var(--right);
+  gap: 8px;
+}
+.panel {
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.ptitle {
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #9aa3b0;
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ptitle-bottom {
+  text-align: center;
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--dim);
+  padding: 4px 10px 6px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* -三体货币与数额横向单行平铺展示- */
+
+/* 资财仪盘：横向单行紧凑布局 */
+.currency-panel {
+  flex-shrink: 0;
+  background: #0c1016;
+  border: 1px solid #3c5a64;
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+.currency-body {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.curr-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #8c8c8c;
+}
+
+.curr-item strong {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* 垂直分隔线 */
+.curr-divider {
+  color: #3a4850;
+  font-size: 11px;
+}
+
+/* 货币专属高光色彩 */
+.curr-item.copper strong { color: #c89664; } /* 铜钱：古铜 */
+.curr-item.gold strong   { color: #ffd700; } /* 金币：亮金 */
+.curr-item.jade strong   { color: #00ffc8; } /* 仙玉：翡翠绿 */
+
+/* -三体货币与数额横向单行平铺展示- */
+
+/* —— 左：矩阵锦囊 —— */
+.col-left { padding-bottom: 6px; }
+.matrix {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+.cell {
+  width: 40px; height: 40px; border-radius: 8px;
+  border: 1px solid rgba(90, 110, 130, 0.3);
+  display: grid; place-items: center;
+  font-size: 10px; color: #8a96a6;
+  background: rgba(0,0,0,0.25);
+}
+.cell.tool {
+  border-color: rgba(224, 160, 80, 0.5);
+  color: #f0c898;
+}
+.cell.empty { opacity: 0.3; }
+.currency-row {
+  display: flex; gap: 8px; padding: 4px 10px 6px;
+  font-size: 11px; color: #a8b0bc;
+}
+.currency-row span:nth-child(1) { color: #c9956c; }
+.currency-row span:nth-child(2) { color: #e6c35c; }
+.currency-row span:nth-child(3) { color: #5ed0b0; }
+
+/* --- 🌟 中栏整体：改用绝对可控的 Flex 垂直布局 --- */
+.col-mid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* 1. 铁匠信息：固定高度，绝不压缩 */
+.col-mid > .line1 {
+  flex: 0 0 52px !important;
+}
+
+/* 2. 🌟 核心锻造台：赋予最高权重（flex-grow: 3），窗口压缩时它最后缩，且自带最小高度保底 */
+.col-mid > .line2 {
+  flex: 3 1 160px !important;
+  min-height: 140px !important;
+  overflow-y: auto !important;
+}
+
+/* 3. 铁匠铺学徒：固定高度，不压缩 */
+.col-mid > .line3 {
+  flex: 0 0 80px !important;
+}
+
+/* 4. 身体素质：低优先级，空间不够时允许适度压缩，内部可滚动 */
+.col-mid > .line6 {
+  flex: 1 1 90px !important;
+  min-height: 60px !important;
+  overflow-y: auto !important;
+}
+/* 5. 天道纪事·日志：最低优先级，空间不足时优先压缩它，内容溢出时在内部滚动 */
+.col-mid > .line8 {
+  flex: 1 2 70px !important;
+  min-height: 40px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 日志内部的滚动条容器 */
+.col-mid > .line8 .log-list {
+  flex: 1 1 auto !important;
+  min-height: 10px !important;
+  overflow-y: auto !important;
+}
+
+.line { min-height: 0; }
+.line1-body {
+  display: flex; align-items: center; gap: 10px;
+  padding: 2px 12px 8px; font-size: 12px;
+}
+.exp-wrap {
+  flex: 1; height: 10px; border-radius: 5px;
+  background: rgba(0,0,0,0.4); overflow: hidden;
+}
+.exp-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #3a8, #5cb);
+  transition: width 0.2s var(--ease);
+}
+
+/* 锻造台 */
+#line2 .ptitle { color: var(--warm); }
+#anvil {
+  position: relative;
+  margin: 4px 12px 8px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% -10%, rgba(255, 110, 40, 0.35), transparent 55%),
+    linear-gradient(180deg, #252a34, #10141c);
+  border: 1px solid rgba(255, 140, 60, 0.28);
+}
+#anvil.crit-near { border-color: rgba(255, 77, 122, 0.5); }
+.anvil-glow {
+  position: absolute; inset: 0; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 180, 80, 0.28), transparent 55%);
+}
+.anvil-glow.on { animation: glowFade 0.45s var(--ease) forwards; }
+@keyframes glowFade { from { opacity: 0.95; } to { opacity: 0; } }
+#sparks { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+.bar-wrap {
+  position: absolute; left: 6%; right: 6%; top: 42%; height: 14px;
+  border-radius: 7px; background: rgba(0,0,0,0.5);
+  overflow: hidden; z-index: 1; border: 1px solid rgba(255,255,255,0.05);
+}
+#fill {
+  height: 100%; width: 0%; position: relative;
+  background: linear-gradient(90deg, #0a7a98, #3ec8e0 40%, #f0b060 75%, #ff8a40);
+  box-shadow: 0 0 12px rgba(80, 200, 230, 0.35);
+  transition: width 0.05s linear;
+}
+.fill-head {
+  position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+  width: 5px; height: 18px; border-radius: 2px;
+  background: #fff6e0; box-shadow: 0 0 8px rgba(255,240,200,0.8);
+}
+#crit {
+  position: absolute; left: 76%; width: 12%; top: 0; bottom: 0;
+  background: rgba(255, 77, 122, 0.35);
+  animation: critPulse 1.15s ease-in-out infinite;
+}
+@keyframes critPulse { 0%,100%{opacity:0.4} 50%{opacity:0.95} }
+.bar-meta {
+  position: absolute; left: 0; right: 0; bottom: 6px;
+  display: flex; justify-content: center; gap: 16px;
+  font-size: 11px; color: #9aa8b8; z-index: 2;
+}
+#qteHits { color: var(--crit); }
+
+.apprentice-row {
+  display: flex; flex-wrap: wrap; gap: 8px 14px;
+  padding: 4px 12px 8px; font-size: 11px; color: #8a96a6;
+}
+
+.body-grid {
+  flex: 1; overflow: auto;
+  padding: 6px 12px 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 11px; color: #8e98a6;
+}
+.body-grid .k { color: var(--dim); }
+.body-grid .v { color: #c5cdd8; text-align: right; }
+
+.log-list {
+  flex: 1; overflow: auto;
+  padding: 4px 10px 8px;
+  font-size: 11px; line-height: 1.45; color: #7a8a82;
+}
+.log-list div { padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+/* 右：藏宝阁 */
+.col-right { min-height: 0; }
+.pavilion-hint {
+  font-size: 10px; color: var(--dim); padding: 4px 10px;
+}
+.lots {
+  flex: 1; overflow: auto; padding: 4px 8px 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.lot {
+  padding: 6px 8px; border-radius: 8px; font-size: 11px;
+  border: 1px solid rgba(100, 120, 140, 0.22);
+  background: rgba(0,0,0,0.22);
+}
+.lot.sold { opacity: 0.45; }
+.lot.waiting { border-style: dashed; color: var(--dim); }
+.lot-meta { font-size: 10px; color: var(--dim); margin-top: 2px; }
+
+/* 底 Line7 */
+.line7 {
+  flex: 0 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(12, 14, 18, 0.9);
+  font-size: 11px;
+}
+.line7-left { display: flex; gap: 12px; color: #8a96a6; }
+.line7-right { color: var(--dim); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hidden { display: none !important; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%) translateY(6px);
+  padding: 8px 16px; border-radius: 10px; font-size: 12px;
+  background: rgba(18, 22, 28, 0.94); border: 1px solid rgba(224, 160, 80, 0.28);
+  color: #ecd8b8; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  z-index: 40;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+#line2.hit-flash { animation: panelHit 0.32s var(--ease); }
+@keyframes panelHit {
+  30% { box-shadow: 0 0 28px rgba(255, 100, 40, 0.18); border-color: rgba(255, 140, 60, 0.4); }
+}
+
+
+/* 中栏高度分配：锻造台优先，身体有下限，日志可压到一行 */
+.col-center {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.col-center > .line2 {
+  flex: 1 1 auto !important;
+  min-height: 120px !important;
+  overflow: auto !important;
+}
+.col-center > .line3 {
+  flex: 0 0 auto !important;
+}
+.col-center > .line6 {
+  flex: 0 1 auto !important;
+  min-height: 72px !important;
+  max-height: 28% !important;
+  overflow: auto !important;
+}
+.col-center > .line8 {
+  flex: 0 1 auto !important;
+  min-height: 28px !important;
+  max-height: 22% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.col-center > .line8 .log-list {
+  flex: 1 1 auto !important;
+  min-height: 16px !important;
+  overflow-y: auto !important;
+}
+
+.apprentice-grid {
+  display: flex; gap: 4px; padding: 3px 8px 5px;
+}
+.apprentice-grid .job {
+  flex: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 5px; border-radius: 5px; font-size: 10px;
+  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.06);
+}
+.apprentice-grid .job-n { font-weight: 700; color: #e8c070; font-size: 12px; }
+
+.body-grid {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr !important;
+  column-gap: 6px !important; row-gap: 0 !important;
+  padding: 0 8px 2px !important; font-size: 10px !important; line-height: 1.05 !important;
+}
+.body-grid .sec {
+  grid-column: 1 / -1; margin: 1px 0 0 !important; padding-top: 1px !important;
+  border-top: 1px solid rgba(255,255,255,.05); color: #7ec8d8; font-size: 9px !important;
+}
+.body-grid .sec:first-child { border-top: none; margin-top: 0 !important; }
+
+/* 锻造台多并发矩阵总容器：强制撑满中栏宽度 */
+.forge-stations {
+  display: grid;
+  gap: 6px;
+  margin: 6px 12px 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(100,180,220,.28);
+  background: rgba(0,0,0,.35);
+  box-sizing: border-box;
+}
+
+/* 单个锻造台卡片：确保内部元素完美撑满 */
+.forge-station {
+  border: 1px solid rgba(160,120,255,.25);
+  border-radius: 6px;
+  padding: 5px 8px 6px;
+  background: rgba(12,16,24,.75);
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* 防止 Flex/Grid 子项撑破容器 */
+}
+
+.forge-station-label {
+  font-size: 10px;
+  color: #9ab0c8;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+/* 并发轨道容器：强制 100% 宽度 */
+.forge-station .mh-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+/* 单条并发进度条轨道：拉满 */
+.mh-lane {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.55);
+  overflow: hidden;
+  border: 1px solid rgba(160,120,255,.3);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 进度条填充物 */
+.mh-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6a3cff, #b48cff 55%, #ffe6a0);
+  box-shadow: 0 0 6px rgba(180, 140, 255, 0.4);
+  transition: width 0.1s linear;
+}
+.concurrent-tag { color: #c9a8ff; font-weight: 600; margin-left: 6px; font-size: 11px; }
+
+.cell { position: relative; font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; }
+.cell .stash-tip {
+  display: none; position: absolute; left: 50%; bottom: calc(100% + 4px);
+  transform: translateX(-50%); min-width: 140px; padding: 6px 8px; border-radius: 6px;
+  background: rgba(12,16,24,.96); border: 1px solid rgba(255,180,80,.35);
+  color: #d8dee8; font-size: 10px; line-height: 1.35; white-space: pre-line; z-index: 40;
+  pointer-events: none;
+}
+.cell:hover .stash-tip { display: block; }
+
+.stash, #stash { overflow-y: auto !important; align-content: start !important; }
+.cell { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-height: 36px; }

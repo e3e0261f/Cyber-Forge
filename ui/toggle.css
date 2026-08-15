@@ -1,0 +1,119 @@
+/* Cyber-Forge 通用暗色滑动开关
+ * 用法：<button type="button" class="cf-toggle" data-cf-toggle role="switch"></button>
+ * 开启：加 class "on" 或 aria-checked="true"
+ */
+.cf-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  box-sizing: border-box;
+  display: inline-block;
+  width: 44px;
+  height: 20px;
+  min-width: 44px;
+  min-height: 20px;
+  padding: 0;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid #3d4654;
+  background: #1a1f28;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  vertical-align: middle;
+  color: transparent;
+  font-size: 10px;
+  line-height: 20px;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.cf-toggle::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8b93a3;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+  z-index: 2;
+}
+
+.cf-toggle:hover {
+  border-color: #5a6578;
+  background: #222833;
+}
+.cf-toggle:hover::before {
+  background: #a8b0c0;
+}
+
+.cf-toggle:focus-visible {
+  outline: 2px solid rgba(224, 160, 80, 0.45);
+  outline-offset: 2px;
+}
+
+/* 开启 */
+.cf-toggle.on,
+.cf-toggle[aria-checked="true"] {
+  border-color: #c87838;
+  background: #2a1a10;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(255, 120, 40, 0.25);
+}
+.cf-toggle.on::before,
+.cf-toggle[aria-checked="true"]::before {
+  transform: translateX(24px);
+  background: #ff9a4a;
+  box-shadow:
+    0 0 6px rgba(255, 140, 60, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* 可选旁注 */
+.cf-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.cf-toggle-label {
+  font-size: 11px;
+  color: #7a8494;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1;
+  transition: color 0.25s ease;
+}
+.cf-toggle-wrap:has(.cf-toggle.on) .cf-toggle-label,
+.cf-toggle-wrap:has(.cf-toggle[aria-checked="true"]) .cf-toggle-label {
+  color: #d4a878;
+}
+
+/* 尺寸变体 */
+.cf-toggle.sm {
+  width: 36px;
+  height: 16px;
+  min-width: 36px;
+  min-height: 16px;
+  line-height: 16px;
+}
+.cf-toggle.sm::before {
+  width: 12px;
+  height: 12px;
+  top: 1px;
+  left: 1px;
+}
+.cf-toggle.sm.on::before,
+.cf-toggle.sm[aria-checked="true"]::before {
+  transform: translateX(20px);
+}
