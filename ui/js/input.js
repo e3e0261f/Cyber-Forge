@@ -1,71 +1,34 @@
-/**
- * 快捷键总控：
- * 1. 空格狂暴连击 (35ms) 与 其他按键 (250ms) 彻底分速独立
- * 2. 阶梯提速算法与频率全部在顶部参数化，随时可调
- */
+/** 快捷键：空格 0ms 即时打击感 + 全键盘通用阶梯狂飙 */
 import { invoke, showToast } from './core.js';
 import { applySnap } from './apply.js';
-import { sparkAtHead } from './particles.js';
+import { isCurrentlyInCrit, resetLocalCycle, sparkAtHead } from './forge.js';
 
-// =========================================================================
-// 🎛️ 【核心速度与提速算法配置区 - 随时在此自由修改】
-// =========================================================================
-
-// 1. 按键连发基础时间间隔（毫秒）
-const SPACE_INTERVAL_MS = 35;          // 🌟 空格键连击间隔（35ms = 每秒约 28 锤，疯狂扫射）
-const OTHER_KEYS_INTERVAL_MS = 250;     // 🌟 其他所有按键基础间隔（250ms = 每秒 4 次，稳健起步）
-
-// 2. 阶梯提速算法配置表（基于累计触发点数）
-// 规则：当累计点数达到 hitsThreshold 时，单次触发步进升级为 stepSize
+// ... 保持原有常数配置不变 ...
+const SPACE_INTERVAL_MS = 35;
+const OTHER_KEYS_INTERVAL_MS = 250;
 const STEP_TIERS = [
-  { hitsThreshold: 1000, stepSize: 1000 },  // 触发超过 1000 次后：每次 +1000
-{ hitsThreshold: 100,  stepSize: 100 },   // 触发超过 100 次后：每次 +100
-{ hitsThreshold: 10,   stepSize: 10 },    // 触发超过 10 次后：每次 +10
-{ hitsThreshold: 0,    stepSize: 1 }      // 初始阶段：每次 +1
+  { hitsThreshold: 1000, stepSize: 1000 },
+{ hitsThreshold: 100,  stepSize: 100 },
+{ hitsThreshold: 10,   stepSize: 10 },
+{ hitsThreshold: 0,    stepSize: 1 }
 ];
-
-// 3. 不参与长按连发的绝对黑名单
-const EXCLUDE_KEYS = new Set([
-  'KeyP', 'KeyH', 'Digit0'
-]);
-
-// =========================================================================
+const EXCLUDE_KEYS = new Set(['KeyP', 'KeyH', 'Digit0']);
 
 const KEY_MAP = {
   Space: 'strike',
-  KeyU: 'u',
-  KeyW: 'w',
-  KeyA: 'a',
-  KeyR: 'r',
-  KeyD: 'd',
-  KeyE: 'e',
-  KeyT: 't',
-  KeyG: 'g',
-  KeyF: 'f',
-  KeyS: 's',
-  KeyB: 'b',
-  KeyI: 'i',
-  KeyO: 'o',
-  Digit0: '0',
-  Digit1: '1',
-  Digit2: '2',
-  Digit3: '3',
-  Digit4: '4',
-  Digit5: '5',
-  KeyP: 'p',
+  KeyU: 'u', KeyW: 'w', KeyA: 'a', KeyR: 'r', KeyD: 'd', KeyE: 'e',
+  KeyT: 't', KeyG: 'g', KeyF: 'f', KeyS: 's', KeyB: 'b', KeyI: 'i', KeyO: 'o',
+  Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5', KeyP: 'p',
 };
 
-// 记录长按键状态: code -> { hitCount, lastFiredTime, shiftKey, ctrlKey }
 const heldKeys = new Map();
 let mainLoopTimer = null;
 let actionBusy = false;
 
-// 🌟 真正的无上限指数级狂飙算法：每按 10 点，步进直接乘以 10 倍！
 function getStepMultiplier(hits) {
   if (hits <= 10) return 1;
-  // 11~20: 10, 21~30: 100, 31~40: 1000, 41~50: 10000 ... 无限递增！
   const power = Math.floor((hits - 1) / 10);
-  return Math.pow(10, Math.min(power, 15)); // 最高单次可达千万亿级，瞬时结算
+  return Math.pow(10, Math.min(power, 15));
 }
 
 async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
@@ -76,10 +39,25 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   if (code === 'KeyI' && shiftKey) k = 'I';
   if (code === 'KeyO' && shiftKey) k = 'O';
 
-  // 计算当前阶梯倍率（非空格键生效）
-  if (code !== 'Space' && !EXCLUDE_KEYS.has(code)) {
-    const step = getStepMultiplier(hitCount);
+  // 🌟 核心：空格敲击（0 毫秒极致打击感响应）
+  if (k === 'strike') {
+    // 1. 本地即刻识别当前是否处于暴击区 (0ms)
+    const isCrit = isCurrentlyInCrit();
+    // 2. 本地即刻重置读条并向四周炸裂火花 (0ms)
+    sparkAtHead(isCrit);
+    resetLocalCycle();
 
+    // 3. 异步向后端报告挥锤动作
+    try {
+      const t = await invoke('player_strike');
+      if (t) applySnap(t);
+    } catch (_) {}
+    return;
+  }
+
+  // 其他按键的阶梯倍率计算
+  if (!EXCLUDE_KEYS.has(code)) {
+    const step = getStepMultiplier(hitCount);
     if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
       if (ctrlKey) k = k + '_100';
       else if (shiftKey) k = k + '_10';
@@ -91,37 +69,25 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
 
   actionBusy = true;
   try {
-    if (k === 'strike') {
-      const t = await invoke('player_strike');
-      if (t) {
-        applySnap(t);
-        sparkAtHead(!!t.in_crit);
-      }
-    } else {
-      const t = await invoke('action', { key: k });
-      if (t) applySnap(t);
-    }
+    const t = await invoke('action', { key: k });
+    if (t) applySnap(t);
   } finally {
     actionBusy = false;
   }
 }
 
-// 🌟 高精度独立时钟循环（每 10ms 扫描一次各个按键的冷却）
+// 维持高精度主循环
 function startMainLoop() {
   if (mainLoopTimer) return;
-
   mainLoopTimer = setInterval(async () => {
     if (!heldKeys.size) {
       clearInterval(mainLoopTimer);
       mainLoopTimer = null;
       return;
     }
-
     const now = performance.now();
     for (const [code, info] of heldKeys.entries()) {
-      // 区分空格与其它按键的触发间隔
       const interval = (code === 'Space') ? SPACE_INTERVAL_MS : OTHER_KEYS_INTERVAL_MS;
-
       if (now - info.lastFiredTime >= interval) {
         info.lastFiredTime = now;
         info.hitCount++;
@@ -133,17 +99,13 @@ function startMainLoop() {
 
 export function setupInput() {
   window.addEventListener('keydown', async (e) => {
-    if (e.code === 'Space') {
-      e.preventDefault(); // 防止网页滚动
-    }
-
+    if (e.code === 'Space') e.preventDefault();
     if (e.ctrlKey && e.code === 'KeyS') {
       e.preventDefault();
       const t = await invoke('action', { key: 'p' });
       if (t) applySnap(t);
       return;
     }
-
     if (e.code === 'KeyH') {
       e.preventDefault();
       showToast('【操作指南】空格(35ms)疯狂连击 | 其他按键(250ms)阶梯狂飙！');
@@ -151,7 +113,7 @@ export function setupInput() {
     }
 
     if (!KEY_MAP[e.code]) return;
-    if (e.repeat) return; // 拦截系统慢速重复
+    if (e.repeat) return;
 
     if (!EXCLUDE_KEYS.has(e.code)) {
       e.preventDefault();

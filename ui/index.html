@@ -76,27 +76,19 @@
           </div>
         </div>
 
-<!-- Line2 锻造台 · 读条锚点 -->
+<!-- Line2 锻造台 · Pixi.js 显卡全息渲染视口 -->
 <div class="panel line line2" id="line2">
   <div class="panel-inner">
 
-    <!-- 🌟 修改这里：把 QTE 融合进标题行 -->
+    <!-- 标题栏保持不变 -->
     <header class="ptitle" id="line2Title">
       【锻造台】<span id="hammerInfoText"></span>
       <span id="titleQte" style="color: var(--crit, #ff4d7a); float: right;">完美 0.0</span>
     </header>
 
-    <div id="anvil">
-      <div class="anvil-glow" id="anvilGlow"></div>
-      <canvas id="sparks"></canvas>
+    <!-- 🌟 核心：内部全部清空，直接由 Pixi.js 注入 WebGL 画布 -->
+    <div id="anvil"></div>
 
-      <div class="bar-wrap">
-        <div id="crit"></div>
-        <div id="fill"><span class="fill-head"></span></div>
-      </div>
-    </div>
-
-    <div class="forge-stations" id="forgeStations" hidden></div>
   </div>
 </div>
 

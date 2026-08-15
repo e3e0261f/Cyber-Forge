@@ -1,5 +1,5 @@
 /* ==========================================================
- *  🎯 Cyber-Forge · styles-append.css 终极整洁版
+ *  🎯 Cyber-Forge v2.5.1 (WEEB) · styles-append.css 终极整洁版
  *  ========================================================== */
 
 /* 1. 铁匠铺学徒面板 */
@@ -48,7 +48,7 @@ box-sizing: border-box !important;
 /* 2. 身体素质：去掉重复首行 */
 .body-grid .sec:first-child { display: none !important; }
 
-/* 3. 锻造台：180秒超慢速旋转流光边框 + 外部泛光 */
+/* 3. 锻造台面板边框：120秒超慢速流光边框 + 外部泛光 */
 #line2 {
 position: relative;
 border: 1px solid transparent;
@@ -68,7 +68,6 @@ z-index: -1;
 background-image: linear-gradient(135deg, #ff4500, #ff8c00, #ffd700, #ff3300, #ff4500);
 background-size: 300% 300%;
 animation: forge-glow-flow 120s ease infinite;
-/*filter: blur(16px); */
 opacity: 0.45;
 border-radius: inherit;
 pointer-events: none;
@@ -88,8 +87,7 @@ pointer-events: none;
   50% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.9); }
 }
 
-/* --- 5. 中栏空间重新分配：给予锻造台与身体素质更充足的高度 --- */
-/* --- 🎯 中栏总控：让锻造台真正实现“内容有多高，窗口就多高”的自适应 --- */
+/* 5. 🎯 中栏空间总控：自适应高度分配 */
 .col-mid {
   display: flex !important;
   flex-direction: column !important;
@@ -101,33 +99,32 @@ pointer-events: none;
 
 .col-mid > .line1 { flex: 0 0 48px !important; }
 
-/* 🌟 核心：锻造台（Line2）改由内部内容自适应 (fit-content / auto) */
+/* 锻造台：由 Pixi 画布内容自适应撑开高度 */
 .col-mid > .line2 {
-  flex: 0 0 auto !important; /* 关键：不强行拉伸，有多少内容就占多高 */
-  min-height: 70px !important; /* 初始单台时的最小保底高度 */
-  max-height: 60vh !important; /* 设置一个安全上限，防止极端情况下撑爆屏幕 */
-  overflow-y: auto !important;  /* 如果台子太多超出上限，内部滚动 */
+  flex: 0 0 auto !important;
+  min-height: 40px !important;
+  max-height: 60vh !important;
+  overflow-y: auto !important;
 }
 
 .col-mid > .line3 { flex: 0 0 72px !important; }
 
-/* --- 修复身体素质（Line6）高度被切割的问题 --- */
+/* 身体素质：自适应高度，溢出内部滚动 */
 .col-mid > .line6 {
-  flex: 0 1 auto !important;           /* 允许根据内容自动调整，不写死固定高度 */
-  min-height: 210px !important;        /* 给一个舒适的默认最小高度 */
-  max-height: 260px !important;        /* 设定一个安全上限，防止它吃掉太多日志空间 */
-  overflow-y: auto !important;         /* 🌟 核心：内容超出时，内部出现滚动条，绝不生硬切割 */
+  flex: 0 1 auto !important;
+  min-height: 180px !important;
+  max-height: 260px !important;
+  overflow-y: auto !important;
   display: flex !important;
   flex-direction: column !important;
 }
 
-/* 确保内部的身体素质网格能够正常随容器滚动 */
 .col-mid > .line6 .body-grid {
   flex: 1 1 auto !important;
   overflow-y: auto !important;
 }
 
-/* 🌟 天道纪事·日志：吃掉中间释放出来的所有剩余空间 */
+/* 天道纪事·日志：吃满剩余垂直空间 */
 .col-mid > .line8 {
   flex: 1 1 auto !important;
   display: flex !important;
@@ -141,55 +138,14 @@ pointer-events: none;
   overflow-y: auto !important;
 }
 
-/* 6. 锻造台主读条精简与居中 */
+/* 6. 🌟 Pixi.js WebGL 全息视口容器（只保留容器本身，内部所有图形交由显卡渲染） */
+/* 🌟 Pixi.js 视口容器 */
 #line2 #anvil, #anvil {
-height: 36px !important;
-margin: 6px 12px !important;
 position: relative !important;
+width: 100% !important;
+min-height: 32px !important;
+margin: 2px 0 4px 0 !important;
 background: transparent !important;
 border: none !important;
-}
-
-#line2 #anvil .bar-wrap, #anvil .bar-wrap {
-position: absolute !important;
-top: 50% !important;
-transform: translateY(-50%) !important;
-left: 2% !important;
-right: 2% !important;
-height: 10px !important;
-background-color: #111 !important;
-border-radius: 5px !important;
-overflow: hidden !important;
-box-shadow: inset 0 1px 3px rgba(0,0,0,0.8) !important;
-}
-
-.bar-meta { display: none !important; }
-
-/* 多并发台子样式（后期解锁时生效） */
-.forge-stations {
-  display: grid;
-  gap: 4px !important;
-  margin: 4px 10px !important;
-  padding: 4px 6px !important;
-  max-height: 110px !important;
-  overflow-y: auto !important;
-}
-.forge-station {
-  border: 1px solid rgba(160,120,255,.25);
-  border-radius: 6px;
-  padding: 4px 6px;
-  background: rgba(12,16,24,.75);
-  display: flex;
-  flex-direction: column;
-}
-.forge-station-label { font-size: 9px; color: #9ab0c8; margin-bottom: 2px; font-weight: bold; }
-.forge-station .mh-lanes { display: flex; flex-direction: column; gap: 2px; width: 100%; }
-.mh-lane {
-  height: 5px; border-radius: 2px; background: rgba(0,0,0,.55);
-  overflow: hidden; border: 1px solid rgba(160,120,255,.3); width: 100%;
-}
-.mh-fill {
-  height: 100%; width: 0%;
-  background: linear-gradient(90deg, #6a3cff, #b48cff 55%, #ffe6a0);
-  transition: width 0.1s linear;
+box-sizing: border-box !important;
 }
