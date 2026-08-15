@@ -1,11 +1,11 @@
-/** 快捷键：空格单发硬锁定 + 其他按键全键盘点数阶梯狂飙 */
+/** 快捷键：空格按住无限狂暴连击 + 全键盘点数阶梯狂飙 */
 import { invoke, showToast } from './core.js';
 import { applySnap } from './apply.js';
 import { sparkAtHead } from './particles.js';
 
-// 🌟 排除长按的黑名单（空格强制单发、存档、帮助、调试）
+// 🌟 纯单发黑名单（仅保留存档、帮助、调试，空格已被移出并开启无限连击！）
 const EXCLUDE_KEYS = new Set([
-  'Space', 'KeyP', 'KeyH', 'Digit0'
+  'KeyP', 'KeyH', 'Digit0'
 ]);
 
 const KEY_MAP = {
@@ -32,10 +32,9 @@ const KEY_MAP = {
   KeyP: 'p',
 };
 
-// 记录非空格按键的连续触发点数
+// 记录按键触发点数
 const keyHitCounts = new Map();
 
-let isSpaceHeld = false; // 🌟 专门用于锁定空格单发状态
 let holdLoopTimer = null;
 let actionBusy = false;
 
@@ -47,9 +46,9 @@ async function fireKey(code, shiftKey, ctrlKey) {
   if (code === 'KeyI' && shiftKey) k = 'I';
   if (code === 'KeyO' && shiftKey) k = 'O';
 
-  // 🌟 非空格按键：阶梯步进逻辑
+  // 🌟 非空格按键：执行点数阶梯步进 (+10, +100, +1000)
   let step = 1;
-  if (!EXCLUDE_KEYS.has(code)) {
+  if (!EXCLUDE_KEYS.has(code) && code !== 'Space') {
     let currentHits = (keyHitCounts.get(code) || 0) + 1;
     keyHitCounts.set(code, currentHits);
 
@@ -75,6 +74,7 @@ async function fireKey(code, shiftKey, ctrlKey) {
   actionBusy = true;
   try {
     if (k === 'strike') {
+      // 🌟 空格连发：每次触发直接挥锤，爆出火花和读条推进
       const t = await invoke('player_strike');
       if (t) {
         applySnap(t);
@@ -89,7 +89,7 @@ async function fireKey(code, shiftKey, ctrlKey) {
   }
 }
 
-// 连发循环心跳（速度控制）
+// 🎛️ 连发心跳速度（35ms = 每秒约 28 锤，极致丝滑）
 const HOLD_INTERVAL_MS = 35;
 
 function startHoldLoop() {
@@ -110,13 +110,9 @@ function startHoldLoop() {
 
 export function setupInput() {
   window.addEventListener('keydown', async (e) => {
-    // 🌟 1. 优先拦截空格键：防止网页滚动，并严格执行“单按一次只敲一锤”
+    // 阻止空格等默认行为（防止网页向下滚动）
     if (e.code === 'Space') {
       e.preventDefault();
-      if (isSpaceHeld || e.repeat) return; // 🌟 长按不放时直接拦截，绝不连发
-      isSpaceHeld = true;
-      await fireKey('Space', e.shiftKey, e.ctrlKey);
-      return;
     }
 
     if (e.ctrlKey && e.code === 'KeyS') {
@@ -128,14 +124,14 @@ export function setupInput() {
 
     if (e.code === 'KeyH') {
       e.preventDefault();
-      showToast('【操作指南】空格单按精准挥锤 | U/W/A/R/D/E/1~5 长按自动阶梯狂飙！');
+      showToast('【操作指南】按住空格无限狂暴连击！按住 U/W/A/R 等自动阶梯狂飙！');
       return;
     }
 
     if (!KEY_MAP[e.code]) return;
-    if (e.repeat) return;
+    if (e.repeat) return; // 忽略操作系统自带的慢速重复
 
-    // 🌟 2. 其他按键：长按自动阶梯加速
+    // 🌟 所有不在黑名单的键（包括 Space）按下即开启连发循环
     if (!EXCLUDE_KEYS.has(e.code)) {
       e.preventDefault();
       if (!keyHitCounts.has(e.code)) {
@@ -149,12 +145,7 @@ export function setupInput() {
   });
 
   window.addEventListener('keyup', (e) => {
-    // 🌟 松开空格时解除锁定，允许下一次挥锤
-    if (e.code === 'Space') {
-      isSpaceHeld = false;
-      return;
-    }
-
+    // 松开任何按键时立即停止该键的连发
     keyHitCounts.delete(e.code);
     if (!keyHitCounts.size && holdLoopTimer) {
       clearInterval(holdLoopTimer);
@@ -163,7 +154,6 @@ export function setupInput() {
   });
 
   window.addEventListener('blur', () => {
-    isSpaceHeld = false;
     keyHitCounts.clear();
     if (holdLoopTimer) {
       clearInterval(holdLoopTimer);
