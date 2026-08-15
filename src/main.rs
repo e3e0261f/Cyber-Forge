@@ -125,6 +125,8 @@ struct UiSnapshot {
             cost_backpack: String,
             cost_pavilion: String,
             matrix_progresses: Vec<f64>,
+            currency_protocol: String,
+            currency_protocol_color: String,
 }
 
 fn snapshot(inner: &AppInner) -> UiSnapshot {
@@ -239,7 +241,7 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
                 spirit: s.realm.body.spirit,
                 core_count: s.realm.body.core_count,
                 core_size: s.realm.body.core_size,
-                core_refine: s.realm.body.core_refine,
+                core_refine: u32::from(s.realm.body.core_refine),
                 infant_size: s.realm.body.infant_size,
                 infant_count: s.realm.body.infant_count,
                 infant_power: s.realm.body.infant_power,
@@ -260,6 +262,8 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
                 cost_backpack: format_compact_number(s.get_backpack_upgrade_cost()),
                 cost_pavilion: format_compact_number(s.get_pavilion_upgrade_cost()),
                 matrix_progresses: s.matrix_progresses.clone(),
+                currency_protocol: s.currency_protocol_name().to_string(),
+                currency_protocol_color: s.currency_protocol_color().to_string(),
     }
 }
 
@@ -280,7 +284,6 @@ async fn api_player_strike(data: web::Data<AppState>) -> impl Responder {
     let progress = (inner.cycle_start.elapsed().as_secs_f64() / interval).min(1.0);
     let in_crit = progress >= 0.76 && progress < 0.88;
 
-    // 🌟 核心修复：使用结构体解构，将 state、dao、cycle_start 分别独立可变借用
     let AppInner { state, dao, cycle_start } = &mut *inner;
     do_strike(state, in_crit, dao);
     *cycle_start = Instant::now();
@@ -289,7 +292,6 @@ async fn api_player_strike(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(snapshot(&inner))
 }
 
-// 🌟 补齐心跳驱动 API
 #[post("/api/tick")]
 async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
     let mut inner = data.0.lock().unwrap();
@@ -297,7 +299,10 @@ async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
     inner.state.tick_flash();
     inner.state.tick_market_rumor();
 
-    // 后台矩阵轨道随时间自动向前流转
+    // 🌟 核心：只执行听从用户模式的协议（模式0时完全不自动动钱）
+    inner.state.process_currency_protocol();
+
+    // 后台矩阵轨道推进
     let tick_delta = 0.05;
     for prog in &mut inner.state.matrix_progresses {
         if *prog < 1.0 {
@@ -322,7 +327,6 @@ async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
         inner.state.process_apprentice_work();
     }
 
-    // AFK 自动挂机锤逻辑
     let interval = inner.state.effective_interval_secs().max(0.01);
     if inner.cycle_start.elapsed().as_secs_f64() >= interval {
         let AppInner { state, dao, cycle_start } = &mut *inner;
@@ -345,47 +349,110 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
     let s = &mut inner.state;
     let key = &payload.key;
 
-    match key.as_str() {
-        "u" | "U" => s.upgrade_hammer(),
-        k if k.starts_with("u_") => {
-            if let Ok(n) = k.trim_start_matches("u_").parse::<u32>() {
-                for _ in 0..n { s.upgrade_hammer(); }
+    // 🌟 1. 优先匹配下拉菜单协议设置
+    if let Some(mode_str) = key.strip_prefix("set_currency_protocol_") {
+        if let Ok(mode) = mode_str.parse::<u8>() {
+            s.set_currency_protocol(mode);
+        }
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+
+    // 🌟 2. 通用一视同仁解析器：自动拆解 (基础按键, 批量次数)
+    let (base_key, count): (&str, u128) = match key.rsplit_once('_') {
+        Some((b, n_str)) if n_str.chars().all(|c| c.is_ascii_digit()) => {
+            (b, n_str.parse::<u128>().unwrap_or(1))
+        }
+        _ => (key.as_str(), 1),
+    };
+
+    match base_key {
+        // 重锤升级 (U)
+        "u" | "U" => {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                let cost = s.get_hammer_upgrade_cost();
+                if s.coins < cost { break; }
+                s.upgrade_hammer();
+                up += 1;
+            }
+            if count > 1 && up > 0 {
+                s.set_toast(format!("连续升级重锤 ×{}：[{}] Lv.{}", up, s.hammer_name(), s.hammer_level));
             }
         }
-        "w" | "W" => s.upgrade_bellows(),
-        k if k.starts_with("w_") => {
-            if let Ok(n) = k.trim_start_matches("w_").parse::<u32>() {
-                for _ in 0..n { s.upgrade_bellows(); }
+        // 风箱升级 (W)
+        "w" | "W" => {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                if s.natural_interval_ticks <= 10 { break; }
+                let cost = s.get_bellows_upgrade_cost();
+                if s.coins < cost { break; }
+                s.upgrade_bellows();
+                up += 1;
+            }
+            if count > 1 && up > 0 {
+                s.set_toast(format!("连续升级风箱 ×{}：Lv.{}/500", up, s.bellows_level));
             }
         }
-        "a" | "A" => s.hire_apprentice(),
-        k if k.starts_with("a_") => {
-            if let Ok(n) = k.trim_start_matches("a_").parse::<u32>() {
-                for _ in 0..n { s.hire_apprentice(); }
+        // 招募学徒 (A)
+        "a" | "A" => {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                if s.apprentices >= s.max_apprentices { break; }
+                let cost = s.get_next_apprentice_cost();
+                if s.coins < cost { break; }
+                s.hire_apprentice();
+                up += 1;
+            }
+            if count > 1 && up > 0 {
+                s.set_toast(format!("批量招募学徒 ×{}：当前共 {} 人", up, s.apprentices));
             }
         }
-        "r" | "R" => s.upgrade_house(),
-        k if k.starts_with("r_") => {
-            if let Ok(n) = k.trim_start_matches("r_").parse::<u32>() {
-                for _ in 0..n { s.upgrade_house(); }
+        // 扩建厢房 (R)
+        "r" | "R" => {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                let cost = s.get_house_upgrade_cost();
+                if s.coins < cost { break; }
+                s.upgrade_house();
+                up += 1;
+            }
+            if count > 1 && up > 0 {
+                s.set_toast(format!("批量扩建厢房 ×{}：名额升至 {} 人", up, s.max_apprentices));
             }
         }
+        // 扩充背包 (D)
         "d" | "D" => {
-            let cost = s.get_backpack_upgrade_cost();
-            if s.coins >= cost {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                let cost = s.get_backpack_upgrade_cost();
+                if s.coins < cost { break; }
                 s.coins -= cost;
                 s.max_backpack += 2;
-                let n = s.max_backpack;
-                s.set_toast(format!("背包扩至 {} 格", n));
+                up += 1;
+            }
+            if up > 0 {
+                s.set_toast(format!("背包扩容至 {} 格 (升级×{})", s.max_backpack, up));
             } else {
-                s.set_toast(format!("扩容需 金{}", cost));
+                s.set_toast(format!("扩容需 金{}", s.get_backpack_upgrade_cost()));
+            }
+        }
+        // 扩建展位 (E)
+        "e" | "E" => {
+            let mut up = 0;
+            for _ in 0..count.min(10_000) {
+                let cost = s.get_pavilion_upgrade_cost();
+                if s.coins < cost { break; }
+                s.upgrade_pavilion();
+                up += 1;
+            }
+            if count > 1 && up > 0 {
+                s.set_toast(format!("展位批量扩建 ×{}：升至 {} 个", up, s.max_pavilion));
             }
         }
         "s" | "S" => s.melt_lowest_sword(),
         "f" | "F" => s.list_top_sword_to_market(),
         "t" | "T" => s.toggle_auto_melt(),
         "g" | "G" => s.toggle_auto_list(),
-        "e" | "E" => s.upgrade_pavilion(),
         "0" => s.toggle_debug_mode(),
         "b" | "B" => {
             if s.realm.sub_level < 10 {
@@ -416,20 +483,18 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
                 }
             }
         }
-        "1" => s.reassign_workers(1),
-        k if k.starts_with("1_") => { if let Ok(n) = k.trim_start_matches("1_").parse::<u32>() { s.reassign_workers_n(1, n); } }
-        "2" => s.reassign_workers(2),
-        k if k.starts_with("2_") => { if let Ok(n) = k.trim_start_matches("2_").parse::<u32>() { s.reassign_workers_n(2, n); } }
-        "3" => s.reassign_workers(3),
-        k if k.starts_with("3_") => { if let Ok(n) = k.trim_start_matches("3_").parse::<u32>() { s.reassign_workers_n(3, n); } }
-        "4" => s.reassign_workers(4),
-        k if k.starts_with("4_") => { if let Ok(n) = k.trim_start_matches("4_").parse::<u32>() { s.reassign_workers_n(4, n); } }
-        "5" => s.reassign_workers(5),
-        k if k.starts_with("5_") => { if let Ok(n) = k.trim_start_matches("5_").parse::<u32>() { s.reassign_workers_n(5, n); } }
-        "i" => s.exchange_copper_to_gold(),
-        "I" => s.exchange_gold_to_copper(),
-        "o" => s.exchange_gold_to_jade(),
-        "O" => s.exchange_jade_to_gold(),
+        // 岗位调配 1~5 (支持自动阶梯批量)
+        "1" => s.reassign_workers_n(1, count.min(100_000) as u32),
+        "2" => s.reassign_workers_n(2, count.min(100_000) as u32),
+        "3" => s.reassign_workers_n(3, count.min(100_000) as u32),
+        "4" => s.reassign_workers_n(4, count.min(100_000) as u32),
+        "5" => s.reassign_workers_n(5, count.min(100_000) as u32),
+
+        // 🌟 货币瞬时 O(1) 批量无损兑换
+        "i" => s.exchange_copper_to_gold_n(count),
+        "I" => s.exchange_gold_to_copper_n(count),
+        "o" => s.exchange_gold_to_jade_n(count),
+        "O" => s.exchange_jade_to_gold_n(count),
         _ => {}
     }
     HttpResponse::Ok().json(snapshot(&inner))
@@ -452,7 +517,7 @@ async fn main() -> std::io::Result<()> {
         .app_data(app_state.clone())
         .service(api_get_state)
         .service(api_player_strike)
-        .service(api_game_tick) // 🌟 必须注册这个心跳服务！
+        .service(api_game_tick)
         .service(api_action)
         .service(Files::new("/", "./ui").index_file("index.html"))
     })

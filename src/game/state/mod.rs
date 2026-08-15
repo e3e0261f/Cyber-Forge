@@ -153,6 +153,9 @@ pub struct GameState {
     // 🌟 1. 在这里新增矩阵轨道独立进度记录
     #[serde(default)]
     pub matrix_progresses: Vec<f64>,
+
+    #[serde(default)]
+    pub currency_protocol: u8, // 1: 纳玉, 2: 兜底
 }
 
 fn default_station_mult() -> [f64; 3] { [1.0, 1.0, 1.0] }
@@ -229,6 +232,9 @@ impl GameState {
 
             // 🌟 2. 初始化预留 64 个并发轨道位置
             matrix_progresses: vec![0.0; 64],
+
+            // 🌟 补上这一行：默认启动为模式 1（天道纳玉）
+            currency_protocol: 1,
         };
         s.reroll_station_mult(false);
         s.sync_body_stats();
@@ -241,3 +247,113 @@ impl GameState {
 pub struct SharedGameState(pub Arc<RwLock<GameState>>);
 
 
+// 打开 src/game/state/mod.rs，在 impl GameState 块中加入以下方法（并确保 currency_protocol 支持 0 彻底关闭）：
+impl GameState {
+    pub fn currency_protocol_name(&self) -> &'static str {
+        match self.currency_protocol {
+            1 => "[天道纳玉]",
+            2 => "[灵虚兜底]",
+            _ => "[协议关闭]",
+        }
+    }
+
+    pub fn currency_protocol_color(&self) -> &'static str {
+        match self.currency_protocol {
+            1 => "#00ffc8", // 仙玉青
+            2 => "#ffd700", // 金币金
+            _ => "#6a7380", // 灰色
+        }
+    }
+
+    pub fn set_currency_protocol(&mut self, mode: u8) {
+        self.currency_protocol = mode;
+        self.set_toast(format!("资财协议已切换为：{}", self.currency_protocol_name()));
+    }
+
+    /// 🌟 O(1) 瞬时铜换金
+    pub fn exchange_copper_to_gold_n(&mut self, n: u128) {
+        let max_possible = self.copper / 10_000;
+        let count = n.min(max_possible);
+        if count > 0 {
+            self.copper -= count * 10_000;
+            self.coins = self.coins.saturating_add(count);
+            let msg = format!("藏宝阁兑换：{} 铜钱 → 金币 {}", count * 10_000, count);
+            self.set_toast(&msg);
+            self.push_log(msg, count >= 100, false);
+        }
+    }
+
+    /// 🌟 O(1) 瞬时金换铜
+    pub fn exchange_gold_to_copper_n(&mut self, n: u128) {
+        let count = n.min(self.coins);
+        if count > 0 {
+            self.coins -= count;
+            self.copper = self.copper.saturating_add(count.saturating_mul(9_500));
+            let msg = format!("藏宝阁兑换：{} 金币 → 铜钱 {}", count, count * 9_500);
+            self.set_toast(&msg);
+            self.push_log(msg, count >= 100, false);
+        }
+    }
+
+    /// 🌟 O(1) 瞬时金换仙玉
+    pub fn exchange_gold_to_jade_n(&mut self, n: u128) {
+        let max_possible = self.coins / 10_000;
+        let count = n.min(max_possible);
+        if count > 0 {
+            self.coins -= count * 10_000;
+            self.jade = self.jade.saturating_add(count);
+            let msg = format!("藏宝阁兑换：{} 金币 → 仙玉 {}", count * 10_000, count);
+            self.set_toast(&msg);
+            self.push_log(msg, count >= 100, false);
+        }
+    }
+
+    /// 🌟 O(1) 瞬时仙玉换金币 (彻底解决 Shift+O 慢的问题！)
+    pub fn exchange_jade_to_gold_n(&mut self, n: u128) {
+        let count = n.min(self.jade);
+        if count > 0 {
+            self.jade -= count;
+            self.coins = self.coins.saturating_add(count.saturating_mul(9_500));
+            let msg = format!("藏宝阁兑换：{} 仙玉 → 金币 {}", count, count * 9_500);
+            self.set_toast(&msg);
+            self.push_log(msg, count >= 100, false);
+        }
+    }
+
+    /// 🌟 自动流转协议（当选择 0 协议关闭时，绝对不自动动钱）
+    pub fn process_currency_protocol(&mut self) {
+        // 模式 0：彻底关闭，不自动执行任何转换
+        if self.currency_protocol == 0 {
+            return;
+        }
+
+        // 铜钱满 10k 自动归流
+        let copper_batches = self.copper / 10_000;
+        if copper_batches > 0 {
+            let conv = copper_batches.min(100);
+            self.copper -= conv * 10_000;
+            self.coins = self.coins.saturating_add(conv);
+        }
+
+        match self.currency_protocol {
+            // 模式 1：天道纳玉 (挂机存钱)
+            1 => {
+                let batches = (self.coins / 10_000).min(50);
+                if batches > 0 {
+                    self.coins -= batches * 10_000;
+                    self.jade = self.jade.saturating_add(batches);
+                }
+            }
+            // 模式 2：灵虚兜底 (消费模式，金币不够自动碎玉)
+            2 => {
+                let hammer_cost = self.get_hammer_upgrade_cost();
+                let need_gold = hammer_cost.max(10_000);
+                if self.coins < need_gold && self.jade > 0 {
+                    self.jade -= 1;
+                    self.coins = self.coins.saturating_add(9_500);
+                }
+            }
+            _ => {}
+        }
+    }
+}

@@ -11,6 +11,15 @@ export function updateCurrency(s) {
 
   const jade = $('jadeText') || $('jade');
   if (jade) jade.textContent = formatNum(s.jade);
+
+  // 🌟 动态更新协议按钮的状态和颜色
+  const protoBtn = $('currProtocolBtn');
+  if (protoBtn && s.currency_protocol) {
+    protoBtn.textContent = s.currency_protocol;
+    protoBtn.style.color = s.currency_protocol_color || '#00ffc8';
+    protoBtn.style.borderColor = s.currency_protocol_color || '#00ffc8';
+    protoBtn.style.background = `${s.currency_protocol_color}1a`;
+  }
 }
 
 export function updateLevel(s) {

@@ -305,3 +305,4 @@ impl GameState {
         if self.list_tier != AutoListTier::Off { self.process_auto_list(); }
     }
 }
+

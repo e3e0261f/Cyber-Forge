@@ -22,3 +22,35 @@ initFpsMeter();
     if (t) applySnap(t);
   }, 150);
 })();
+
+// 🌟 资财协议下拉菜单控制
+const protoBtn = $('currProtocolBtn');
+const protoMenu = $('currProtocolMenu');
+const currencyBody = $('currencyBodyClickable');
+
+function toggleMenu(e) {
+  e.stopPropagation();
+  if (protoMenu) {
+    protoMenu.style.display = protoMenu.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+if (protoBtn) protoBtn.addEventListener('click', toggleMenu);
+if (currencyBody) currencyBody.addEventListener('click', toggleMenu);
+
+// 点击菜单项切换模式
+if (protoMenu) {
+  protoMenu.addEventListener('click', (e) => {
+    const item = e.target.closest('.curr-menu-item');
+    if (item) {
+      const mode = item.getAttribute('data-mode');
+      invoke('action', { key: `set_currency_protocol_${mode}` });
+      protoMenu.style.display = 'none';
+    }
+  });
+}
+
+// 点击外部关闭下拉菜单
+window.addEventListener('click', () => {
+  if (protoMenu) protoMenu.style.display = 'none';
+});
