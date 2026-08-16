@@ -140,7 +140,9 @@ impl RealmState {
     }
 
     pub fn total_level(&self) -> u32 {
-        let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+        // 与头衔表一致：每大境界按 15 层计总等级
+        let layer = self.sub_level.min(15);
+        let current_calc = (self.realm as u32 - 1) * 15 + layer;
         std::cmp::max(current_calc, self.max_total_level)
     }
 
@@ -148,12 +150,13 @@ impl RealmState {
         let layer = layer.max(1);
         let t10 = Self::exp_to_perfection(realm_idx);
         if layer <= 10 {
+            // 1~10 层：二次曲线爬到本境圆满阈值
             let l = layer as u128;
             (t10 * l * l) / 100
         } else {
-            let extra = layer - 10;
-            let mult = 10u128.saturating_mul(3u128.pow(extra.min(30) as u32));
-            t10.saturating_mul(mult)
+            // 10 层以后：每一层累计需求再 ×10（11=10×、12=100×、…）
+            let extra = (layer - 10).min(30);
+            t10.saturating_mul(10u128.pow(extra))
         }
     }
 
@@ -173,6 +176,7 @@ impl RealmState {
         let exp = self.realm_exp;
         let mut layer = 1u32;
 
+        // 允许修到 15+ 层（10 层后难度×10，用于提高渡劫成功率）
         let mut l = 1u32;
         while l < 100 {
             if exp >= Self::cumulative_exp_for_layer(realm_idx, l) {
@@ -186,7 +190,8 @@ impl RealmState {
         self.pending_breakthrough = layer >= 10;
 
         // 🌟 核心：每次刷新时，自动更新历史巅峰等级，确保突破绝不回退
-        let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+        let layer_capped = self.sub_level.min(15);
+        let current_calc = (self.realm as u32 - 1) * 15 + layer_capped;
         if current_calc > self.max_total_level {
             self.max_total_level = current_calc;
         }
@@ -227,7 +232,7 @@ impl RealmState {
             self.pending_breakthrough = false;
 
             // 突破后立刻重新计算并固化巅峰等级
-            let current_calc = (self.realm as u32 - 1) * 10 + self.sub_level;
+            let current_calc = (self.realm as u32 - 1) * 15 + self.sub_level.min(15);
             if current_calc > self.max_total_level {
                 self.max_total_level = current_calc;
             }

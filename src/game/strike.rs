@@ -11,13 +11,17 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
 
     // 🌟 1. 恢复主进度条的正常推进（这样大进度条和倒计时就能动了！）
     let progress_gain = power * pulse.progress_mul;
+    let cult = (power.max(1.0).floor() as u128).saturating_mul(state.core_cult_bonus()).max(1);
     if pulse.is_perfect {
         state.forge_qte_hits += power;
         state.sub_strikes += progress_gain;
-        state.realm.add_cultivation((power.max(1.0).floor() as u128).saturating_mul(state.core_cult_bonus()));
+        // 完美 QTE：全额修为
+        state.realm.add_cultivation(cult);
         state.trigger_flash();
     } else {
         state.sub_strikes += progress_gain;
+        // 普通锤：也给修为（1/4），避免卡在 10 层后完全不动
+        state.realm.add_cultivation((cult / 4).max(1));
     }
 
     dao.sync_perfect_from_state(state.forge_qte_hits);

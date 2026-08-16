@@ -80,9 +80,16 @@ export let logsScrollY = 0;
 export let logsMaxScroll = 0;
 let logsStickBottom = true;
 
+export let bodyScrollY = 0;
+export let bodyMaxScroll = 0;
+
 export function scrollLogs(deltaY) {
     logsScrollY = Math.max(0, Math.min(logsMaxScroll, logsScrollY + deltaY * 0.8));
     logsStickBottom = logsScrollY >= logsMaxScroll - 1;
+}
+
+export function scrollBody(deltaY) {
+    bodyScrollY = Math.max(0, Math.min(bodyMaxScroll, bodyScrollY + deltaY * 0.8));
 }
 
 export function drawHUD(ctx, w, h, now) {
@@ -170,8 +177,9 @@ export function drawHUD(ctx, w, h, now) {
     ctx.fillStyle = listColor;
     ctx.fillText(`[G] 上架: ${listTierName}`, 154, dockY + 23);
 
-    // C. [X] 突破引劫按钮 (达到10层金色发光)
-    const canBreak = gameState.pending_breakthrough || (gameState.sub_level >= 10);
+    // C. [X] 突破引劫按钮 (10层圆满可渡劫；10层后继续修炼提升成功率)
+    const layer = gameState.sub_level || 1;
+    const canBreak = gameState.pending_breakthrough || layer >= 10;
     const breakColor = canBreak ? '#ffd700' : '#64748b';
     ctx.fillStyle = canBreak ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255, 255, 255, 0.03)';
     ctx.strokeStyle = breakColor;
@@ -179,7 +187,10 @@ export function drawHUD(ctx, w, h, now) {
     ctx.roundRect(286, dockY + 6, 125, 26, 4);
     ctx.fill(); ctx.stroke();
     ctx.fillStyle = breakColor;
-    ctx.fillText(canBreak ? '⚡[X] 准备引劫' : `[X] 突破(${gameState.sub_level || 1}/10)`, 294, dockY + 23);
+    const breakLabel = canBreak
+        ? (layer > 10 ? `⚡[X] 引劫(${layer}层)` : '⚡[X] 准备引劫')
+        : `[X] 突破(${layer}/10)`;
+    ctx.fillText(breakLabel, 294, dockY + 23);
 
     // D. [K] 挂机锤开关
     const isAuto = isAutoStrikeActive();
@@ -400,17 +411,160 @@ function drawLogsModal(ctx, w, h, time) {
 function drawBodyModal(ctx, w, h, time) {
     if (!uiState.isOpen('body')) return;
     const bounds = getModalBounds('body', w, h);
-    const { mx, my, mw } = bounds;
+    const { mx, my, mw, mh } = bounds;
+    const s = gameState;
+    const title = s.title ? ` · ${s.title}` : '';
+    const pending = s.pending_breakthrough ? ' ⚡待渡劫' : '';
 
-    drawHoloModalFrame(ctx, mx, my, mw, bounds.mh, '#22c55e', `【身体素质】${gameState.realm_name || '炼体'} ${gameState.sub_level || 1}层`, time);
+    drawHoloModalFrame(
+        ctx, mx, my, mw, mh, '#22c55e',
+        `【身体素质】${s.realm_name || '炼体'} ${s.sub_level || 1}层${title}${pending}`,
+        time
+    );
 
-    const body = gameState.body || {};
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '12px monospace';
-    ctx.fillText(`• 体魄强度: ${body.physique || 1}      • 灵气感应: ${body.qi_sense || 0}`, mx + 24, my + 80);
-    ctx.fillText(`• 神识精神: ${body.spirit || 0}        • 单台并发: ×${gameState.concurrent_hammers || 1}`, mx + 24, my + 110);
-    ctx.fillText(`• 化神矩阵: ${gameState.matrix_slots || 1} 台      • 铁浆凝炼: ${gameState.iron_slag || 0}`, mx + 24, my + 140);
-    ctx.fillText(`• 境界底蕴: ${gameState.realm_exp || 0} / ${gameState.exp_to_next || 0}`, mx + 24, my + 170);
+    const n = (x) => (x === 0 || x ? String(x) : '0');
+    const colW = (mw - 48) / 2;
+    const leftX = mx + 24;
+    const rightX = leftX + colW;
+    const clipY = my + 52;
+    const clipH = mh - 78;
+    const contentH = 620;
+    bodyMaxScroll = Math.max(0, contentH - clipH);
+    bodyScrollY = Math.max(0, Math.min(bodyMaxScroll, bodyScrollY));
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(mx + 8, clipY, mw - 16, clipH);
+    ctx.clip();
+
+    let y = clipY + 10 - bodyScrollY;
+
+    const drawSec = (label, yy) => {
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label, leftX, yy);
+    };
+    const drawLine = (leftLabel, leftVal, rightLabel, rightVal, yy, leftAccent, rightAccent) => {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px sans-serif';
+        ctx.fillText(leftLabel, leftX, yy);
+        ctx.fillStyle = leftAccent || '#e2e8f0';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(String(leftVal), leftX + 92, yy);
+
+        if (rightLabel != null) {
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px sans-serif';
+            ctx.fillText(rightLabel, rightX, yy);
+            ctx.fillStyle = rightAccent || '#e2e8f0';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(String(rightVal), rightX + 92, yy);
+        }
+    };
+    const drawHint = (text, yy) => {
+        ctx.fillStyle = '#475569';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(text, leftX, yy);
+    };
+
+    // 道基摘要
+    drawSec('【道基】', y);
+    y += 16;
+    drawLine('本境底蕴', s.realm_exp || '0', '距下层', s.exp_to_next || '0', y, '#86efac', '#86efac');
+    y += 18;
+    drawLine('累计修为', s.cultivation || '0', '神兵机缘', s.god_rate || '0', y, '#86efac', '#fbbf24');
+    y += 18;
+    drawLine('铁浆凝炼', n(s.iron_slag), '锤力加成', `${((Number(s.physique) || 0) / 10).toFixed(1)}%`, y, '#f59e0b', '#38bdf8');
+
+    y += 12;
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.22)';
+    ctx.beginPath();
+    ctx.moveTo(mx + 18, y);
+    ctx.lineTo(mx + mw - 18, y);
+    ctx.stroke();
+    y += 18;
+
+    drawSec('【炼体期】身体强度', y);
+    y += 16;
+    drawLine('体魄', n(s.physique), null, null, y);
+    y += 22;
+
+    drawSec('【炼气期】灵气感应', y);
+    y += 16;
+    drawLine('气感', n(s.qi_sense), null, null, y);
+    y += 22;
+
+    drawSec('【练神期】精神力', y);
+    y += 16;
+    drawLine('精神力', n(s.spirit), null, null, y);
+    y += 22;
+
+    drawSec('【金丹期】', y);
+    y += 16;
+    drawLine('金丹个数', n(s.core_count), '金丹大小', n(s.core_size), y);
+    y += 18;
+    drawLine('凝炼次数', n(s.core_refine), null, null, y);
+    y += 22;
+
+    drawSec('【元婴期】影响多锤并发', y);
+    y += 16;
+    drawLine('元婴大小', n(s.infant_size), '元婴个数', n(s.infant_count), y);
+    y += 18;
+    drawLine('元婴强度', n(s.infant_power), '多锤并发', `×${s.concurrent_hammers || 1}`, y, '#e2e8f0', '#38bdf8');
+    y += 14;
+    drawHint('↑ 元婴强度提升会改变 UI 多锤并发显示', y);
+    y += 20;
+
+    drawSec('【化神期】多锤矩阵', y);
+    y += 16;
+    drawLine('气机强度', n(s.qi_machine), '矩阵', n(s.matrix), y);
+    y += 18;
+    drawLine('锻造台数', n(s.matrix_slots || 1), null, null, y, '#38bdf8');
+    y += 14;
+    drawHint('↑ 矩阵提升会改变 UI 多锤矩阵/台数显示', y);
+    y += 20;
+
+    drawSec('【合体期】突破一锤一秒极限', y);
+    y += 16;
+    drawLine('法则碎片', n(s.law_shards), '反重力', n(s.anti_gravity), y);
+    y += 14;
+    drawHint('↑ 反重力可让铁锤突破 1 秒一锤的极限', y);
+    y += 20;
+
+    drawSec('【大乘期】雷劫与因果律', y);
+    y += 16;
+    drawLine('雷劫强度', n(s.tribulation), '因果律', n(s.causality), y);
+    y += 14;
+    drawHint('↑ 因果律：空格无需踩 QTE 窗口，仍获一半 QTE 加成', y);
+    y += 20;
+
+    drawSec('【大后期 · 待开放】', y);
+    y += 16;
+    drawLine('仙人·法则掌控', n(s.law_control), '圣人·因果掌控', n(s.causal_mastery), y, '#94a3b8', '#94a3b8');
+    y += 18;
+    drawLine('天道·终极热力', n(s.thermo), '至尊·熵增开关', n(s.entropy_switch), y, '#94a3b8', '#94a3b8');
+
+    ctx.restore();
+
+    if (bodyMaxScroll > 0) {
+        const thumbH = Math.max(24, (clipH / contentH) * clipH);
+        const thumbY = clipY + (bodyScrollY / bodyMaxScroll) * (clipH - thumbH);
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.55)';
+        ctx.beginPath();
+        ctx.roundRect(mx + mw - 10, thumbY, 4, thumbH, 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(
+        pending
+            ? (Number(s.sub_level) > 10
+                ? `已过圆满(${s.sub_level}层) · 每层难度×10 · 按[X]渡劫(层数越高成功率越高)`
+                : '境界已圆满 · 可继续修炼提高渡劫率 · 或按 [X] 引劫')
+            : '1~10层爬升 · 10层后每层难度×10 · [X]渡劫 · [C]开关',
+        mx + 16, my + mh - 12
+    );
 }
 
 function drawContextMenu(ctx, w, h) {

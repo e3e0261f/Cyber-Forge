@@ -6,7 +6,7 @@
 import { invoke } from './core.js';
 import { clock, syncState, uiState, gameState } from './state.js';
 import { triggerStrikeImpact, fx } from './world.js';
-import { hudState, scrollLogs, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
+import { hudState, scrollLogs, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
 import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
 import { scrollAuction } from './auction-view.js';
@@ -95,9 +95,11 @@ function startMainLoop() {
 // 计算指定弹窗的实际屏幕位置与尺寸
 export function getModalBounds(id, w, h) {
   let mw = 520, mh = 390;
-  if (id === 'body' || id === 'inspect') { mw = 480; mh = 320; }
+  if (id === 'inspect') { mw = 480; mh = 320; }
+  if (id === 'body') { mw = 580; mh = 560; }
   if (id === 'auction') { mw = 560; mh = 420; }
   mw = Math.min(mw, w * 0.9);
+  mh = Math.min(mh, h * 0.85);
 
   const pos = uiState.modalPositions[id] || { x: null, y: null };
   const mx = pos.x !== null ? pos.x : (w * 0.5 - mw / 2);
@@ -140,7 +142,7 @@ export function setupInteractions() {
 
     // 优先响应最上层打开的可滚动窗口
     for (const id of [...uiState.activeModals].reverse()) {
-      if (id !== 'stash' && id !== 'auction' && id !== 'logs') continue;
+      if (id !== 'stash' && id !== 'auction' && id !== 'logs' && id !== 'body') continue;
       const bounds = getModalBounds(id, w, h);
       if (!bounds) continue;
       const { mx: bx, my: by, mw, mh } = bounds;
@@ -149,7 +151,8 @@ export function setupInteractions() {
       e.preventDefault();
       if (id === 'stash') scrollStash(e.deltaY);
       else if (id === 'auction') scrollAuction(e.deltaY);
-      else scrollLogs(e.deltaY);
+      else if (id === 'logs') scrollLogs(e.deltaY);
+      else scrollBody(e.deltaY);
       return;
     }
   }, { passive: false });
@@ -290,18 +293,39 @@ export function setupInteractions() {
       }
     }
 
-    // C. 点击全息蓝图
+    // C. 底部功能栏点击 [T]/[G]/[X]/[K]
+    const dockY = h - 38;
+    if (clickY >= dockY) {
+      if (clickX >= 16 && clickX <= 136 && clickY >= dockY + 6 && clickY <= dockY + 32) {
+        fireKey('KeyT', false, false, 1);
+        return;
+      }
+      if (clickX >= 146 && clickX <= 276 && clickY >= dockY + 6 && clickY <= dockY + 32) {
+        fireKey('KeyG', false, false, 1);
+        return;
+      }
+      if (clickX >= 286 && clickX <= 411 && clickY >= dockY + 6 && clickY <= dockY + 32) {
+        fireKey('KeyX', false, false, 1);
+        return;
+      }
+      if (clickX >= 421 && clickX <= 516 && clickY >= dockY + 6 && clickY <= dockY + 32) {
+        autoStrikeOn = !autoStrikeOn;
+        return;
+      }
+    }
+
+    // D. 点击全息蓝图
     const hx = w * 0.78, hy = h * 0.38, bw = 180, bh = 130;
     if (clickX >= hx - bw / 2 && clickX <= hx + bw / 2 &&
       clickY >= hy - bh / 2 && clickY <= hy + bh / 2) {
       uiState.toggleModal('inspect');
-    return;
-      }
+      return;
+    }
 
-      // D. 点击工坊区域挥锤
-      if (clickY > h * 0.25 && clickY < h * 0.85) {
-        doStrike();
-      }
+    // E. 点击工坊区域挥锤
+    if (clickY > h * 0.25 && clickY < h * 0.85) {
+      doStrike();
+    }
   });
 
   // 🌟 4. 鼠标抬起 -> 结束窗口拖拽或完成背包物品换位
