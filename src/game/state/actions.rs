@@ -188,6 +188,19 @@ impl GameState {
             self.set_toast("囊中无货可熔（家什锤受天道保护）");
             return;
         };
+        let id = self.backpack[idx].id;
+        self.melt_sword_by_id(id);
+    }
+
+    pub fn melt_sword_by_id(&mut self, id: u64) {
+        let Some(idx) = self.backpack.iter().position(|s| s.id == id) else {
+            self.set_toast("目标神兵已不在锦囊中");
+            return;
+        };
+        if self.backpack[idx].is_tool {
+            self.set_toast("家什锤受天道保护，不可熔炼");
+            return;
+        }
         let sword = self.backpack.remove(idx);
         let slag = slag_of(sword.quality);
         let cult = ((sword.price as f64).sqrt() as u128 / 10).max(1).min(80);

@@ -1,34 +1,43 @@
-/** 快捷键：空格 0ms 即时打击感 + 全键盘通用阶梯狂飙 */
-import { invoke, showToast } from './core.js';
-import { applySnap } from './apply.js';
-import { isCurrentlyInCrit, resetLocalCycle, sparkAtHead } from './forge.js';
+/*
+ * 模块功能: 全局输入监听、MMO快捷键、拦截Ctrl+滚轮缩放、多窗口拖拽与按钮精准点击
+ * 修改时间: 2026-08-16 19:35
+ */
 
-// ... 保持原有常数配置不变 ...
-const SPACE_INTERVAL_MS = 35;
-const OTHER_KEYS_INTERVAL_MS = 250;
-const STEP_TIERS = [
-  { hitsThreshold: 1000, stepSize: 1000 },
-{ hitsThreshold: 100,  stepSize: 100 },
-{ hitsThreshold: 10,   stepSize: 10 },
-{ hitsThreshold: 0,    stepSize: 1 }
-];
-const EXCLUDE_KEYS = new Set(['KeyP', 'KeyH', 'Digit0']);
+import { invoke } from './core.js';
+import { clock, syncState, uiState, gameState } from './state.js';
+import { triggerStrikeImpact, fx } from './world.js';
+import { hudState, scrollLogs, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
+import { gameConfig } from './config.js';
+import { stashDrag, cycleSortMode, scrollStash, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
+import { scrollAuction } from './auction-view.js';
+
+let autoStrikeOn = false;
+let actionBusy = false;
+let mainLoopTimer = null;
 
 const KEY_MAP = {
   Space: 'strike',
   KeyU: 'u', KeyW: 'w', KeyA: 'a', KeyR: 'r', KeyD: 'd', KeyE: 'e',
-  KeyT: 't', KeyG: 'g', KeyF: 'f', KeyS: 's', KeyB: 'b', KeyI: 'i', KeyO: 'o',
-  Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5', KeyP: 'p',
+  KeyT: 't', KeyG: 'g', KeyF: 'f', KeyS: 's', KeyX: 'b',
+  Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5',
 };
 
 const heldKeys = new Map();
-let mainLoopTimer = null;
-let actionBusy = false;
+
+export async function doStrike() {
+  const crit = clock.isCrit;
+  clock.resetCycle();
+  triggerStrikeImpact(crit, window.innerWidth, window.innerHeight);
+
+  const snap = await invoke('strike');
+  if (snap) syncState(snap);
+}
 
 function getStepMultiplier(hits) {
-  if (hits <= 10) return 1;
-  const power = Math.floor((hits - 1) / 10);
-  return Math.pow(10, Math.min(power, 15));
+  for (const tier of gameConfig.stepTiers) {
+    if (hits >= tier.hitsThreshold) return tier.stepSize;
+  }
+  return 1;
 }
 
 async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
@@ -39,24 +48,12 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   if (code === 'KeyI' && shiftKey) k = 'I';
   if (code === 'KeyO' && shiftKey) k = 'O';
 
-  // 🌟 核心：空格敲击（0 毫秒极致打击感响应）
   if (k === 'strike') {
-    // 1. 本地即刻识别当前是否处于暴击区 (0ms)
-    const isCrit = isCurrentlyInCrit();
-    // 2. 本地即刻重置读条并向四周炸裂火花 (0ms)
-    sparkAtHead(isCrit);
-    resetLocalCycle();
-
-    // 3. 异步向后端报告挥锤动作
-    try {
-      const t = await invoke('player_strike');
-      if (t) applySnap(t);
-    } catch (_) {}
+    doStrike();
     return;
   }
 
-  // 其他按键的阶梯倍率计算
-  if (!EXCLUDE_KEYS.has(code)) {
+  if (!gameConfig.excludeHoldKeys.includes(code)) {
     const step = getStepMultiplier(hitCount);
     if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
       if (ctrlKey) k = k + '_100';
@@ -70,13 +67,12 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   actionBusy = true;
   try {
     const t = await invoke('action', { key: k });
-    if (t) applySnap(t);
+    if (t) syncState(t);
   } finally {
     actionBusy = false;
   }
 }
 
-// 维持高精度主循环
 function startMainLoop() {
   if (mainLoopTimer) return;
   mainLoopTimer = setInterval(async () => {
@@ -85,11 +81,10 @@ function startMainLoop() {
       mainLoopTimer = null;
       return;
     }
-    const now = performance.now();
     for (const [code, info] of heldKeys.entries()) {
-      const interval = (code === 'Space') ? SPACE_INTERVAL_MS : OTHER_KEYS_INTERVAL_MS;
-      if (now - info.lastFiredTime >= interval) {
-        info.lastFiredTime = now;
+      const interval = (code === 'Space') ? gameConfig.spaceIntervalMs : gameConfig.otherKeysIntervalMs;
+      if (performance.now() - info.lastFiredTime >= interval) {
+        info.lastFiredTime = performance.now();
         info.hitCount++;
         await fireKey(code, info.shiftKey, info.ctrlKey, info.hitCount);
       }
@@ -97,38 +92,288 @@ function startMainLoop() {
   }, 10);
 }
 
-export function setupInput() {
-  window.addEventListener('keydown', async (e) => {
-    if (e.code === 'Space') e.preventDefault();
-    if (e.ctrlKey && e.code === 'KeyS') {
+// 计算指定弹窗的实际屏幕位置与尺寸
+export function getModalBounds(id, w, h) {
+  let mw = 520, mh = 390;
+  if (id === 'body' || id === 'inspect') { mw = 480; mh = 320; }
+  if (id === 'auction') { mw = 560; mh = 420; }
+  mw = Math.min(mw, w * 0.9);
+
+  const pos = uiState.modalPositions[id] || { x: null, y: null };
+  const mx = pos.x !== null ? pos.x : (w * 0.5 - mw / 2);
+  const my = pos.y !== null ? pos.y : (h * 0.5 - mh / 2);
+  return { mx, my, mw, mh };
+}
+
+export function setupInteractions() {
+  // 🌟 0. 拦截浏览器默认右键菜单，改用游戏内菜单
+  window.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+
+    const w = window.innerWidth, h = window.innerHeight;
+    const x = e.clientX, y = e.clientY;
+
+    if (uiState.isOpen('stash')) {
+      const bounds = getModalBounds('stash', w, h);
+      if (bounds) {
+        const idx = hitTestStashSlot(x, y, bounds);
+        const item = idx >= 0 ? (gameState.backpack || [])[idx] : null;
+        if (item) {
+          openItemContextMenu(x, y, item);
+          return;
+        }
+      }
+    }
+
+    closeContextMenu();
+  });
+
+  // 🌟 1. 滚轮：拦截 Ctrl 缩放；背包/拍卖行/日志内滚动列表
+  window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
-      const t = await invoke('action', { key: 'p' });
-      if (t) applySnap(t);
       return;
     }
-    if (e.code === 'KeyH') {
+
+    const w = window.innerWidth, h = window.innerHeight;
+    const mx = e.clientX, my = e.clientY;
+
+    // 优先响应最上层打开的可滚动窗口
+    for (const id of [...uiState.activeModals].reverse()) {
+      if (id !== 'stash' && id !== 'auction' && id !== 'logs') continue;
+      const bounds = getModalBounds(id, w, h);
+      if (!bounds) continue;
+      const { mx: bx, my: by, mw, mh } = bounds;
+      if (mx < bx || mx > bx + mw || my < by || my > by + mh) continue;
+
       e.preventDefault();
-      showToast('【操作指南】空格(35ms)疯狂连击 | 其他按键(250ms)阶梯狂飙！');
+      if (id === 'stash') scrollStash(e.deltaY);
+      else if (id === 'auction') scrollAuction(e.deltaY);
+      else scrollLogs(e.deltaY);
+      return;
+    }
+  }, { passive: false });
+
+  // 🌟 2. 鼠标移动监听 (多窗口拖拽与悬停)
+  window.addEventListener('pointermove', (e) => {
+    const w = window.innerWidth, h = window.innerHeight;
+
+    // 始终跟踪坐标，供背包/拍卖悬停 tooltip 使用
+    uiState.mouseX = e.clientX;
+    uiState.mouseY = e.clientY;
+    stashDrag.mouseX = e.clientX;
+    stashDrag.mouseY = e.clientY;
+
+    // 拖拽窗口移动
+    if (uiState.draggingModal) {
+      const id = uiState.draggingModal;
+      uiState.modalPositions[id].x = e.clientX - uiState.dragOffset.x;
+      uiState.modalPositions[id].y = e.clientY - uiState.dragOffset.y;
+      document.body.style.cursor = 'move';
+      return;
+    }
+
+    // 背包物品拖拽中
+    if (stashDrag.active) {
+      document.body.style.cursor = 'grabbing';
+      return;
+    }
+
+    // 全息蓝图悬停
+    const hx = w * 0.78, hy = h * 0.38, bw = 180, bh = 130;
+    fx.isHoloHovered = (e.clientX >= hx - bw / 2 && e.clientX <= hx + bw / 2 &&
+    e.clientY >= hy - bh / 2 && e.clientY <= hy + bh / 2);
+    document.body.style.cursor = fx.isHoloHovered ? 'pointer' : 'default';
+  });
+
+  // 🌟 3. 鼠标按下统一判定 (修复拍阁点错与多窗口管理)
+  window.addEventListener('pointerdown', (e) => {
+    const w = window.innerWidth, h = window.innerHeight;
+    const clickX = e.clientX, clickY = e.clientY;
+
+    // 右键由 contextmenu 处理
+    if (e.button === 2) return;
+
+    // 优先处理自定义右键菜单点击
+    if (hudState.contextMenu) {
+      const hit = hitTestContextMenu(clickX, clickY);
+      if (hit >= 0) {
+        const entry = hudState.contextMenu.items[hit];
+        const item = hudState.contextMenu.item;
+        closeContextMenu();
+        if (!entry || entry.disabled || entry.id === 'cancel') return;
+
+        if (entry.id === 'inspect') {
+          hudState.inspectItem = item;
+          if (!uiState.isOpen('inspect')) uiState.toggleModal('inspect');
+          return;
+        }
+        if (entry.id === 'list' && item?.id != null) {
+          invoke('action', { key: `list_id_${item.id}` }).then(snap => { if (snap) syncState(snap); });
+          return;
+        }
+        if (entry.id === 'melt' && item?.id != null) {
+          invoke('action', { key: `melt_id_${item.id}` }).then(snap => { if (snap) syncState(snap); });
+          return;
+        }
+        return;
+      }
+      // 点在菜单外：关闭菜单，继续后续点击逻辑
+      closeContextMenu();
+    }
+
+    // A. 顶部导航按钮点击 (从统一配置文件读取，彻底解决点拍阁打开背包 Bug)
+    const btnW = 76, btnH = 26, btnY = 21, btnGap = 8;
+    const navs = gameConfig.navButtons;
+    const navStartX = w - 32 - (btnW + btnGap) * navs.length;
+
+    for (let i = 0; i < navs.length; i++) {
+      const bx = navStartX + i * (btnW + btnGap);
+      if (clickX >= bx && clickX <= bx + btnW && clickY >= btnY && clickY <= btnY + btnH) {
+        uiState.toggleModal(navs[i].id);
+        return;
+      }
+    }
+
+    // B. 多窗口交互与拖拽检测 (倒序检测，优先响应最上层窗口)
+    for (const id of [...uiState.activeModals].reverse()) {
+      const bounds = getModalBounds(id, w, h);
+      if (!bounds) continue;
+      const { mx, my, mw, mh } = bounds;
+
+      // 1) 点击右上角 [✕] 关闭单窗口
+      if (clickX >= mx + mw - 32 && clickX <= mx + mw && clickY >= my && clickY <= my + 42) {
+        uiState.closeModal(id);
+        return;
+      }
+
+      // 2) 背包弹窗内的专用交互
+      if (id === 'stash') {
+        // 点击协议按钮
+        const protoX = mx + mw - 185, protoY = my + 14;
+        if (clickX >= protoX && clickX <= protoX + 110 && clickY >= protoY && clickY <= protoY + 24) {
+          invoke('action', { key: 'toggle_currency_protocol' }).then(snap => { if (snap) syncState(snap); });
+          return;
+        }
+
+        // 点击排序循环按钮
+        const sortBtnX = mx + mw - 275, sortBtnY = my + 14;
+        if (clickX >= sortBtnX && clickX <= sortBtnX + 80 && clickY >= sortBtnY && clickY <= sortBtnY + 24) {
+          cycleSortMode();
+          return;
+        }
+
+        // 背包格子内按下 -> 开启物品拖拽
+        const idx = hitTestStashSlot(clickX, clickY, bounds);
+        const items = gameState.backpack || [];
+        if (idx >= 0 && items[idx]) {
+          stashDrag.active = true;
+          stashDrag.fromIndex = idx;
+          stashDrag.item = items[idx];
+          stashDrag.mouseX = clickX;
+          stashDrag.mouseY = clickY;
+          return;
+        }
+      }
+
+      // 3) 点击标题栏 -> 开启该窗口的拖拽移动
+      if (clickX >= mx && clickX <= mx + mw && clickY >= my && clickY <= my + 44) {
+        uiState.draggingModal = id;
+        uiState.dragOffset.x = clickX - mx;
+        uiState.dragOffset.y = clickY - my;
+        return;
+      }
+
+      // 4) 处于窗口内部点击，阻止击锤穿透
+      if (clickX >= mx && clickX <= mx + mw && clickY >= my && clickY <= my + mh) {
+        return;
+      }
+    }
+
+    // C. 点击全息蓝图
+    const hx = w * 0.78, hy = h * 0.38, bw = 180, bh = 130;
+    if (clickX >= hx - bw / 2 && clickX <= hx + bw / 2 &&
+      clickY >= hy - bh / 2 && clickY <= hy + bh / 2) {
+      uiState.toggleModal('inspect');
+    return;
+      }
+
+      // D. 点击工坊区域挥锤
+      if (clickY > h * 0.25 && clickY < h * 0.85) {
+        doStrike();
+      }
+  });
+
+  // 🌟 4. 鼠标抬起 -> 结束窗口拖拽或完成背包物品换位
+  window.addEventListener('pointerup', (e) => {
+    // 结束窗口拖拽
+    if (uiState.draggingModal) {
+      uiState.draggingModal = null;
+    }
+
+    // 完成背包物品拖拽换位（关闭排序时可拖入空格留下空洞）
+    if (stashDrag.active && uiState.isOpen('stash')) {
+      const w = window.innerWidth, h = window.innerHeight;
+      const bounds = getModalBounds('stash', w, h);
+      if (bounds) {
+        if (isStashSortOff()) padBackpackSlots();
+        const items = gameState.backpack || [];
+        const toIndex = hitTestStashSlot(e.clientX, e.clientY, bounds);
+        if (toIndex >= 0 && toIndex !== stashDrag.fromIndex) {
+          const temp = items[toIndex] || null;
+          items[toIndex] = stashDrag.item;
+          items[stashDrag.fromIndex] = temp;
+        }
+      }
+      stashDrag.active = false;
+      stashDrag.item = null;
+      stashDrag.fromIndex = -1;
+    }
+  });
+
+  // 🌟 5. 键盘快捷键 (C/B/P/I/M 独立开关窗口)
+  window.addEventListener('keydown', async (e) => {
+    if (e.code === 'F5' || e.code === 'F12' || (e.ctrlKey && e.code === 'KeyR') || (e.metaKey && e.code === 'KeyR')) {
+      return;
+    }
+    if (e.ctrlKey && e.code === 'KeyS') {
+      e.preventDefault();
+      invoke('action', { key: 'p' }).then(snap => { if (snap) syncState(snap); });
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) return;
+
+    // MMO 单独切换弹窗
+    if (e.code === 'KeyC') { e.preventDefault(); uiState.toggleModal('body'); return; }
+    if (e.code === 'KeyB') { e.preventDefault(); uiState.toggleModal('stash'); return; }
+    if (e.code === 'KeyP') { e.preventDefault(); uiState.toggleModal('auction'); return; }
+    if (e.code === 'KeyM') { e.preventDefault(); uiState.toggleModal('apprentice'); return; }
+    if (e.code === 'KeyI') { e.preventDefault(); uiState.toggleModal('logs'); return; }
+    if (e.code === 'Escape') {
+      e.preventDefault();
+      if (hudState.contextMenu) { closeContextMenu(); return; }
+      uiState.closeModal();
+      return;
+    }
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      doStrike();
+      return;
+    }
+    if (e.code === 'KeyK') {
+      autoStrikeOn = !autoStrikeOn;
       return;
     }
 
     if (!KEY_MAP[e.code]) return;
     if (e.repeat) return;
 
-    if (!EXCLUDE_KEYS.has(e.code)) {
-      e.preventDefault();
-      if (!heldKeys.has(e.code)) {
-        heldKeys.set(e.code, {
-          hitCount: 1,
-          lastFiredTime: performance.now(),
-                     shiftKey: e.shiftKey,
-                     ctrlKey: e.ctrlKey
-        });
-        await fireKey(e.code, e.shiftKey, e.ctrlKey, 1);
-        startMainLoop();
-      }
-    } else {
+    e.preventDefault();
+    if (!heldKeys.has(e.code)) {
+      heldKeys.set(e.code, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
       await fireKey(e.code, e.shiftKey, e.ctrlKey, 1);
+      startMainLoop();
     }
   });
 
@@ -142,9 +387,14 @@ export function setupInput() {
 
   window.addEventListener('blur', () => {
     heldKeys.clear();
+    uiState.draggingModal = null;
     if (mainLoopTimer) {
       clearInterval(mainLoopTimer);
       mainLoopTimer = null;
     }
   });
+}
+
+export function isAutoStrikeActive() {
+  return autoStrikeOn;
 }

@@ -60,6 +60,8 @@ impl SwordGenerator {
         Self::BASE_TYPES[rng.gen_range(0..Self::BASE_TYPES.len())]
     }
 
+    // 文件路径：src/game/sword_gen.rs
+
     pub fn generate(
         player_level: u32,
         carbon_ratio: f32,
@@ -68,9 +70,9 @@ impl SwordGenerator {
         bonus_god_rate: f64,
         qte_hits: u32,
         _max_strikes: u32,
-        qi_sense_bonus: u8, // 气感提升基础品阶
-        fail_rate: f64,     // 天道本源宣判的失败率
-        rank_boost: u32,    // 天道本源完美品阶加成
+        qi_sense_bonus: u8,
+        fail_rate: f64,
+        rank_boost: u32,
     ) -> ForgeResult {
         let mut rng = rand::thread_rng();
 
@@ -109,7 +111,6 @@ impl SwordGenerator {
             base_r.saturating_add(jitter).min(59)
         };
 
-        // 气感加成 + QTE 加成注入品阶
         let qte_boost = qte_hits.min(30);
         let rank = (rank as u32 + qte_boost as u32 + qi_sense_bonus as u32 + if qte_hits > 0 { 2 } else { 0 }).min(59) as u8;
         let rank_boosted = rank.saturating_add(rank_boost as u8).min(59);
@@ -120,21 +121,34 @@ impl SwordGenerator {
             final_price = final_price.saturating_add((qte_hits as u128) * 15);
         }
 
+        let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+        // 🌟 1. 先在外部计算出指纹与唯一 ID
+        let rand_entropy = entropy_factor ^ rng.r#gen::<u64>();
+        let fingerprint = crate::game::fingerprint::Fingerprint64::pack(
+            ts,
+            0x7A8B9C,
+            rand_entropy
+        );
+
+        // 🌟 2. 干净地构造 Sword 实例
         ForgeResult::Success(Sword {
-            id: entropy_factor ^ rng.r#gen::<u64>(),
-                             name,
-                             element,
-                             quality,
-                             price: final_price.max(1),
+            id: rand_entropy,
+            name,
+            element,
+            quality,
+            price: final_price.max(1),
                              carbon_ratio,
-                             forged_timestamp: std::time::SystemTime::now()
-                                 .duration_since(std::time::UNIX_EPOCH)
-                                 .unwrap_or_default()
-                                 .as_secs(),
-                             sharpness: 0,
-                             enchantment: None,
-                             is_reforged: false,
-            is_tool: false,
+                             forged_timestamp: ts,
+                                 sharpness: 0,
+                                 enchantment: None,
+                                 is_reforged: false,
+                                 is_tool: false,
+                                 fingerprint,
         })
     }
+
 }

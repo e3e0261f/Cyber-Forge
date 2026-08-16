@@ -247,7 +247,8 @@ impl GameState {
 pub struct SharedGameState(pub Arc<RwLock<GameState>>);
 
 
-// 打开 src/game/state/mod.rs，在 impl GameState 块中加入以下方法（并确保 currency_protocol 支持 0 彻底关闭）：
+// 文件路径：src/game/state/mod.rs 最末尾的 impl GameState 块中
+
 impl GameState {
     pub fn currency_protocol_name(&self) -> &'static str {
         match self.currency_protocol {
@@ -261,73 +262,88 @@ impl GameState {
         match self.currency_protocol {
             1 => "#00ffc8", // 仙玉青
             2 => "#ffd700", // 金币金
-            _ => "#6a7380", // 灰色
+            _ => "#6a7380", // 灰色（关闭）
         }
     }
 
+    // 🌟 1. 补齐直接设置模式函数
     pub fn set_currency_protocol(&mut self, mode: u8) {
         self.currency_protocol = mode;
         self.set_toast(format!("资财协议已切换为：{}", self.currency_protocol_name()));
     }
 
-    /// 🌟 O(1) 瞬时铜换金
+    pub fn toggle_currency_protocol(&mut self) {
+        self.currency_protocol = match self.currency_protocol {
+            1 => 2,
+            2 => 0,
+            _ => 1,
+        };
+        self.set_toast(format!("资财协议已切换至：{}", self.currency_protocol_name()));
+    }
+
+    // 🌟 2. 补齐 O(1) 铜钱换金币 (带倍率)
     pub fn exchange_copper_to_gold_n(&mut self, n: u128) {
-        let max_possible = self.copper / 10_000;
-        let count = n.min(max_possible);
+        let max_conversions = self.copper / 10_000;
+        let count = n.min(max_conversions);
         if count > 0 {
             self.copper -= count * 10_000;
             self.coins = self.coins.saturating_add(count);
             let msg = format!("藏宝阁兑换：{} 铜钱 → 金币 {}", count * 10_000, count);
             self.set_toast(&msg);
             self.push_log(msg, count >= 100, false);
+        } else {
+            self.set_toast("兑换失败：需 10,000 铜钱");
         }
     }
 
-    /// 🌟 O(1) 瞬时金换铜
+    // 🌟 3. 补齐 O(1) 金币换铜钱 (带倍率)
     pub fn exchange_gold_to_copper_n(&mut self, n: u128) {
         let count = n.min(self.coins);
         if count > 0 {
             self.coins -= count;
             self.copper = self.copper.saturating_add(count.saturating_mul(9_500));
-            let msg = format!("藏宝阁兑换：{} 金币 → 铜钱 {}", count, count * 9_500);
+            let msg = format!("藏宝阁兑换：{} 金币 → 铜钱 {}（含 5% 规费抽成）", count, count * 9_500);
             self.set_toast(&msg);
             self.push_log(msg, count >= 100, false);
+        } else {
+            self.set_toast("兑换失败：金币不足 1");
         }
     }
 
-    /// 🌟 O(1) 瞬时金换仙玉
+    // 🌟 4. 补齐 O(1) 金币换仙玉 (带倍率)
     pub fn exchange_gold_to_jade_n(&mut self, n: u128) {
-        let max_possible = self.coins / 10_000;
-        let count = n.min(max_possible);
+        let max_conversions = self.coins / 10_000;
+        let count = n.min(max_conversions);
         if count > 0 {
             self.coins -= count * 10_000;
             self.jade = self.jade.saturating_add(count);
-            let msg = format!("藏宝阁兑换：{} 金币 → 仙玉 {}", count * 10_000, count);
+            let msg = format!("藏宝阁兑换：{} 金币 → 仙玉 {}（含 5% 规费抽成）", count * 10_000, count);
             self.set_toast(&msg);
             self.push_log(msg, count >= 100, false);
+        } else {
+            self.set_toast("兑换失败：需 10,000 金币");
         }
     }
 
-    /// 🌟 O(1) 瞬时仙玉换金币 (彻底解决 Shift+O 慢的问题！)
+    // 🌟 5. 补齐 O(1) 仙玉换金币 (带倍率，彻底解决 Shift+O)
     pub fn exchange_jade_to_gold_n(&mut self, n: u128) {
         let count = n.min(self.jade);
         if count > 0 {
             self.jade -= count;
             self.coins = self.coins.saturating_add(count.saturating_mul(9_500));
-            let msg = format!("藏宝阁兑换：{} 仙玉 → 金币 {}", count, count * 9_500);
+            let msg = format!("藏宝阁兑换：{} 仙玉 → 金币 {}（含 5% 规费抽成）", count, count * 9_500);
             self.set_toast(&msg);
             self.push_log(msg, count >= 100, false);
+        } else {
+            self.set_toast("兑换失败：仙玉不足 1");
         }
     }
 
-    /// 🌟 自动流转协议（当选择 0 协议关闭时，绝对不自动动钱）
     pub fn process_currency_protocol(&mut self) {
-        // 模式 0：彻底关闭，不自动执行任何转换
         if self.currency_protocol == 0 {
             return;
         }
 
-        // 铜钱满 10k 自动归流
         let copper_batches = self.copper / 10_000;
         if copper_batches > 0 {
             let conv = copper_batches.min(100);
@@ -336,7 +352,6 @@ impl GameState {
         }
 
         match self.currency_protocol {
-            // 模式 1：天道纳玉 (挂机存钱)
             1 => {
                 let batches = (self.coins / 10_000).min(50);
                 if batches > 0 {
@@ -344,7 +359,6 @@ impl GameState {
                     self.jade = self.jade.saturating_add(batches);
                 }
             }
-            // 模式 2：灵虚兜底 (消费模式，金币不够自动碎玉)
             2 => {
                 let hammer_cost = self.get_hammer_upgrade_cost();
                 let need_gold = hammer_cost.max(10_000);

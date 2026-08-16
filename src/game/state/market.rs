@@ -82,7 +82,23 @@ impl GameState {
             self.set_toast("囊中无货可上架（锤属家什）");
             return;
         };
-        if self.pavilion_market.len() >= self.max_pavilion { self.set_toast("展位已满，按 [E] 扩柜"); return; }
+        let id = self.backpack[idx].id;
+        self.list_sword_by_id(id);
+    }
+
+    pub fn list_sword_by_id(&mut self, id: u64) {
+        let Some(idx) = self.backpack.iter().position(|s| s.id == id) else {
+            self.set_toast("目标神兵已不在锦囊中");
+            return;
+        };
+        if self.backpack[idx].is_tool {
+            self.set_toast("家什锤不可上架拍卖");
+            return;
+        }
+        if self.pavilion_market.len() >= self.max_pavilion {
+            self.set_toast("展位已满，按 [E] 扩柜");
+            return;
+        }
         let sword = self.backpack.remove(idx);
         let fair = sword.price.max(1);
         let start = (fair / 10).max(1);
@@ -106,6 +122,7 @@ impl GameState {
             chant_timer: 0,
             last_buyer_title: String::new(),
         });
+        self.set_toast(&msg);
         self.push_log(msg, false, false);
     }
 

@@ -116,6 +116,9 @@ pub struct Sword {
     /// 家什（锤等）：不可熔炼、不可上架拍卖
     #[serde(default)]
     pub is_tool: bool,
+    // 🌟 新增：64 位天道四维出生证明指纹
+    #[serde(default)]
+    pub fingerprint: u64,
 }
 
 impl Sword {
@@ -170,3 +173,5 @@ pub enum ForgeResult {
     Success(Sword),
     Shattered { slag_gained: u32 },
 }
+
+

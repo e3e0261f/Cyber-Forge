@@ -37,24 +37,24 @@ impl GameState {
         self.push_log(msg, true, false);
     }
 
-    /// 装备槽中的锤同步进背包家什区（不可熔、不可上架）
+    /// 装备槽中的锤同步进背包家什区
     pub fn sync_equipped_hammer_tool(&mut self) {
         use crate::game::types::{Element, Quality, Sword};
         let name = format!("【装备】{}", self.hammer_name());
-        // 移除旧的装备锤标记
         self.backpack.retain(|s| !(s.is_tool && s.name.starts_with("【装备】")));
         self.backpack.push(Sword {
             id: 0x48414D4D_u64, // "HAMM"
             name,
             element: Element::Earth,
             quality: Quality::new((self.hammer_level.min(59)) as u8),
-            price: 0,
-            carbon_ratio: 0.0,
-            forged_timestamp: 0,
-            sharpness: self.hammer_level,
-            enchantment: None,
-            is_reforged: false,
-            is_tool: true,
+                           price: 0,
+                           carbon_ratio: 0.0,
+                           forged_timestamp: 0,
+                               sharpness: self.hammer_level,
+                               enchantment: None,
+                               is_reforged: false,
+                               is_tool: true,
+                               fingerprint: 0x48414D4D_u64, // 🌟 补齐指纹
         });
     }
 
@@ -232,7 +232,7 @@ impl GameState {
 
         let mut rng = rand::thread_rng();
 
-        // 1. 盲锻坊：产出绝对 [无] 品阶 (Quality::new(0)) 农具工具，估价 15~80 铜钱
+        // 1. 盲锻坊
         if self.forge_workers > 0 {
             let gold_burn = (self.forge_workers as u128) * 10;
             if self.coins >= gold_burn {
@@ -247,18 +247,23 @@ impl GameState {
                     self.apprentice_forge_progress -= 630.0;
 
                     let base_type = SwordGenerator::random_base_type(&mut rng);
+                    let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
+                    let rand_id = rng.r#gen::<u64>();
+                    let fingerprint = crate::game::fingerprint::Fingerprint64::pack(ts, 0x112233, rand_id);
 
                     let sword = Sword {
-                        id: rng.r#gen(),
+                        id: rand_id,
                         name: format!("盲锻 · {}", base_type),
                         element: Element::Earth,
-                        quality: Quality::new(0), // 100% 绝对 [无] 品阶（无品阶/无灵气）
-                        price: rng.gen_range(15..=80), // 15~80 铜钱
+                        quality: Quality::new(0),
+                        price: rng.gen_range(15..=80),
                         carbon_ratio: 0.10,
-                        forged_timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
-                        sharpness: 0,
-                        enchantment: None,
-                        is_reforged: false, is_tool: false,
+                        forged_timestamp: ts,
+                            sharpness: 0,
+                            enchantment: None,
+                            is_reforged: false,
+                            is_tool: false,
+                            fingerprint, // 🌟 补齐指纹
                     };
 
                     let log_msg = format!("徒弟盲锻出炉：[{}]（无品阶，估价 {} 铜钱）", sword.name, sword.price);
@@ -313,13 +318,13 @@ impl GameState {
                     self.level,
                     self.carbon_ratio,
                     rng.r#gen(),
-                    self.apprentices,
-                    0.0,
-                    0,
-                    63,
-                    qi_bonus,
-                    0.15, // 精修失败率略低
-                    0,
+                                                                                  self.apprentices,
+                                                                                  0.0,
+                                                                                  0,
+                                                                                  63,
+                                                                                  qi_bonus,
+                                                                                  0.15,
+                                                                                  0,
                 ) {
                     sword.name = format!("精修 · {}", base_type);
                     sword.sharpness = 100;

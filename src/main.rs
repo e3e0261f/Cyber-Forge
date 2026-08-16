@@ -30,6 +30,13 @@ struct ItemView {
     color: String,
     is_tool: bool,
     detail: String,
+
+    // 🌟 新增：结构化天道出生证明 (传给前端全息卡片展示)
+    cert_code: String,
+    cert_time: String,
+    cert_location: String,
+    cert_stamp: String,
+    cert_creator: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -146,6 +153,8 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
     .iter()
     .take(s.max_backpack)
     .map(|sw| {
+        // 🌟 实时逆向解密天道指纹
+        let cert = game::fingerprint::Fingerprint64::decode(sw.fingerprint, "道友李逍遥");
         let detail = if sw.is_tool {
             format!("【家什】{}\n不可熔炼/上架", sw.name)
         } else {
@@ -157,6 +166,11 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
             id: sw.id, name: sw.name.clone(), glyph: sw.category_glyph().to_string(),
          price: format_compact_number(sw.price), quality: sw.quality.badge().to_string(),
          color: sw.quality.color_hex(), is_tool: sw.is_tool, detail,
+         cert_code: cert.code,
+         cert_time: cert.timestamp_str,
+         cert_location: cert.location_str,
+         cert_stamp: cert.dao_stamp,
+         cert_creator: cert.creator,
         }
     })
     .collect();
@@ -357,6 +371,20 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
         return HttpResponse::Ok().json(snapshot(&inner));
     }
 
+    // 右键菜单：按神兵 id 熔炼 / 上架
+    if let Some(id_str) = key.strip_prefix("melt_id_") {
+        if let Ok(id) = id_str.parse::<u64>() {
+            s.melt_sword_by_id(id);
+        }
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+    if let Some(id_str) = key.strip_prefix("list_id_") {
+        if let Ok(id) = id_str.parse::<u64>() {
+            s.list_sword_by_id(id);
+        }
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+
     // 🌟 2. 通用一视同仁解析器：自动拆解 (基础按键, 批量次数)
     let (base_key, count): (&str, u128) = match key.rsplit_once('_') {
         Some((b, n_str)) if n_str.chars().all(|c| c.is_ascii_digit()) => {
@@ -495,6 +523,10 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
         "I" => s.exchange_gold_to_copper_n(count),
         "o" => s.exchange_gold_to_jade_n(count),
         "O" => s.exchange_jade_to_gold_n(count),
+
+        // 🌟 放在 _ => {} 之前，确保可以被正常匹配执行
+        "toggle_currency_protocol" => s.toggle_currency_protocol(),
+
         _ => {}
     }
     HttpResponse::Ok().json(snapshot(&inner))

@@ -4,9 +4,10 @@ use super::encounters_lore;
 use crate::game::types::{Element, Quality, Sword};
 
 impl GameState {
+    // 文件路径：src/game/state/encounters.rs
+
     pub fn process_encounters(&mut self) {
         let mut rng = rand::thread_rng();
-
         self.encounter_timer = rng.gen_range(1800..=3600);
 
         let b = &self.realm.body;
@@ -22,8 +23,11 @@ impl GameState {
             let name = if is_special { "太虚梦授剑" } else { "沉睡的古剑" };
             let el = [Element::Gold, Element::Wood, Element::Water, Element::Fire, Element::Earth][rng.gen_range(0..5)];
 
+            let rand_entropy = rng.r#gen::<u64>();
+            let fingerprint = crate::game::fingerprint::Fingerprint64::pack(ts, 0x7A8B9C, rand_entropy);
+
             let sword = Sword {
-                id: rng.r#gen(),
+                id: rand_entropy,
                 name: name.to_string(),
                 element: el,
                 quality: Quality::new(rng.gen_range(rank..=(rank + 6).min(59))),
@@ -32,7 +36,9 @@ impl GameState {
                 forged_timestamp: ts,
                     sharpness: 50,
                     enchantment: if is_special { Some(el) } else { None },
-                    is_reforged: false, is_tool: false,
+                    is_reforged: false,
+                    is_tool: false,
+                    fingerprint, // 🌟 补齐指纹字段
             };
 
             let prefix = encounters_lore::random_success_prefix();
@@ -44,9 +50,9 @@ impl GameState {
             return;
         }
 
-        // 2. 错失良机奇遇：增加错失计数（滋养精神力）+ 仙缘经验 (+12 ~ +99)
+        // 2. 错失良机奇遇
         self.missed_encounter_count += 1;
-        self.sync_body_stats(); // 实时刷新精神力
+        self.sync_body_stats();
 
         let cult_gain = rng.gen_range(12..=99) as u128;
         self.realm.add_cultivation(cult_gain);
