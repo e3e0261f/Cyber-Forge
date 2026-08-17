@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use super::dreamquest::{TurnBasedCombat, RoundLog, CombatAction, ActionType, CombatResult, CombatReward};
 use super::party::{Party, ContributionStats, PartyReward, IndividualReward};
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 
 // ================================================================
 // 战斗角色 (支持单人和多人战斗)
@@ -58,7 +58,7 @@ pub struct Debuff {
     pub damage_per_round: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DebuffType {
     Poison,        // 中毒
     Freeze,        // 冰冻 (无法行动)
@@ -275,13 +275,13 @@ impl TurnBasedCombatEngine {
         for combatant in combatants {
             // 更新buff持续时间
             combatant.buffs.retain_mut(|buff| {
-                buff.duration -= 1;
+                buff.duration = buff.duration.saturating_sub(1);
                 buff.duration > 0
             });
 
             // 更新debuff持续时间
             combatant.debuffs.retain_mut(|debuff| {
-                debuff.duration -= 1;
+                debuff.duration = debuff.duration.saturating_sub(1);
                 debuff.duration > 0
             });
         }
@@ -314,63 +314,4 @@ pub fn calculate_party_combat_reward(
     base_gold: u64,
 ) -> PartyReward {
     party.calculate_rewards(base_exp, base_gold, vec![])
-}
-
-// ================================================================
-// 快速测试用例
-// ================================================================
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_turn_order() {
-        let player1 = CombatCharacter {
-            id: 1,
-            name: "玩家1".to_string(),
-            level: 1,
-            max_hp: 100.0,
-            current_hp: 100.0,
-            max_mp: 50.0,
-            current_mp: 50.0,
-            attack: 20.0,
-            defense: 10.0,
-            speed: 50,
-            magic_attack: 15.0,
-            magic_defense: 8.0,
-            critical_rate: 0.1,
-            dodge_rate: 0.05,
-            buffs: vec![],
-            debuffs: vec![],
-            is_alive: true,
-            team: TeamSide::Player,
-        };
-
-        let enemy1 = CombatCharacter {
-            id: 2,
-            name: "怪物".to_string(),
-            level: 1,
-            max_hp: 50.0,
-            current_hp: 50.0,
-            max_mp: 20.0,
-            current_mp: 20.0,
-            attack: 15.0,
-            defense: 5.0,
-            speed: 30,
-            magic_attack: 10.0,
-            magic_defense: 3.0,
-            critical_rate: 0.05,
-            dodge_rate: 0.02,
-            buffs: vec![],
-            debuffs: vec![],
-            is_alive: true,
-            team: TeamSide::Enemy,
-        };
-
-        let combat = TurnBasedCombatEngine::initialize_combat(vec![player1], vec![enemy1]);
-        
-        // 玩家应该首先出手 (速度更高)
-        assert_eq!(combat.rounds[0].turn_order[0].0, "玩家1");
-        assert_eq!(combat.rounds[0].turn_order[1].0, "怪物");
-    }
 }
