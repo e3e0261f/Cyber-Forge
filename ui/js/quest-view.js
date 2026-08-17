@@ -32,7 +32,8 @@ export function handleQuestClick(x, y, bounds) {
     if (x < mx || x > mx + mw || y < my || y > my + mh) return false;
     const offers = gameState.quests || [];
     const active = gameState.active_quests || [];
-    const listY = my + 80 - scrollY;
+    let curY = my + 80 - scrollY;
+    
     if (selectedQuest) {
         const items = (gameState.backpack || []).filter((item) => !item.is_tool);
         for (let i = 0; i < items.length; i++) {
@@ -41,25 +42,49 @@ export function handleQuestClick(x, y, bounds) {
                 send(`quest_submit_${selectedQuest}_${items[i].id}`); selectedQuest = null; return true;
             }
         }
-        if (y < my + 52) selectedQuest = null;
+        // 点击外部区域取消物品选择
+        if (y < my + 52 || x < mx + 12 || x > mx + mw - 12 || y > my + mh - 24) selectedQuest = null;
         return true;
     }
-    for (let i = 0; i < offers.length; i++) {
-        const oy = listY + i * 76;
-        if (y >= oy + 44 && y <= oy + 68) { send(`quest_accept_${offers[i].id}`); return true; }
-    }
-    const activeY = my + 80 + offers.length * 76 - scrollY + 20;
+
+    // 进行中的任务在上方
+    let activeY = curY;
     for (let i = 0; i < active.length; i++) {
         const ay = activeY + i * 70;
-        if (y >= ay + 34 && y <= ay + 58) {
-            if (active[i].completed) send(`quest_claim_${active[i].offer.id}`);
-            else if (active[i].offer.kind === 'SubmitItem') selectedQuest = active[i].offer.id;
-            else send(`quest_abandon_${active[i].offer.id}`);
+        // 放宽点击范围，点击卡片右半部分都算点击按钮
+        const btnLeft = mx + 16 + (mw - 42) * 0.5;
+        if (x >= btnLeft && x <= mx + mw - 26 && y >= ay && y <= ay + 58) {
+            if (y > my + 50 && y < my + mh - 28) { // 必须在剪裁区域内可见
+                if (active[i].completed) send(`quest_claim_${active[i].offer.id}`);
+                else if (active[i].offer.kind === 'SubmitItem') selectedQuest = active[i].offer.id;
+                else send(`quest_abandon_${active[i].offer.id}`);
+            }
             return true;
         }
     }
+    
+    curY += active.length * 70 + 20;
+    
+    // 可接任务在下方
+    let listY = curY;
+    for (let i = 0; i < offers.length; i++) {
+        const oy = listY + i * 76;
+        const btnLeft = mx + 16 + (mw - 42) * 0.5;
+        if (x >= btnLeft && x <= mx + mw - 26 && y >= oy && y <= oy + 64) { 
+            if (y > my + 50 && y < my + mh - 28) {
+                send(`quest_accept_${offers[i].id}`); 
+            }
+            return true; 
+        }
+    }
+    
     if (x >= mx + mw - 18 && y >= my + 52 && y <= my + mh - 28) { scrollY = Math.max(0, scrollY + (y < my + mh / 2 ? -120 : 120)); return true; }
-    return true;
+    
+    // 内容区域拦截点击，防止穿透到底层设施
+    if (y >= my + 44) return true;
+    
+    // 标题栏(y < my + 44)放行返回 false，这样 input.js 就能继续执行窗口拖拽逻辑
+    return false;
 }
 
 export function drawQuestModal(ctx, w, h, time) {
@@ -76,10 +101,13 @@ export function drawQuestModal(ctx, w, h, time) {
     const offers = gameState.quests || [], active = gameState.active_quests || [];
     ctx.save(); ctx.beginPath(); ctx.rect(mx + 10, my + 50, mw - 20, mh - 78); ctx.clip();
     let y = my + 68 - scrollY;
-    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#fb923c'; ctx.fillText(`可接任务 (${offers.length})`, mx + 18, y); y += 12;
-    for (const q of offers) { drawCard(ctx, mx + 16, y, mw - 42, 64, `${q.title} · 保证金 ${q.deposit}${q.currency === 'Jade' ? '仙玉' : '金币'}`, `${q.description} · ${q.duration_secs}s · 奖励金币${q.reward.coins} 仙玉${q.reward.jade}`, '接取'); y += 76; }
-    y += 8; ctx.fillStyle = '#fbbf24'; ctx.fillText(`进行中 (${active.length}/5)`, mx + 18, y); y += 12;
+    
+    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#fbbf24'; ctx.fillText(`进行中 (${active.length}/5)`, mx + 18, y); y += 12;
     for (const q of active) { const remain = Math.max(0, q.complete_at - Math.floor(Date.now() / 1000)); drawCard(ctx, mx + 16, y, mw - 42, 58, `${q.offer.title} · ${q.completed ? '已完成' : `剩余 ${remain}s`}`, q.offer.description, q.completed ? '领取' : (q.offer.kind === 'SubmitItem' ? '选择物品' : '放弃')); y += 70; }
+    
+    y += 8; ctx.fillStyle = '#fb923c'; ctx.fillText(`可接任务 (${offers.length})`, mx + 18, y); y += 12;
+    for (const q of offers) { drawCard(ctx, mx + 16, y, mw - 42, 64, `${q.title} · 保证金 ${q.deposit}${q.currency === 'Jade' ? '仙玉' : '金币'}`, `${q.description} · ${q.duration_secs}s · 奖励金币${q.reward.coins} 仙玉${q.reward.jade}`, '接取'); y += 76; }
+    
     ctx.restore();
     if (selectedQuest) {
         ctx.fillStyle = 'rgba(8,12,20,0.98)';

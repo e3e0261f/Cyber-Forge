@@ -13,6 +13,7 @@ import {
     drawBlueprint,
     setHammerTarget
 } from './world/workshop.js';
+import { playerPos } from './input.js';
 
 export { fx, initMotes };
 
@@ -41,7 +42,14 @@ export function drawWorld(ctx, w, h, now) {
         screenShake -= 0.35;
     }
 
-    // 1. 环境层
+    // 📍 镜头跟随逻辑：让玩家保持在屏幕中心偏下的位置
+    const camX = playerPos.x - w / 2;
+    const camY = playerPos.y - h * 0.6;
+    
+    // 我们在此应用相机平移，这样世界所有元素都会反向移动，形成镜头跟随
+    ctx.translate(-camX, -camY);
+
+    // 1. 环境层 (必须在 translate 之后绘制，才能产生相对于地图移动的视觉效果)
     drawBackground(ctx, w, h, time);
     drawPipes(ctx, w, h, time);
     drawFurnace(ctx, w, h, time);
@@ -54,6 +62,12 @@ export function drawWorld(ctx, w, h, now) {
     drawHammer(ctx, w, h);
     drawCrystals(ctx, w, h, time);
     drawBlueprint(ctx, w, h, time);
+
+    // 📍 绘制玩家 (MVP 版本：发光方块或简单小人)
+    drawPlayer(ctx, now);
+
+    // 取消相机平移，下面画全屏强光和特效（或者你可以把特效留在世界里）
+    ctx.translate(camX, camY);
 
     // 3. 漫反射强光
     if (flashLightIntensity > 0) {
@@ -69,6 +83,39 @@ export function drawWorld(ctx, w, h, now) {
 
     // 4. 特效层
     drawParticles(ctx, w, h);
+
+    ctx.restore();
+}
+
+function drawPlayer(ctx, now) {
+    ctx.save();
+    ctx.translate(playerPos.x, playerPos.y);
+
+    // 呼吸动画
+    const bounce = Math.sin(now * 0.005) * 2;
+    
+    // 画一个赛博风光晕底座
+    const grad = ctx.createRadialGradient(0, 10, 5, 0, 10, 25);
+    grad.addColorStop(0, 'rgba(0, 255, 200, 0.4)');
+    grad.addColorStop(1, 'rgba(0, 255, 200, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, 15, 25, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 简单的修仙者/赛博主角 (用发光的几何体代替)
+    ctx.fillStyle = '#00ffc8';
+    ctx.shadowColor = '#00ffc8';
+    ctx.shadowBlur = 10;
+    
+    // 身体
+    ctx.fillRect(-10, -20 + bounce, 20, 30);
+    
+    // 头
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(0, -30 + bounce, 8, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
 }

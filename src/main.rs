@@ -138,6 +138,8 @@ struct UiSnapshot {
     quests: Vec<game::quests::QuestOffer>,
     active_quests: Vec<game::quests::ActiveQuest>,
     quest_next_refresh_secs: u64,
+    player_x: f32,
+    player_y: f32,
 }
 
 fn snapshot(inner: &Session) -> UiSnapshot {
@@ -314,6 +316,8 @@ fn snapshot(inner: &Session) -> UiSnapshot {
                 .unwrap_or_default()
                 .as_secs(),
         ),
+        player_x: s.player_x,
+        player_y: s.player_y,
     }
 }
 
@@ -444,6 +448,8 @@ async fn api_game_tick(req: actix_web::HttpRequest, data: web::Data<AppState>) -
 #[derive(Deserialize)]
 struct ActionPayload {
     key: String,
+    x: Option<f32>,
+    y: Option<f32>,
 }
 
 #[post("/api/action")]
@@ -494,6 +500,39 @@ async fn api_action(
     if let Some(mode_str) = key.strip_prefix("set_currency_protocol_") {
         if let Ok(mode) = mode_str.parse::<u8>() {
             s.set_currency_protocol(mode);
+        }
+        return HttpResponse::Ok().json(snapshot(session));
+    }
+
+    // 📍 客户端心跳同步坐标 (防加速挂)
+    if key == "sync_pos" {
+        if let (Some(x), Some(y)) = (payload.x, payload.y) {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64; // ms 级校验
+
+            let dt = now.saturating_sub(s.last_sync_time);
+            
+            // 粗略算一下两点距离
+            let dx = x - s.player_x;
+            let dy = y - s.player_y;
+            let dist = (dx * dx + dy * dy).sqrt();
+
+            // 设玩家基础移动速度为 300 像素/秒，即 0.3 像素/ms
+            // 给定 50% 的网络延迟和预测容差
+            let max_dist = (dt as f32 * 0.3) * 1.5;
+
+            // 只有距离合理（或者首次同步、长时间未同步等特例）才允许更新坐标
+            if dist <= max_dist || dt > 10000 || s.last_sync_time == 0 {
+                s.player_x = x;
+                s.player_y = y;
+                s.last_sync_time = now;
+            } else {
+                // 如果发现开挂，这里就不更新 s.player_x，强制让接下来的 snapshot 把他拉回老位置
+                println!("⚠️ [防加速挂] 移动过快被拦截: dt={}ms, dist={}, max_dist={}", dt, dist, max_dist);
+                s.last_sync_time = now; // 时间依然要推移
+            }
         }
         return HttpResponse::Ok().json(snapshot(session));
     }

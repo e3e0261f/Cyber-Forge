@@ -83,6 +83,17 @@ const KEY_MAP = {
   Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5',
 };
 
+// 📍 本地客户端预测坐标
+export const playerPos = {
+  x: 400,
+  y: 300,
+  vx: 0,
+  vy: 0,
+  speed: 300 // 像素/秒
+};
+let lastSyncTime = 0;
+let lastTickTime = performance.now();
+
 const heldKeys = new Map();
 
 export async function doStrike() {
@@ -142,13 +153,66 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
 
 function startMainLoop() {
   if (mainLoopTimer) return;
+  lastTickTime = performance.now();
   mainLoopTimer = setInterval(async () => {
+    // 📍 Albion 模式本地平滑预测移动逻辑
+    const now = performance.now();
+    const dt = (now - lastTickTime) / 1000;
+    lastTickTime = now;
+
+    let moveX = 0;
+    let moveY = 0;
+    
+    if (heldKeys.has('KeyW') || heldKeys.has('ArrowUp')) moveY -= 1;
+    if (heldKeys.has('KeyS') || heldKeys.has('ArrowDown')) moveY += 1;
+    if (heldKeys.has('KeyA') || heldKeys.has('ArrowLeft')) moveX -= 1;
+    if (heldKeys.has('KeyD') || heldKeys.has('ArrowRight')) moveX += 1;
+
+    // 向量归一化，防止对角线移动过快
+    if (moveX !== 0 || moveY !== 0) {
+      const len = Math.sqrt(moveX * moveX + moveY * moveY);
+      playerPos.vx = (moveX / len) * playerPos.speed;
+      playerPos.vy = (moveY / len) * playerPos.speed;
+    } else {
+      playerPos.vx = 0;
+      playerPos.vy = 0;
+    }
+
+    playerPos.x += playerPos.vx * dt;
+    playerPos.y += playerPos.vy * dt;
+
+    // 限定范围，不要跑出测试地图边界
+    playerPos.x = Math.max(0, Math.min(playerPos.x, 2000));
+    playerPos.y = Math.max(0, Math.min(playerPos.y, 1500));
+
+    // 每 200ms 心跳同步一次坐标到后端进行校验
+    if ((moveX !== 0 || moveY !== 0) && now - lastSyncTime > 200) {
+        lastSyncTime = now;
+        invoke('action', { key: 'sync_pos', x: playerPos.x, y: playerPos.y })
+            .then(snap => { 
+                if (snap) {
+                    syncState(snap);
+                    // 校验被拉回逻辑：如果后端返回的坐标和本地差距过大（比如超过50像素），说明被拉回了
+                    const dx = snap.player_x - playerPos.x;
+                    const dy = snap.player_y - playerPos.y;
+                    if (Math.sqrt(dx*dx + dy*dy) > 50) {
+                        playerPos.x = snap.player_x;
+                        playerPos.y = snap.player_y;
+                    }
+                }
+            });
+    }
+
     if (!heldKeys.size) {
       clearInterval(mainLoopTimer);
       mainLoopTimer = null;
       return;
     }
+
+    // 剔除 WASD，不把它们当做连续触发的普通快捷键处理（不发火）
     for (const [code, info] of heldKeys.entries()) {
+      if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) continue;
+      
       const interval = (code === 'Space') ? gameConfig.spaceIntervalMs : gameConfig.otherKeysIntervalMs;
       if (performance.now() - info.lastFiredTime >= interval) {
         info.lastFiredTime = performance.now();
@@ -511,13 +575,19 @@ export function setupInteractions() {
       return;
     }
 
-    if (!KEY_MAP[e.code]) return;
+    const isMovementKey = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code);
+
+    if (!KEY_MAP[e.code] && !isMovementKey) return;
     if (e.repeat) return;
 
     e.preventDefault();
     if (!heldKeys.has(e.code)) {
       heldKeys.set(e.code, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
-      await fireKey(e.code, e.shiftKey, e.ctrlKey, 1);
+      
+      if (!isMovementKey) {
+        await fireKey(e.code, e.shiftKey, e.ctrlKey, 1);
+      }
+      
       startMainLoop();
     }
   });

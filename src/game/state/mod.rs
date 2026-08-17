@@ -255,6 +255,14 @@ pub struct GameState {
     pub currency_protocol: u8, // 1: 纳玉, 2: 兜底
     #[serde(default)]
     pub quests: QuestBoard,
+
+    // 📍 位置坐标同步系统 (Albion 模式客户端预测)
+    #[serde(default)]
+    pub player_x: f32,
+    #[serde(default)]
+    pub player_y: f32,
+    #[serde(default)]
+    pub last_sync_time: u64,
 }
 
 fn default_station_mult() -> [f64; 3] {
@@ -430,6 +438,10 @@ impl GameState {
             // 🌟 补上这一行：默认启动为模式 1（天道纳玉）
             currency_protocol: 1,
             quests: QuestBoard::default(),
+
+            player_x: 400.0,
+            player_y: 300.0,
+            last_sync_time: 0,
         };
         s.reroll_station_mult(false);
         s.sync_body_stats();

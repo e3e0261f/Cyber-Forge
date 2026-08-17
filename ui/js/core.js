@@ -49,7 +49,10 @@ export async function invoke(name, args = {}) {
       url = '/api/strike';
     } else if (name === 'action') {
       url = '/api/action';
-      options.body = JSON.stringify({ key: args.key });
+      const body = { key: args.key };
+      if (args.x !== undefined) body.x = args.x;
+      if (args.y !== undefined) body.y = args.y;
+      options.body = JSON.stringify(body);
     } else {
       console.warn('[Web API] 未知的调用方法:', name);
       return null;
