@@ -70,7 +70,7 @@ impl GameState {
                 return s;
             }
         }
-        
+
         // 兼容旧版本单机存档：如果在读取特定账号的存档时失败，尝试读取最初的 `cyber_forge.save`，并重新保存。
         if let Ok(c) = fs::read_to_string(save_dir().join("cyber_forge.save")) {
             if let Some(s) = Self::from_save_json(&c) {

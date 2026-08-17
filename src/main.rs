@@ -4,9 +4,9 @@ use actix_files::Files;
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
-use std::collections::HashMap;
 
 use game::dao_origin::DaoOrigin;
 use game::numbers::format_compact_number;
@@ -359,11 +359,14 @@ async fn api_get_state(req: actix_web::HttpRequest, data: web::Data<AppState>) -
 }
 
 #[post("/api/strike")]
-async fn api_player_strike(req: actix_web::HttpRequest, data: web::Data<AppState>) -> impl Responder {
+async fn api_player_strike(
+    req: actix_web::HttpRequest,
+    data: web::Data<AppState>,
+) -> impl Responder {
     let account_id = get_account_id(&req);
     let mut sessions = data.0.lock().unwrap();
     let session = get_or_create_session(&mut sessions, &account_id);
-    
+
     let interval = session.state.effective_interval_secs().max(0.01);
     let progress = (session.cycle_start.elapsed().as_secs_f64() / interval).min(1.0);
     let in_crit = progress >= 0.76 && progress < 0.88;
@@ -385,7 +388,7 @@ async fn api_game_tick(req: actix_web::HttpRequest, data: web::Data<AppState>) -
     let account_id = get_account_id(&req);
     let mut sessions = data.0.lock().unwrap();
     let session = get_or_create_session(&mut sessions, &account_id);
-    
+
     session.state.tick_toast();
     session.state.tick_quests();
     session.state.tick_flash();
