@@ -4,7 +4,9 @@
 use std::time::Instant;
 
 /// 关键帧窗口（读条进度比例）
+#[allow(dead_code)]
 pub const CRIT_LO: f64 = 0.76;
+#[allow(dead_code)]
 pub const CRIT_HI: f64 = 0.88;
 
 /// 一次击锤的天道宣判（给 strike 用）
@@ -17,6 +19,7 @@ pub struct StrikePulse {
 
 /// 出剑前的天道宣判（给 SwordGenerator 用）
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct ForgeVerdict {
     pub fail_rate: f64,
     pub drop_bonus: f64,
@@ -60,17 +63,20 @@ impl DaoOrigin {
     }
 
     /// 当前读条进度 0~1
+    #[allow(dead_code)]
     pub fn progress(&self, interval_secs: f64) -> f64 {
         let secs = interval_secs.max(0.001);
         (self.cycle_start.elapsed().as_secs_f64() / secs).min(1.0)
     }
 
+    #[allow(dead_code)]
     pub fn in_crit_window(&self, interval_secs: f64) -> bool {
         let p = self.progress(interval_secs);
         p >= CRIT_LO && p < CRIT_HI
     }
 
     /// 手动空格或挂机满条
+    #[allow(dead_code)]
     pub fn on_strike(&mut self, manual: bool, power: f64) -> StrikePulse {
         let interval_guess = 1.0; // 仅用于帧内判定时由外部传入更准；保留 API
         let _ = interval_guess;

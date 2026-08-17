@@ -161,7 +161,7 @@ impl QuestBoard {
         };
         let required_rank = rng.gen_range(0..=state.level.min(40) as u8);
         QuestOffer {
-            id: rng.r#gen(),
+            id: rng.gen_range(1..9_000_000_000_000_000),
             kind,
             title: format!("{}·{}", if advanced { "高级" } else { "普通" }, kind.name()),
             description: match kind {

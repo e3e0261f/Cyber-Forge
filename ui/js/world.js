@@ -14,6 +14,7 @@ import {
     setHammerTarget
 } from './world/workshop.js';
 import { playerPos } from './input.js';
+import { textures } from './world/assets.js';
 
 export { fx, initMotes };
 
@@ -42,14 +43,7 @@ export function drawWorld(ctx, w, h, now) {
         screenShake -= 0.35;
     }
 
-    // 📍 镜头跟随逻辑：让玩家保持在屏幕中心偏下的位置
-    const camX = playerPos.x - w / 2;
-    const camY = playerPos.y - h * 0.6;
-    
-    // 我们在此应用相机平移，这样世界所有元素都会反向移动，形成镜头跟随
-    ctx.translate(-camX, -camY);
-
-    // 1. 环境层 (必须在 translate 之后绘制，才能产生相对于地图移动的视觉效果)
+    // 1. 环境层
     drawBackground(ctx, w, h, time);
     drawPipes(ctx, w, h, time);
     drawFurnace(ctx, w, h, time);
@@ -65,9 +59,6 @@ export function drawWorld(ctx, w, h, now) {
 
     // 📍 绘制玩家 (MVP 版本：发光方块或简单小人)
     drawPlayer(ctx, now);
-
-    // 取消相机平移，下面画全屏强光和特效（或者你可以把特效留在世界里）
-    ctx.translate(camX, camY);
 
     // 3. 漫反射强光
     if (flashLightIntensity > 0) {
@@ -108,14 +99,21 @@ function drawPlayer(ctx, now) {
     ctx.shadowColor = '#00ffc8';
     ctx.shadowBlur = 10;
     
-    // 身体
-    ctx.fillRect(-10, -20 + bounce, 20, 30);
-    
-    // 头
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, -30 + bounce, 8, 0, Math.PI * 2);
-    ctx.fill();
+    if (textures.player) {
+        const img = textures.player;
+        const imgW = 80;
+        const imgH = (img.height / img.width) * imgW;
+        ctx.drawImage(img, -imgW / 2, -imgH + 15 + bounce, imgW, imgH);
+    } else {
+        // 身体
+        ctx.fillRect(-10, -20 + bounce, 20, 30);
+        
+        // 头
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, -30 + bounce, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
     ctx.restore();
 }

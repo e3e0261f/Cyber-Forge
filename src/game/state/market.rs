@@ -4,6 +4,7 @@ use rand::Rng;
 
 impl GameState {
     // 金融兑换业务 (5% 藏宝阁规费抽成)
+    #[allow(dead_code)]
     pub fn exchange_copper_to_gold(&mut self) {
         let amount = 10_000u128;
         if self.copper >= amount {
@@ -17,6 +18,7 @@ impl GameState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn exchange_gold_to_copper(&mut self) {
         if self.coins >= 1 {
             self.coins -= 1;
@@ -29,6 +31,7 @@ impl GameState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn exchange_gold_to_jade(&mut self) {
         let amount = 10_000u128;
         if self.coins >= amount {
@@ -42,6 +45,7 @@ impl GameState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn exchange_jade_to_gold(&mut self) {
         if self.jade >= 1 {
             self.jade -= 1;

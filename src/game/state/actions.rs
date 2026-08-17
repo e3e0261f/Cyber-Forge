@@ -8,6 +8,7 @@ fn slag_of(q: Quality) -> u32 {
 impl GameState {
     // 智能调度：根据按住按键的时间长度，动态计算步长
     // duration_ms: 按键持续的时间
+    #[allow(dead_code)]
     pub fn get_step_by_duration(duration_ms: u64) -> u32 {
         if duration_ms > 5000 {
             50
@@ -26,6 +27,7 @@ impl GameState {
         } // 初始，1人/Tick
     }
 
+    #[allow(dead_code)]
     pub fn reassign_workers_dynamic(&mut self, target_type: u8, duration_ms: u64) {
         if self.apprentices == 0 {
             return;
@@ -144,17 +146,20 @@ impl GameState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn toggle_log_filter(&mut self) {
         self.log_filter = self.log_filter.next();
         self.set_toast(format!("日志过滤器：{}", self.log_filter.name()));
     }
 
+    #[allow(dead_code)]
     pub fn scroll_log_up(&mut self) {
         if self.log_scroll_offset < self.logs.len().saturating_sub(1) {
             self.log_scroll_offset += 1;
         }
     }
 
+    #[allow(dead_code)]
     pub fn scroll_log_down(&mut self) {
         if self.log_scroll_offset > 0 {
             self.log_scroll_offset -= 1;

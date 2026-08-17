@@ -37,10 +37,12 @@ impl Quality {
         self.0.min(Self::MAX)
     }
 
+    #[allow(dead_code)]
     pub fn is_trash(self) -> bool {
         self.rank() <= 5
     }
 
+    #[allow(dead_code)]
     pub fn is_masterwork_tier(self) -> bool {
         self.rank() >= 12
     }
@@ -58,6 +60,7 @@ impl Quality {
         BADGES[self.rank() as usize]
     }
 
+    #[allow(dead_code)]
     pub fn bonus_exp(self) -> u32 {
         let r = self.rank() as u32;
         2 + r * r / 2
@@ -71,6 +74,7 @@ impl Quality {
         0.06 + self.rank() as f64 * 0.007
     }
 
+    #[allow(dead_code)]
     pub fn take_chance(self) -> f64 {
         (0.38 - self.rank() as f64 * 0.004).clamp(0.08, 0.40)
     }
@@ -96,6 +100,7 @@ impl Quality {
         format!("#{:02x}{:02x}{:02x}", r, g, b)
     }
 
+    #[allow(dead_code)]
     pub fn atk_base(self) -> u64 {
         8 + self.rank() as u64 * 8
     }

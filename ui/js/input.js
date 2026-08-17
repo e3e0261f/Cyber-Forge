@@ -123,9 +123,6 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   let k = KEY_MAP[code];
   if (!k) return;
 
-  if (code === 'KeyI' && shiftKey) k = 'I';
-  if (code === 'KeyO' && shiftKey) k = 'O';
-
   if (k === 'strike') {
     doStrike();
     return;
@@ -437,6 +434,23 @@ export function setupInteractions() {
         if (clickX >= sortBtnX && clickX <= sortBtnX + 80 && clickY >= sortBtnY && clickY <= sortBtnY + 24) {
           cycleSortMode();
           return;
+        }
+
+        // 货币互换按钮点击
+        const hubY = my + mh - 46;
+        if (clickY >= hubY + 5 && clickY <= hubY + 23) {
+          let k = null;
+          if (clickX >= mx + 120 && clickX <= mx + 148) k = 'i';
+          else if (clickX >= mx + 152 && clickX <= mx + 180) k = 'I';
+          else if (clickX >= mx + 286 && clickX <= mx + 314) k = 'o';
+          else if (clickX >= mx + 318 && clickX <= mx + 346) k = 'O';
+
+          if (k) {
+              if (e.ctrlKey) k += '_100';
+              else if (e.shiftKey) k += '_10';
+              invoke('action', { key: k }).then(snap => { if (snap) syncState(snap); });
+              return;
+          }
         }
 
         // 背包格子内按下 -> 开启物品拖拽

@@ -37,7 +37,7 @@ export function getStashGridMetrics(bounds) {
     const gap = 6;
     const cellW = (mw - 44 - (cols - 1) * gap) / cols;
     const cellH = cellW;
-    return { mx, my, mw, mh, gridX, gridY, cols, gap, cellW, cellH, clipH: mh - 85 };
+    return { mx, my, mw, mh, gridX, gridY, cols, gap, cellW, cellH, clipH: mh - 105 };
 }
 
 export function hitTestStashSlot(x, y, bounds) {
@@ -225,13 +225,50 @@ export function drawStashModal(ctx, w, h, time) {
         ctx.restore();
     }
 
+    // 货币中心
+    const hubY = my + mh - 46;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(mx + 16, hubY, mw - 32, 28, 4);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#d97706'; // copper
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`铜钱 ${gameState.copper}`, mx + 24, hubY + 19);
+
+    const drawSmallBtn = (bx, text) => {
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.strokeStyle = '#475569';
+        ctx.beginPath(); ctx.roundRect(bx, hubY + 5, 28, 18, 3);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(text, bx + 4, hubY + 18);
+    };
+
+    drawSmallBtn(mx + 120, '→金');
+    drawSmallBtn(mx + 152, '←金');
+
+    ctx.fillStyle = '#fbbf24'; // gold
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`金币 ${gameState.coins}`, mx + 190, hubY + 19);
+
+    drawSmallBtn(mx + 286, '→玉');
+    drawSmallBtn(mx + 318, '←玉');
+
+    ctx.fillStyle = '#10b981'; // jade
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`仙玉 ${gameState.jade}`, mx + 356, hubY + 19);
+
     ctx.fillStyle = '#64748b';
     ctx.font = '10px sans-serif';
     ctx.fillText(
         sortOff
-            ? '排序已关闭 · 右键神兵出菜单 · 可拖到空格'
-            : '右键神兵：上架/熔炼/出生证 | 点排序到「关闭」可留空位',
-        mx + 16, my + mh - 12
+            ? '排序关 · 右键菜单 · 可拖拽 (Shift/Ctrl兑换)'
+            : '右键菜单 | 点排序到关闭可留空 (Shift/Ctrl兑换)',
+        mx + 16, my + mh - 5
     );
 }
 

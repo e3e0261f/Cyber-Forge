@@ -13,6 +13,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::RwLock;
 
+#[allow(unused_imports)]
 pub use save::save_file_path;
 pub const MARKET_REFRESH_TICKS: u64 = 6000;
 pub const GOD_RATE_SOFT_CAP: f64 = 0.33;
@@ -40,6 +41,7 @@ pub enum LogFilter {
 }
 
 impl LogFilter {
+    #[allow(dead_code)]
     pub fn name(&self) -> &'static str {
         match self {
             LogFilter::All => "全量",
@@ -47,6 +49,7 @@ impl LogFilter {
             LogFilter::Masterwork => "代表作",
         }
     }
+    #[allow(dead_code)]
     pub fn next(&self) -> Self {
         match self {
             LogFilter::All => LogFilter::Important,
@@ -312,18 +315,22 @@ impl GameState {
     pub fn exp_multiplier(&self) -> f64 {
         (1.0 + self.realm.body.qi_sense as f64 * 0.001).min(2.0)
     }
+    #[allow(dead_code)]
     pub fn spirit_fail_reduction(&self) -> f64 {
         (self.realm.body.spirit as f64 / 100.0 * 0.01).min(0.30)
     }
+    #[allow(dead_code)]
     pub fn core_rank_boost(&self) -> u32 {
         self.realm.body.core_count.min(12)
     }
+    #[allow(dead_code)]
     pub fn core_fail_reduction(&self) -> f64 {
         (self.realm.body.core_refine as f64 * 0.002).min(0.20)
     }
     pub fn core_cult_bonus(&self) -> u128 {
         (self.realm.body.core_size / 50) as u128
     }
+    #[allow(dead_code)]
     pub fn passive_qte_god_bonus(&self) -> f64 {
         (self.realm.body.causality as f64 / 2000.0 * 0.5).min(0.5)
     }
@@ -451,6 +458,7 @@ impl GameState {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SharedGameState(pub Arc<RwLock<GameState>>);
 
 // 文件路径：src/game/state/mod.rs 最末尾的 impl GameState 块中

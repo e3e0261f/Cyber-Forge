@@ -133,6 +133,7 @@ impl GameState {
         self.push_log(msg, false, false);
     }
 
+    #[allow(dead_code)]
     pub fn reassign_workers(&mut self, target_type: u8) {
         if self.apprentices == 0 {
             self.set_toast("无学徒，按 [A] 招募");

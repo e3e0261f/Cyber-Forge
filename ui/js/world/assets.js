@@ -8,6 +8,7 @@ export const textures = {
     piston: null,
     robot: null,
     crystals: null,
+    player: null,
     isLoaded: false,
 };
 
@@ -19,6 +20,7 @@ export function loadGameAssets() {
         { key: 'piston', src: 'assets/piston_arm.png' },
         { key: 'robot', src: 'assets/apprentice_robot.png' },
         { key: 'crystals', src: 'assets/crystals.png' },
+        { key: 'player', src: 'assets/player_avatar.png' },
     ];
 
     let loadedCount = 0;

@@ -2,7 +2,6 @@ use super::dao_origin::DaoOrigin;
 use super::state::{AutoListTier, GameState};
 use super::sword_gen::SwordGenerator;
 use super::types::ForgeResult;
-use rand::Rng;
 use std::time::Instant;
 
 pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
