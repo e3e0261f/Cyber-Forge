@@ -1,5 +1,5 @@
-use rand::Rng;
 use crate::game::types::{Element, ForgeResult, Quality, Sword};
+use rand::Rng;
 
 pub struct SwordGenerator;
 
@@ -13,28 +13,134 @@ impl SwordGenerator {
     ];
 
     const PREFIXES: &'static [&'static str] = &[
-        "锈蚀的", "半成品", "热锻", "冷淬", "油淬", "水淬", "真空熔", "天工",
-        "赛博", "纳米", "超导", "量子", "低频", "高频", "残次", "返修",
-        "宗门订制", "流民捡来的", "武馆淘汰", "供奉用", "私藏", "仿制",
-        "陈浩南同款", "山鸡同款", "港风", "东洋传入", "苗疆", "塞外",
+        "锈蚀的",
+        "半成品",
+        "热锻",
+        "冷淬",
+        "油淬",
+        "水淬",
+        "真空熔",
+        "天工",
+        "赛博",
+        "纳米",
+        "超导",
+        "量子",
+        "低频",
+        "高频",
+        "残次",
+        "返修",
+        "宗门订制",
+        "流民捡来的",
+        "武馆淘汰",
+        "供奉用",
+        "私藏",
+        "仿制",
+        "陈浩南同款",
+        "山鸡同款",
+        "港风",
+        "东洋传入",
+        "苗疆",
+        "塞外",
     ];
 
     pub const BASE_TYPES: &'static [&'static str] = &[
-        "飞剑", "短飞剑", "重飞剑", "汉剑", "软剑", "苗刀", "窄刃苗刀", "宽刃苗刀",
-        "绣春刀", "腰刀", "朴刀", "斩马刀", "大砍刀", "手刀",
-        "打刀", "太刀", "胁差", "短刀", "薙刀", "长卷", "武士刀", "居合刀",
-        "匕首", "刺剑", "柳叶匕", "靴刀", "菜刀", "斩骨刀", "切片刀",
-        "西瓜刀", "长西瓜刀", "短西瓜刀", "陈浩南的西瓜刀", "山鸡的西瓜刀",
-        "阔剑", "刺剑", "军刀", "马刀", "钩镰", "戈头", "矛尖", "枪头",
-        "铁锤", "羊角锤", "钳工锤", "凿子", "锉刀", "扳手", "活动扳手",
-        "铁剪", "铁锯", "钻头", "镐头", "锄头", "镰刀", "斧头", "开山斧",
-        "马蹄铁", "马掌钉", "门闩", "门锁芯", "合页", "门环", "窗钩",
-        "钟楼齿轮", "大钟摆锤", "发条盒", "擒纵轮", "指针轴", "钟乳配重",
-        "塔钟轴承", "报刻拨杆", "铆钉组", "工字铁片", "角铁", "法兰盘",
-        "铁色子", "铁马", "铁牛", "铁鸡", "铁犬", "铁狮门环", "铁算盘珠",
-        "压纸铁兽", "镇宅铁锚", "小铁锚", "秤砣", "砝码", "铁尺",
-        "单分子刃胚", "链锯齿条", "等离子电极", "伺服关节", "散热肋片",
-        "反应堆铆钉", "磁轨导片", "动能锤头",
+        "飞剑",
+        "短飞剑",
+        "重飞剑",
+        "汉剑",
+        "软剑",
+        "苗刀",
+        "窄刃苗刀",
+        "宽刃苗刀",
+        "绣春刀",
+        "腰刀",
+        "朴刀",
+        "斩马刀",
+        "大砍刀",
+        "手刀",
+        "打刀",
+        "太刀",
+        "胁差",
+        "短刀",
+        "薙刀",
+        "长卷",
+        "武士刀",
+        "居合刀",
+        "匕首",
+        "刺剑",
+        "柳叶匕",
+        "靴刀",
+        "菜刀",
+        "斩骨刀",
+        "切片刀",
+        "西瓜刀",
+        "长西瓜刀",
+        "短西瓜刀",
+        "陈浩南的西瓜刀",
+        "山鸡的西瓜刀",
+        "阔剑",
+        "刺剑",
+        "军刀",
+        "马刀",
+        "钩镰",
+        "戈头",
+        "矛尖",
+        "枪头",
+        "铁锤",
+        "羊角锤",
+        "钳工锤",
+        "凿子",
+        "锉刀",
+        "扳手",
+        "活动扳手",
+        "铁剪",
+        "铁锯",
+        "钻头",
+        "镐头",
+        "锄头",
+        "镰刀",
+        "斧头",
+        "开山斧",
+        "马蹄铁",
+        "马掌钉",
+        "门闩",
+        "门锁芯",
+        "合页",
+        "门环",
+        "窗钩",
+        "钟楼齿轮",
+        "大钟摆锤",
+        "发条盒",
+        "擒纵轮",
+        "指针轴",
+        "钟乳配重",
+        "塔钟轴承",
+        "报刻拨杆",
+        "铆钉组",
+        "工字铁片",
+        "角铁",
+        "法兰盘",
+        "铁色子",
+        "铁马",
+        "铁牛",
+        "铁鸡",
+        "铁犬",
+        "铁狮门环",
+        "铁算盘珠",
+        "压纸铁兽",
+        "镇宅铁锚",
+        "小铁锚",
+        "秤砣",
+        "砝码",
+        "铁尺",
+        "单分子刃胚",
+        "链锯齿条",
+        "等离子电极",
+        "伺服关节",
+        "散热肋片",
+        "反应堆铆钉",
+        "磁轨导片",
+        "动能锤头",
     ];
 
     const SUFFIXES: &'static [&'static str] = &[
@@ -94,7 +200,11 @@ impl SwordGenerator {
             format!("{}{}{}{}", prefix, element, base, suffix)
         };
 
-        let carbon_quality = if (0.7..=0.9).contains(&carbon_ratio) { 1.5 } else { 0.85 };
+        let carbon_quality = if (0.7..=0.9).contains(&carbon_ratio) {
+            1.5
+        } else {
+            0.85
+        };
         let apprentice_markup = 1.0 + (apprentices as f64 * 0.08);
         let base_price = (player_level as f64 * 40.0 * carbon_quality * apprentice_markup) as u128;
         let mut final_price = base_price + (entropy_factor % 200) as u128;
@@ -112,7 +222,11 @@ impl SwordGenerator {
         };
 
         let qte_boost = qte_hits.min(30);
-        let rank = (rank as u32 + qte_boost as u32 + qi_sense_bonus as u32 + if qte_hits > 0 { 2 } else { 0 }).min(59) as u8;
+        let rank = (rank as u32
+            + qte_boost as u32
+            + qi_sense_bonus as u32
+            + if qte_hits > 0 { 2 } else { 0 })
+        .min(59) as u8;
         let rank_boosted = rank.saturating_add(rank_boost as u8).min(59);
         let quality = Quality::new(rank_boosted);
 
@@ -122,17 +236,13 @@ impl SwordGenerator {
         }
 
         let ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
 
         // 🌟 1. 先在外部计算出指纹与唯一 ID
         let rand_entropy = entropy_factor ^ rng.r#gen::<u64>();
-        let fingerprint = crate::game::fingerprint::Fingerprint64::pack(
-            ts,
-            0x7A8B9C,
-            rand_entropy
-        );
+        let fingerprint = crate::game::fingerprint::Fingerprint64::pack(ts, 0x7A8B9C, rand_entropy);
 
         // 🌟 2. 干净地构造 Sword 实例
         ForgeResult::Success(Sword {
@@ -141,14 +251,13 @@ impl SwordGenerator {
             element,
             quality,
             price: final_price.max(1),
-                             carbon_ratio,
-                             forged_timestamp: ts,
-                                 sharpness: 0,
-                                 enchantment: None,
-                                 is_reforged: false,
-                                 is_tool: false,
-                                 fingerprint,
+            carbon_ratio,
+            forged_timestamp: ts,
+            sharpness: 0,
+            enchantment: None,
+            is_reforged: false,
+            is_tool: false,
+            fingerprint,
         })
     }
-
 }

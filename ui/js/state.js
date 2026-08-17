@@ -15,7 +15,10 @@ export const gameState = {
     matrix_progresses: [],
     backpack: [],
     lots: [],
-    logs: []
+    logs: [],
+    quests: [],
+    active_quests: [],
+    quest_next_refresh_secs: 0
 };
 
 // 🌟 多窗口并存 (最多3个) 与坐标记忆总控
@@ -31,6 +34,7 @@ export const uiState = {
         logs: { x: null, y: null },
         body: { x: null, y: null },
         inspect: { x: null, y: null }
+        ,quest: { x: null, y: null }
     },
 
     draggingModal: null, // 当前正在拖拽的窗口 ID

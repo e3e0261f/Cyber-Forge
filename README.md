@@ -5,6 +5,86 @@
 > **核心架构**：Rust (Actix-web) 高并发微服务 + HTML5/WebGL (Pixi.js v8) 纯显卡渲染引擎  
 > **设计哲学**：**工业级高性能标准（零 DOM 污染、全屏 WebGL 硬件加速、客户端预测 0ms 打击感、无上限阶梯数值）**
 
+## 🆕 增量更新：任务系统与交互增强
+
+> 本节为最近一次增量更新说明，原有技术白皮书与开发路线保持不变。
+
+### 更新内容
+
+- **任务系统**：随机生成 3～8 个候选任务，最多同时接取 5 个；支持押镖、跑商、击杀目标、物品提交。
+- **保证金**：接取时立即扣除任务指定的金币或仙玉；放弃任务损失全额保证金；完成并领取奖励时返还完整保证金。价值换算参考为 `1 仙玉 = 10,000 金币`，不会擅自替玩家兑换资产。
+- **离线倒计时**：押镖、跑商、击杀任务使用 Unix 时间戳，关闭页面后再次进入仍按真实时间计算；倒计时结束必定完成，不使用成功率判定。
+- **手动物品提交**：玩家必须在任务窗口选择背包物品，后端会复核物品 ID、非工具属性和最低品质，提交成功后消耗物品。
+- **奖励保护**：奖励支持金币、仙玉和神兵；背包满时神兵奖励保留在待领取任务中，不会丢失。
+- **任务入口**：新增 `📋 任务(J)`，位置为 `拍阁(P) → 任务(J) → 学徒(M)`，快捷键为 `J`。
+- **背包排序**：自动排序默认关闭，点击排序按钮后循环 `关闭 → 默认 → 品质 → 价格 → 时间 → 关闭`。
+- **滚动条**：背包、拍卖行、日志页支持滚轮、轨道点击定位和滑块拖拽；任务窗口支持滚轮浏览。
+
+### 任务接口
+
+统一使用 `POST /api/action`，请求体格式：
+
+```json
+{ "key": "quest_accept_<任务ID>" }
+```
+
+| 动作 key | 用途 |
+| --- | --- |
+| `quest_accept_<id>` | 接取候选任务并扣保证金 |
+| `quest_abandon_<id>` | 放弃任务，保证金不返还 |
+| `quest_submit_<quest_id>_<item_id>` | 提交指定背包物品 |
+| `quest_claim_<id>` | 领取奖励并返还保证金 |
+
+任务数据随 `GET /api/state`、`POST /api/tick` 和动作响应返回：
+
+```json
+{
+  "quests": [],
+  "active_quests": [],
+  "quest_next_refresh_secs": 300
+}
+```
+
+候选任务字段包括 `id`、`kind`、`title`、`description`、`advanced`、`duration_secs`、`deposit`、`currency`、`reward`、`required_rank`；进行中任务还包括 `accepted_at`、`complete_at`、`completed`、`claimed`、`submitted_item_id`。
+
+### 现有 API 快速使用
+
+```text
+GET  /api/state   获取完整游戏快照
+POST /api/strike  手动挥锤并返回快照
+POST /api/tick    推进心跳、任务倒计时、市场和自动化逻辑
+POST /api/action  执行升级、货币、背包、拍卖和任务动作
+```
+
+示例：
+
+```sh
+curl http://127.0.0.1:8080/api/state
+curl -X POST http://127.0.0.1:8080/api/tick
+curl -X POST http://127.0.0.1:8080/api/action \
+  -H 'Content-Type: application/json' \
+  -d '{"key":"quest_accept_<任务ID>"}'
+```
+
+### 任务模块位置
+
+- `src/game/quests.rs`：任务模型、刷新、保证金、倒计时、提交、放弃、领奖。
+- `src/game/state/mod.rs`：`GameState.quests` 存档字段。
+- `src/main.rs`：任务快照、`/api/tick` 推进和 `/api/action` 路由。
+- `ui/js/quest-view.js`：任务窗口、任务卡片和手动物品选择。
+- `ui/js/config.js`、`ui/js/input.js`、`ui/js/hud.js`：任务按钮、J 快捷键、交互与绘制接入。
+
+### 验证命令
+
+```sh
+cargo fmt --all
+cargo check
+cargo test
+git diff --check
+```
+
+---
+
 ---
 
 ## 🌟 架构演进与全景概览

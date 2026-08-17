@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::game::titles::TitleSystem;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Realm {
@@ -119,10 +119,14 @@ pub struct RealmState {
     pub max_total_level: u32,
 }
 
-fn default_max_level() -> u32 { 1 }
+fn default_max_level() -> u32 {
+    1
+}
 
 impl Default for RealmState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RealmState {

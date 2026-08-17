@@ -48,12 +48,12 @@ impl Quality {
     // 0 阶定义为 [无]（无品阶/无灵气，凡间纯铁器）
     pub fn badge(self) -> &'static str {
         const BADGES: [&str; 60] = [
-            "[无]", "[劣]", "[粗]", "[凡]", "[普]", "[稳]", "[整]", "[良]", "[佳]", "[优]",
-            "[精]", "[锐]", "[利]", "[亮]", "[淬]", "[炼]", "[锻]", "[锤]", "[锋]", "[稀]",
-            "[名]", "[巧]", "[奇]", "[绝]", "[珍]", "[宝]", "[灵]", "[法]", "[宝器]", "[史]",
-            "[宗]", "[师]", "[圣胚]", "[玄]", "[妙]", "[通]", "[达]", "[彻]", "[神工]", "[神]",
-            "[传说]", "[古]", "[遗]", "[封]", "[御]", "[皇]", "[帝]", "[尊]", "[王]", "[道]",
-            "[天]", "[劫]", "[律]", "[界]", "[宇]", "[宙]", "[源]", "[空]", "[无]", "[熵]",
+            "[无]", "[劣]", "[粗]", "[凡]", "[普]", "[稳]", "[整]", "[良]", "[佳]", "[优]", "[精]",
+            "[锐]", "[利]", "[亮]", "[淬]", "[炼]", "[锻]", "[锤]", "[锋]", "[稀]", "[名]", "[巧]",
+            "[奇]", "[绝]", "[珍]", "[宝]", "[灵]", "[法]", "[宝器]", "[史]", "[宗]", "[师]",
+            "[圣胚]", "[玄]", "[妙]", "[通]", "[达]", "[彻]", "[神工]", "[神]", "[传说]", "[古]",
+            "[遗]", "[封]", "[御]", "[皇]", "[帝]", "[尊]", "[王]", "[道]", "[天]", "[劫]", "[律]",
+            "[界]", "[宇]", "[宙]", "[源]", "[空]", "[无]", "[熵]",
         ];
         BADGES[self.rank() as usize]
     }
@@ -131,9 +131,24 @@ impl Sword {
             "[剑]"
         } else if name.contains("刀") || name.contains("匕") || name.contains("刺") {
             "[刀]"
-        } else if name.contains("锤") || name.contains("凿") || name.contains("扳") || name.contains("剪") || name.contains("锯") || name.contains("斧") || name.contains("锄") || name.contains("镰") {
+        } else if name.contains("锤")
+            || name.contains("凿")
+            || name.contains("扳")
+            || name.contains("剪")
+            || name.contains("锯")
+            || name.contains("斧")
+            || name.contains("锄")
+            || name.contains("镰")
+        {
             "[具]"
-        } else if name.contains("轮") || name.contains("轴") || name.contains("钉") || name.contains("盘") || name.contains("锁") || name.contains("闩") || name.contains("片") {
+        } else if name.contains("轮")
+            || name.contains("轴")
+            || name.contains("钉")
+            || name.contains("盘")
+            || name.contains("锁")
+            || name.contains("闩")
+            || name.contains("片")
+        {
             "[件]"
         } else {
             "[物]"
@@ -166,12 +181,14 @@ pub struct MarketListing {
     pub last_buyer_title: String,
 }
 
-fn default_auction_time() -> u64 { 120 }
-fn default_hype_factor() -> f64 { 1.0 }
+fn default_auction_time() -> u64 {
+    120
+}
+fn default_hype_factor() -> f64 {
+    1.0
+}
 
 pub enum ForgeResult {
     Success(Sword),
     Shattered { slag_gained: u32 },
 }
-
-

@@ -15,6 +15,10 @@ export function scrollAuction(deltaY) {
     auctionScrollY = Math.max(0, Math.min(auctionMaxScroll, auctionScrollY + deltaY * 0.8));
 }
 
+export function setAuctionScroll(value) {
+    auctionScrollY = Math.max(0, Math.min(auctionMaxScroll, value));
+}
+
 export function drawAuctionModal(ctx, w, h, time) {
     if (!uiState.isOpen('auction')) return;
 
@@ -91,9 +95,13 @@ export function drawAuctionModal(ctx, w, h, time) {
         const trackH = clipH;
         const thumbH = Math.max(24, (clipH / contentH) * trackH);
         const thumbY = listY + (auctionScrollY / auctionMaxScroll) * (trackH - thumbH);
+        ctx.fillStyle = 'rgba(224, 160, 80, 0.12)';
+        ctx.beginPath();
+        ctx.roundRect(mx + mw - 11, listY, 6, trackH, 3);
+        ctx.fill();
         ctx.fillStyle = 'rgba(224, 160, 80, 0.6)';
         ctx.beginPath();
-        ctx.roundRect(mx + mw - 10, thumbY, 4, thumbH, 2);
+        ctx.roundRect(mx + mw - 11, thumbY, 6, thumbH, 3);
         ctx.fill();
     }
 

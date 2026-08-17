@@ -21,6 +21,7 @@ export const gameConfig = {
     navButtons: [
         { id: 'stash', label: '🎒 锦囊(B)', color: '#38bdf8', defaultKey: 'KeyB' },
         { id: 'auction', label: '🏛️ 拍阁(P)', color: '#e0a050', defaultKey: 'KeyP' },
+        { id: 'quest', label: '📋 任务(J)', color: '#f97316', defaultKey: 'KeyJ' },
         { id: 'apprentice', label: '🛠️ 学徒(M)', color: '#f59e0b', defaultKey: 'KeyM' },
         { id: 'logs', label: '📜 日志(I)', color: '#a855f7', defaultKey: 'KeyI' },
         { id: 'body', label: '👤 身体(C)', color: '#22c55e', defaultKey: 'KeyC' }

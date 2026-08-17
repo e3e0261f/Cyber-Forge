@@ -31,13 +31,37 @@ impl CultivatorAgent {
     pub fn spawn(rng: &mut impl Rng, id: u64) -> Self {
         let roll: f64 = rng.r#gen();
         let (title, realm_hint, wealth, aggression, impulse) = if roll < 0.45 {
-            ("过路散修", 0, rng.gen_range(0.3..0.8), rng.gen_range(0.2..0.5), rng.gen_range(0.05..0.15))
+            (
+                "过路散修",
+                0,
+                rng.gen_range(0.3..0.8),
+                rng.gen_range(0.2..0.5),
+                rng.gen_range(0.05..0.15),
+            )
         } else if roll < 0.75 {
-            ("宗门执事", 1, rng.gen_range(0.8..1.4), rng.gen_range(0.4..0.7), rng.gen_range(0.08..0.2))
+            (
+                "宗门执事",
+                1,
+                rng.gen_range(0.8..1.4),
+                rng.gen_range(0.4..0.7),
+                rng.gen_range(0.08..0.2),
+            )
         } else if roll < 0.92 {
-            ("富商修士", 2, rng.gen_range(1.4..2.2), rng.gen_range(0.5..0.85), rng.gen_range(0.1..0.3))
+            (
+                "富商修士",
+                2,
+                rng.gen_range(1.4..2.2),
+                rng.gen_range(0.5..0.85),
+                rng.gen_range(0.1..0.3),
+            )
         } else {
-            ("合体老怪", 3, rng.gen_range(2.5..5.0), rng.gen_range(0.7..1.2), rng.gen_range(0.2..0.5))
+            (
+                "合体老怪",
+                3,
+                rng.gen_range(2.5..5.0),
+                rng.gen_range(0.7..1.2),
+                rng.gen_range(0.2..0.5),
+            )
         };
         Self {
             id,

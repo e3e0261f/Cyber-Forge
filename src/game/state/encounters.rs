@@ -1,7 +1,7 @@
-use rand::Rng;
 use super::GameState;
 use super::encounters_lore;
 use crate::game::types::{Element, Quality, Sword};
+use rand::Rng;
 
 impl GameState {
     // 文件路径：src/game/state/encounters.rs
@@ -11,20 +11,36 @@ impl GameState {
         self.encounter_timer = rng.gen_range(1800..=3600);
 
         let b = &self.realm.body;
-        let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
-        let base_luck = (b.spirit as f64 * 0.002 + b.qi_sense as f64 * 0.003 + b.physique as f64 * 0.005).max(0.01);
+        let base_luck =
+            (b.spirit as f64 * 0.002 + b.qi_sense as f64 * 0.003 + b.physique as f64 * 0.005)
+                .max(0.01);
         let final_chance = (base_luck * self.bonus_god_rate).clamp(0.01, 0.40);
 
         // 1. 成功获得物品奇遇
         if rng.gen_bool(final_chance) && self.backpack.len() < self.max_backpack {
             let rank = (10 + (self.bonus_god_rate * 120.0) as u8).min(58);
             let is_special = rng.gen_bool(0.3);
-            let name = if is_special { "太虚梦授剑" } else { "沉睡的古剑" };
-            let el = [Element::Gold, Element::Wood, Element::Water, Element::Fire, Element::Earth][rng.gen_range(0..5)];
+            let name = if is_special {
+                "太虚梦授剑"
+            } else {
+                "沉睡的古剑"
+            };
+            let el = [
+                Element::Gold,
+                Element::Wood,
+                Element::Water,
+                Element::Fire,
+                Element::Earth,
+            ][rng.gen_range(0..5)];
 
             let rand_entropy = rng.r#gen::<u64>();
-            let fingerprint = crate::game::fingerprint::Fingerprint64::pack(ts, 0x7A8B9C, rand_entropy);
+            let fingerprint =
+                crate::game::fingerprint::Fingerprint64::pack(ts, 0x7A8B9C, rand_entropy);
 
             let sword = Sword {
                 id: rand_entropy,
@@ -34,11 +50,11 @@ impl GameState {
                 price: rng.gen_range(20_000..200_000),
                 carbon_ratio: 0.80,
                 forged_timestamp: ts,
-                    sharpness: 50,
-                    enchantment: if is_special { Some(el) } else { None },
-                    is_reforged: false,
-                    is_tool: false,
-                    fingerprint, // 🌟 补齐指纹字段
+                sharpness: 50,
+                enchantment: if is_special { Some(el) } else { None },
+                is_reforged: false,
+                is_tool: false,
+                fingerprint, // 🌟 补齐指纹字段
             };
 
             let prefix = encounters_lore::random_success_prefix();

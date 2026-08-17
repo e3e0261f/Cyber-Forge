@@ -1,6 +1,6 @@
-use rand::Rng;
-use super::{GameState, AutoListTier, MARKET_REFRESH_TICKS, RUMORS};
+use super::{AutoListTier, GameState, MARKET_REFRESH_TICKS, RUMORS};
 use crate::game::types::MarketListing;
+use rand::Rng;
 
 impl GameState {
     // 金融兑换业务 (5% 藏宝阁规费抽成)
@@ -105,10 +105,19 @@ impl GameState {
 
         let mut rng = rand::thread_rng();
         let roll: f64 = rng.gen_range(0.0..100.0);
-        let hype_factor = if roll < 70.0 { rng.gen_range(0.3..=0.9) } else if roll < 90.0 { rng.gen_range(1.0..=1.8) } else { rng.gen_range(2.0..=5.0) };
+        let hype_factor = if roll < 70.0 {
+            rng.gen_range(0.3..=0.9)
+        } else if roll < 90.0 {
+            rng.gen_range(1.0..=1.8)
+        } else {
+            rng.gen_range(2.0..=5.0)
+        };
         let init_time = rng.gen_range(90..=180);
 
-        let msg = format!("上架：[{}] 1折起拍 金{}（估价 金{}）", sword.name, start, fair);
+        let msg = format!(
+            "上架：[{}] 1折起拍 金{}（估价 金{}）",
+            sword.name, start, fair
+        );
         self.pavilion_market.push(MarketListing {
             sword,
             listed_price: start,
@@ -130,12 +139,21 @@ impl GameState {
         while self.pavilion_market.len() > self.max_pavilion {
             if let Some(idx) = self.pavilion_market.iter().rposition(|l| !l.is_sold) {
                 let back = self.pavilion_market.remove(idx);
-                if !back.is_sold { self.backpack.push(back.sword); }
-            } else { break; }
+                if !back.is_sold {
+                    self.backpack.push(back.sword);
+                }
+            } else {
+                break;
+            }
         }
-        if self.list_tier == AutoListTier::Off || self.backpack.is_empty() { return; }
+        if self.list_tier == AutoListTier::Off || self.backpack.is_empty() {
+            return;
+        }
 
-        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         // 展位硬上限 = max_pavilion（拍卖席不增加容量）
         let mut rng = rand::thread_rng();
 
@@ -146,16 +164,27 @@ impl GameState {
                 i += 1;
                 continue;
             }
-            if sword.quality.rank() >= self.list_tier.min_rank() && now.saturating_sub(sword.forged_timestamp) >= 3 {
+            if sword.quality.rank() >= self.list_tier.min_rank()
+                && now.saturating_sub(sword.forged_timestamp) >= 3
+            {
                 let listed_sword = self.backpack.remove(i);
                 let fair = listed_sword.price.max(1);
                 let start = (fair / 10).max(1);
 
                 let roll: f64 = rng.gen_range(0.0..100.0);
-                let hype_factor = if roll < 70.0 { rng.gen_range(0.3..=0.9) } else if roll < 90.0 { rng.gen_range(1.0..=1.8) } else { rng.gen_range(2.0..=5.0) };
+                let hype_factor = if roll < 70.0 {
+                    rng.gen_range(0.3..=0.9)
+                } else if roll < 90.0 {
+                    rng.gen_range(1.0..=1.8)
+                } else {
+                    rng.gen_range(2.0..=5.0)
+                };
                 let init_time = rng.gen_range(90..=180);
 
-                let msg = format!("自动上架：[{}] 入包满3s 移至展位（1折起拍金{}）", listed_sword.name, start);
+                let msg = format!(
+                    "自动上架：[{}] 入包满3s 移至展位（1折起拍金{}）",
+                    listed_sword.name, start
+                );
                 self.pavilion_market.push(MarketListing {
                     sword: listed_sword,
                     listed_price: start,
@@ -189,7 +218,9 @@ impl GameState {
         let traffic = 0.5 + (self.apprentices as f64 * 0.005).min(0.5);
         let _intents = self.market_swarm.step(&mut rng, active_lots, hype, traffic);
 
-        if self.pavilion_market.is_empty() { return; }
+        if self.pavilion_market.is_empty() {
+            return;
+        }
 
         let w = self.auction_workers as u64;
         let teams = if w > 0 { (w + 9) / 10 } else { 1 };
@@ -204,7 +235,9 @@ impl GameState {
         let n = self.pavilion_market.len();
 
         for i in (0..n).rev() {
-            if i >= self.pavilion_market.len() { continue; }
+            if i >= self.pavilion_market.len() {
+                continue;
+            }
 
             if self.pavilion_market[i].is_sold {
                 if self.pavilion_market[i].sold_timer > 0 {
@@ -215,7 +248,9 @@ impl GameState {
                 continue;
             }
 
-            if i >= auctioneers { continue; }
+            if i >= auctioneers {
+                continue;
+            }
 
             if self.pavilion_market[i].listing_time > 0 {
                 self.pavilion_market[i].listing_time -= 1;
@@ -227,27 +262,78 @@ impl GameState {
             }
 
             let q = self.pavilion_market[i].sword.quality;
-            let fair = self.pavilion_market[i].fair_value.max(self.pavilion_market[i].sword.price).max(1);
+            let fair = self.pavilion_market[i]
+                .fair_value
+                .max(self.pavilion_market[i].sword.price)
+                .max(1);
             let bid = self.pavilion_market[i].listed_price;
             let sword_name = self.pavilion_market[i].sword.name.clone();
 
             let buyer_roll: f64 = rng.gen_range(0.0..100.0);
-            let (buyer_title, base_jump_range, buyer_cap_mult, buyer_element) = if buyer_roll < 45.0 {
-                ("过路散修", 0.05..=0.15, 0.85, crate::game::types::Element::Earth)
+            let (buyer_title, base_jump_range, buyer_cap_mult, buyer_element) = if buyer_roll < 45.0
+            {
+                (
+                    "过路散修",
+                    0.05..=0.15,
+                    0.85,
+                    crate::game::types::Element::Earth,
+                )
             } else if buyer_roll < 75.0 {
-                ("宗门执事", 0.15..=0.30, 1.25, crate::game::types::Element::Gold)
+                (
+                    "宗门执事",
+                    0.15..=0.30,
+                    1.25,
+                    crate::game::types::Element::Gold,
+                )
             } else if buyer_roll < 92.0 {
-                ("富商修士", 0.30..=0.60, 1.85, crate::game::types::Element::Water)
+                (
+                    "富商修士",
+                    0.30..=0.60,
+                    1.85,
+                    crate::game::types::Element::Water,
+                )
             } else {
-                ("合体老怪", 0.50..=1.50, 4.50, self.pavilion_market[i].sword.element)
+                (
+                    "合体老怪",
+                    0.50..=1.50,
+                    4.50,
+                    self.pavilion_market[i].sword.element,
+                )
             };
 
-            let element_mult = if buyer_element == self.pavilion_market[i].sword.element { 1.8 } else { 1.0 };
-            self.pavilion_market[i].momentum = (self.pavilion_market[i].bid_count as f64 * 0.15).min(1.5);
+            let element_mult = if buyer_element == self.pavilion_market[i].sword.element {
+                1.8
+            } else {
+                1.0
+            };
+            self.pavilion_market[i].momentum =
+                (self.pavilion_market[i].bid_count as f64 * 0.15).min(1.5);
 
             let price_ratio = bid as f64 / fair as f64;
-            let interest_factor = if price_ratio < 0.50 { 1.00 } else if price_ratio < 0.60 { 0.95 } else if price_ratio < 0.70 { 0.90 } else if price_ratio < 0.80 { 0.80 } else if price_ratio < 0.90 { 0.70 } else if price_ratio < 1.00 { 0.60 } else { 0.50 };
-            let extreme_damping = if price_ratio <= 1.00 { 1.0 } else if price_ratio <= 1.10 { 0.10 } else if price_ratio <= 2.00 { 0.01 } else { 0.001 };
+            let interest_factor = if price_ratio < 0.50 {
+                1.00
+            } else if price_ratio < 0.60 {
+                0.95
+            } else if price_ratio < 0.70 {
+                0.90
+            } else if price_ratio < 0.80 {
+                0.80
+            } else if price_ratio < 0.90 {
+                0.70
+            } else if price_ratio < 1.00 {
+                0.60
+            } else {
+                0.50
+            };
+            let extreme_damping = if price_ratio <= 1.00 {
+                1.0
+            } else if price_ratio <= 1.10 {
+                0.10
+            } else if price_ratio <= 2.00 {
+                0.01
+            } else {
+                0.001
+            };
 
             let total_damping = interest_factor * extreme_damping;
             let hype = self.pavilion_market[i].hype_factor;
@@ -255,15 +341,27 @@ impl GameState {
             let max_price_cap = (fair as f64 * hype * buyer_cap_mult * (1.0 + momentum)) as u128;
 
             if bid < max_price_cap && self.pavilion_market[i].listing_time > 0 {
-                let notice_rate = (q.notice_chance() + appraisers as f64 * 0.02) * hype * (1.0 + momentum) * total_damping * efficiency_factor;
+                let notice_rate = (q.notice_chance() + appraisers as f64 * 0.02)
+                    * hype
+                    * (1.0 + momentum)
+                    * total_damping
+                    * efficiency_factor;
 
                 if rng.gen_bool(notice_rate.clamp(0.0001, 0.70)) {
                     let is_impulsive = rng.gen_bool(0.05);
-                    let impulse_mult = if is_impulsive { rng.gen_range(1.8..=3.0) } else { 1.0 };
+                    let impulse_mult = if is_impulsive {
+                        rng.gen_range(1.8..=3.0)
+                    } else {
+                        1.0
+                    };
 
                     let base_jump_pct = rng.gen_range(base_jump_range);
                     let tea_bonus_pct = (tea_staff as f64 * 0.001).min(0.10);
-                    let total_jump_pct = (base_jump_pct + tea_bonus_pct) * element_mult * impulse_mult * total_damping * efficiency_factor;
+                    let total_jump_pct = (base_jump_pct + tea_bonus_pct)
+                        * element_mult
+                        * impulse_mult
+                        * total_damping
+                        * efficiency_factor;
 
                     let jump = ((fair as f64 * total_jump_pct) as u128).max(10);
                     let new_bid = (bid + jump).min(max_price_cap);
@@ -279,9 +377,22 @@ impl GameState {
                         self.pavilion_market[i].listing_time = reset_time;
                     }
 
-                    let tag = if is_impulsive { "【斗气冲动】" } else if element_mult > 1.0 { "【五行特需】" } else { "" };
+                    let tag = if is_impulsive {
+                        "【斗气冲动】"
+                    } else if element_mult > 1.0 {
+                        "【五行特需】"
+                    } else {
+                        ""
+                    };
                     if self.pavilion_market[i].bid_count <= 2 || rng.gen_bool(0.2) {
-                        self.push_log(format!("拍场抬价：{} {}对 [{}] 抬价 +金{} → 金{}", buyer_title, tag, sword_name, jump, new_bid), false, false);
+                        self.push_log(
+                            format!(
+                                "拍场抬价：{} {}对 [{}] 抬价 +金{} → 金{}",
+                                buyer_title, tag, sword_name, jump, new_bid
+                            ),
+                            false,
+                            false,
+                        );
                     }
                 }
             }
@@ -304,8 +415,15 @@ impl GameState {
 
                 let ratio_pct = (final_price as f64 / fair as f64 * 100.0) as u32;
                 let is_sky_price = ratio_pct >= 180;
-                let tag = if is_sky_price { "爆火天价" } else { "落槌成交" };
-                let msg = format!("拍场落槌：{} [{}] 得 {}（估价{}%）", tag, self.pavilion_market[i].sword.name, currency_msg, ratio_pct);
+                let tag = if is_sky_price {
+                    "爆火天价"
+                } else {
+                    "落槌成交"
+                };
+                let msg = format!(
+                    "拍场落槌：{} [{}] 得 {}（估价{}%）",
+                    tag, self.pavilion_market[i].sword.name, currency_msg, ratio_pct
+                );
 
                 self.push_log(msg, is_sky_price, is_sky_price);
 
@@ -319,7 +437,8 @@ impl GameState {
                 self.grant_visitor_slag(&buyer, element_mult > 1.0, false, true);
             }
         }
-        if self.list_tier != AutoListTier::Off { self.process_auto_list(); }
+        if self.list_tier != AutoListTier::Off {
+            self.process_auto_list();
+        }
     }
 }
-

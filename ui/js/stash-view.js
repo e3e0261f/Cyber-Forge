@@ -97,6 +97,10 @@ export function scrollStash(deltaY) {
     stashScrollY = Math.max(0, Math.min(stashMaxScroll, stashScrollY + deltaY * 0.8));
 }
 
+export function setStashScroll(value) {
+    stashScrollY = Math.max(0, Math.min(stashMaxScroll, value));
+}
+
 export function drawStashModal(ctx, w, h, time) {
     if (!uiState.isOpen('stash')) return;
 
@@ -193,9 +197,13 @@ export function drawStashModal(ctx, w, h, time) {
         const trackH = clipH;
         const thumbH = Math.max(24, (clipH / contentH) * trackH);
         const thumbY = gridY + (stashScrollY / stashMaxScroll) * (trackH - thumbH);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.beginPath();
+        ctx.roundRect(mx + mw - 11, gridY, 6, trackH, 3);
+        ctx.fill();
         ctx.fillStyle = 'rgba(56, 189, 248, 0.6)';
         ctx.beginPath();
-        ctx.roundRect(mx + mw - 10, thumbY, 4, thumbH, 2);
+        ctx.roundRect(mx + mw - 11, thumbY, 6, thumbH, 3);
         ctx.fill();
     }
 

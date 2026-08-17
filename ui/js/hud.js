@@ -10,6 +10,7 @@ import { drawStashModal, stashHoveredItem } from './stash-view.js';
 import { drawAuctionModal, auctionHoveredLot } from './auction-view.js';
 import { drawApprenticeModal } from './apprentice-view.js';
 import { getModalBounds, isAutoStrikeActive } from './input.js';
+import { drawQuestModal } from './quest-view.js';
 
 export const hudState = {
     fps: 60,
@@ -27,6 +28,12 @@ export const hudState = {
             this.frameCount = 0;
             this.lastFpsTime = now;
         }
+    },
+
+    resetFps(now = performance.now()) {
+        this.fps = 60;
+        this.frameCount = 0;
+        this.lastFpsTime = now;
     }
 };
 
@@ -85,6 +92,11 @@ export let bodyMaxScroll = 0;
 
 export function scrollLogs(deltaY) {
     logsScrollY = Math.max(0, Math.min(logsMaxScroll, logsScrollY + deltaY * 0.8));
+    logsStickBottom = logsScrollY >= logsMaxScroll - 1;
+}
+
+export function setLogsScroll(value) {
+    logsScrollY = Math.max(0, Math.min(logsMaxScroll, value));
     logsStickBottom = logsScrollY >= logsMaxScroll - 1;
 }
 
@@ -219,6 +231,7 @@ export function drawHUD(ctx, w, h, now) {
     // 🌟 3. 绘制并存全息弹窗
     drawStashModal(ctx, w, h, time);
     drawAuctionModal(ctx, w, h, time);
+    drawQuestModal(ctx, w, h, time);
     drawApprenticeModal(ctx, w, h, time);
     drawLogsModal(ctx, w, h, time);
     drawBodyModal(ctx, w, h, time);
@@ -255,29 +268,51 @@ export function drawHoloModalFrame(ctx, mx, my, mw, mh, themeColor, title, time)
     ctx.beginPath(); ctx.moveTo(mx, my + mh - cLen); ctx.lineTo(mx, my + mh); ctx.lineTo(mx + cLen, my + mh); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(mx + mw - cLen, my + mh); ctx.lineTo(mx + mw, my + mh); ctx.lineTo(mx + mw, my + mh - cLen); ctx.stroke();
 
-    // 边框极光扫光
-    const perimeter = (mw + mh) * 2;
-    const sweepPos = ((time * 180) % perimeter);
-    let sweepX = mx, sweepY = my;
+    // 边框极光扫光：轨迹收进边框内，避免光球向窗口外溢出。
+    // 高亮只作用于边框描边，不再填充一个会显得突兀的“光球”。
+    const inset = 3;
+    const innerX = mx + inset;
+    const innerY = my + inset;
+    const innerW = mw - inset * 2;
+    const innerH = mh - inset * 2;
+    const perimeter = (innerW + innerH) * 2;
+    // 慢速移动，让高光更像边框材质的呼吸/流动，而不是明显的动画光点。
+    const sweepPos = ((time * 32) % perimeter);
+    let sweepX = innerX, sweepY = innerY;
 
-    if (sweepPos < mw) {
-        sweepX = mx + sweepPos; sweepY = my;
-    } else if (sweepPos < mw + mh) {
-        sweepX = mx + mw; sweepY = my + (sweepPos - mw);
-    } else if (sweepPos < mw * 2 + mh) {
-        sweepX = mx + mw - (sweepPos - (mw + mh)); sweepY = my + mh;
+    if (sweepPos < innerW) {
+        sweepX = innerX + sweepPos; sweepY = innerY;
+    } else if (sweepPos < innerW + innerH) {
+        sweepX = innerX + innerW; sweepY = innerY + (sweepPos - innerW);
+    } else if (sweepPos < innerW * 2 + innerH) {
+        sweepX = innerX + innerW - (sweepPos - (innerW + innerH)); sweepY = innerY + innerH;
     } else {
-        sweepX = mx; sweepY = my + mh - (sweepPos - (mw * 2 + mh));
+        sweepX = innerX; sweepY = innerY + innerH - (sweepPos - (innerW * 2 + innerH));
     }
 
-    const laserGrad = ctx.createRadialGradient(sweepX, sweepY, 0, sweepX, sweepY, 35);
-    laserGrad.addColorStop(0, '#ffffff');
-    laserGrad.addColorStop(0.3, themeColor);
-    laserGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = laserGrad;
+    // 光晕只允许出现在窗口内侧，避免覆盖窗口外部内容。
+    // 通过裁剪后的渐变描边实现“附近变色”，不绘制实体圆形光斑。
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(sweepX, sweepY, 35, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.roundRect(innerX, innerY, innerW, innerH, 7);
+    ctx.clip();
+
+    const laserGrad = ctx.createRadialGradient(sweepX, sweepY, 0, sweepX, sweepY, 54);
+    laserGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    laserGrad.addColorStop(0.14, themeColor);
+    laserGrad.addColorStop(0.42, `${themeColor}99`);
+    laserGrad.addColorStop(1, `${themeColor}00`);
+
+    ctx.save();
+    ctx.strokeStyle = laserGrad;
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = themeColor;
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.roundRect(innerX, innerY, innerW, innerH, 7);
+    ctx.stroke();
+    ctx.restore();
+    ctx.restore();
 
     // 标题栏把手
     ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
@@ -397,9 +432,13 @@ function drawLogsModal(ctx, w, h, time) {
         const trackH = clipH;
         const thumbH = Math.max(24, (clipH / contentH) * trackH);
         const thumbY = listY + (logsScrollY / logsMaxScroll) * (trackH - thumbH);
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.12)';
+        ctx.beginPath();
+        ctx.roundRect(mx + mw - 11, listY, 6, trackH, 3);
+        ctx.fill();
         ctx.fillStyle = 'rgba(168, 85, 247, 0.6)';
         ctx.beginPath();
-        ctx.roundRect(mx + mw - 10, thumbY, 4, thumbH, 2);
+        ctx.roundRect(mx + mw - 11, thumbY, 6, thumbH, 3);
         ctx.fill();
     }
 

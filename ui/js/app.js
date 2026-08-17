@@ -6,13 +6,16 @@ import { loadGameAssets } from './world/assets.js';
 // 文件路径：ui/js/app.js 顶部引入
 import { invoke } from './core.js';
 import { syncState } from './state.js';
-import { drawWorld, initMotes } from './world.js';
-import { drawHUD } from './hud.js';
+import { drawWorld, initMotes, resetImpactFX } from './world.js';
+import { drawHUD, hudState } from './hud.js';
 import { setupInteractions, doStrike, isAutoStrikeActive } from './input.js';
+import { fx } from './world.js';
 
 const rootEl = document.getElementById('game-root');
 let canvas = null;
 let ctx = null;
+let gameLoopTimer = null;
+let gameLoopBusy = false;
 
 function initCanvas() {
   canvas = document.createElement('canvas');
@@ -38,7 +41,7 @@ function render(now) {
   // 🌟 调度置顶，保证循环永不中断
   requestAnimationFrame(render);
 
-  if (!ctx) return;
+  if (!ctx || document.hidden) return;
   const w = window.innerWidth, h = window.innerHeight;
 
   try {
@@ -46,6 +49,33 @@ function render(now) {
     drawHUD(ctx, w, h, now);
   } catch (err) {
     console.error('【渲染异常捕获】', err);
+  }
+}
+
+function stopGameLoop() {
+  if (gameLoopTimer !== null) {
+    clearTimeout(gameLoopTimer);
+    gameLoopTimer = null;
+  }
+}
+
+function scheduleGameLoop(delay = 150) {
+  stopGameLoop();
+  if (!document.hidden) gameLoopTimer = setTimeout(runGameLoop, delay);
+}
+
+async function runGameLoop() {
+  gameLoopTimer = null;
+  if (document.hidden || gameLoopBusy) return;
+  gameLoopBusy = true;
+  try {
+    const snap = await invoke('tick');
+    if (snap) syncState(snap);
+
+    if (!document.hidden && isAutoStrikeActive()) await doStrike();
+  } finally {
+    gameLoopBusy = false;
+    scheduleGameLoop();
   }
 }
 
@@ -62,13 +92,19 @@ function render(now) {
   if (s) syncState(s);
 
   requestAnimationFrame(render);
-
-  setInterval(async () => {
-    const snap = await invoke('tick');
-    if (snap) syncState(snap);
-
-    if (isAutoStrikeActive()) {
-      doStrike();
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) {
+      stopGameLoop();
+      return;
     }
-  }, 150);
+
+    // 回到前台只同步最新状态，不补播后台期间的动画。
+    fx.clearTransient();
+    resetImpactFX();
+    hudState.resetFps();
+    const snap = await invoke('state');
+    if (snap) syncState(snap);
+    scheduleGameLoop(150);
+  });
+  scheduleGameLoop();
 })();

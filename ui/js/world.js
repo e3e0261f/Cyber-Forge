@@ -19,10 +19,16 @@ export { fx, initMotes };
 let screenShake = 0;
 let flashLightIntensity = 0;
 
+export function resetImpactFX() {
+    screenShake = 0;
+    flashLightIntensity = 0;
+}
+
 export function triggerStrikeImpact(isCrit, w, h) {
     setHammerTarget(0.42);
     screenShake = isCrit ? 9.0 : 4.0;
-    flashLightIntensity = isCrit ? 1.0 : 0.6;
+    // 仅保留低强度、局部暖光，避免连续锻造造成全屏白闪。
+    flashLightIntensity = Math.min(0.28, flashLightIntensity + (isCrit ? 0.16 : 0.10));
     fx.triggerStrikeFX(isCrit, w, h);
 }
 
@@ -51,13 +57,14 @@ export function drawWorld(ctx, w, h, now) {
 
     // 3. 漫反射强光
     if (flashLightIntensity > 0) {
-        const flashGrad = ctx.createRadialGradient(w * 0.5, h * 0.60, 20, w * 0.5, h * 0.60, w * 0.45);
-        flashGrad.addColorStop(0, `rgba(255, 240, 200, ${flashLightIntensity * 0.4})`);
-        flashGrad.addColorStop(0.4, `rgba(255, 140, 40, ${flashLightIntensity * 0.15})`);
+        const flashGrad = ctx.createRadialGradient(w * 0.5, h * 0.60, 25, w * 0.5, h * 0.60, w * 0.28);
+        flashGrad.addColorStop(0, `rgba(255, 220, 150, ${flashLightIntensity * 0.18})`);
+        flashGrad.addColorStop(0.55, `rgba(255, 140, 40, ${flashLightIntensity * 0.06})`);
         flashGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = flashGrad;
         ctx.fillRect(0, 0, w, h);
-        flashLightIntensity -= 0.08;
+        flashLightIntensity *= 0.88;
+        if (flashLightIntensity < 0.01) flashLightIntensity = 0;
     }
 
     // 4. 特效层

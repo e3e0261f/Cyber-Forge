@@ -1,11 +1,11 @@
 mod game;
 
 use actix_files::Files;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use std::time::Instant;
-use rand::Rng;
 
 use game::dao_origin::DaoOrigin;
 use game::numbers::format_compact_number;
@@ -92,52 +92,57 @@ struct UiSnapshot {
     apprentices: u32,
     max_apprentices: u32,
     forge_qte_hits: f64,
-        flash: bool,
-        market_news: String,
-        auction_workers: u32,
-        auctioneer_threads: u32,
-        swarm_present: u32,
-        swarm_bidding: u32,
-        concurrent_hammers: u32,
-        matrix_slots: u32,
-        pending_breakthrough: bool,
-        debug_mode: bool,
-        sharpen_workers: u32,
-        enchant_workers: u32,
-        repair_workers: u32,
-        forge_workers: u32,
-            physique: u64,
-            qi_sense: u64,
-            spirit: u64,
-            core_count: u32,
-            core_size: u64,
-            core_refine: u32,
-            infant_size: u64,
-            infant_count: u32,
-            infant_power: u64,
-            qi_machine: u64,
-            matrix: u64,
-            law_shards: u32,
-            anti_gravity: u64,
-            tribulation: u64,
-            causality: u64,
-            law_control: u64,
-            causal_mastery: u64,
-            thermo: u64,
-            entropy_switch: u64,
-            cost_hammer: String,
-            cost_bellows: String,
-            cost_hire: String,
-            cost_house: String,
-            cost_backpack: String,
-            cost_pavilion: String,
-            matrix_progresses: Vec<f64>,
-            currency_protocol: String,
-            currency_protocol_color: String,
+    flash: bool,
+    market_news: String,
+    auction_workers: u32,
+    auctioneer_threads: u32,
+    swarm_present: u32,
+    swarm_bidding: u32,
+    concurrent_hammers: u32,
+    matrix_slots: u32,
+    pending_breakthrough: bool,
+    debug_mode: bool,
+    sharpen_workers: u32,
+    enchant_workers: u32,
+    repair_workers: u32,
+    forge_workers: u32,
+    physique: u64,
+    qi_sense: u64,
+    spirit: u64,
+    core_count: u32,
+    core_size: u64,
+    core_refine: u32,
+    infant_size: u64,
+    infant_count: u32,
+    infant_power: u64,
+    qi_machine: u64,
+    matrix: u64,
+    law_shards: u32,
+    anti_gravity: u64,
+    tribulation: u64,
+    causality: u64,
+    law_control: u64,
+    causal_mastery: u64,
+    thermo: u64,
+    entropy_switch: u64,
+    cost_hammer: String,
+    cost_bellows: String,
+    cost_hire: String,
+    cost_house: String,
+    cost_backpack: String,
+    cost_pavilion: String,
+    matrix_progresses: Vec<f64>,
+    currency_protocol: String,
+    currency_protocol_color: String,
+    quests: Vec<game::quests::QuestOffer>,
+    active_quests: Vec<game::quests::ActiveQuest>,
+    quest_next_refresh_secs: u64,
 }
 
 fn snapshot(inner: &AppInner) -> UiSnapshot {
     let s = &inner.state;
+    let mut quest_board = s.quests.clone();
+    quest_board.ensure(s);
     let interval = s.effective_interval_secs().max(0.01);
     let elapsed = inner.cycle_start.elapsed().as_secs_f64();
     let progress = (elapsed / interval).min(1.0);
@@ -145,54 +150,76 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
 
     let auctioneer_threads: u32 = if s.auction_workers > 0 {
         ((s.auction_workers as u64 + 9) / 10) as u32
-    } else { 1 };
+    } else {
+        1
+    };
     let teams = auctioneer_threads as usize;
 
     let backpack: Vec<ItemView> = s
-    .backpack
-    .iter()
-    .take(s.max_backpack)
-    .map(|sw| {
-        // 🌟 实时逆向解密天道指纹
-        let cert = game::fingerprint::Fingerprint64::decode(sw.fingerprint, "道友李逍遥");
-        let detail = if sw.is_tool {
-            format!("【家什】{}\n不可熔炼/上架", sw.name)
-        } else {
-            format!("{} {}\n五行：{} 品阶：{}\n估价：{} 金币\n碳比：{:.1}% 锋锐：{}",
-                sw.quality.badge(), sw.name, sw.element, sw.quality.rank(),
-                    format_compact_number(sw.price), sw.carbon_ratio * 100.0, sw.sharpness)
-        };
-        ItemView {
-            id: sw.id, name: sw.name.clone(), glyph: sw.category_glyph().to_string(),
-         price: format_compact_number(sw.price), quality: sw.quality.badge().to_string(),
-         color: sw.quality.color_hex(), is_tool: sw.is_tool, detail,
-         cert_code: cert.code,
-         cert_time: cert.timestamp_str,
-         cert_location: cert.location_str,
-         cert_stamp: cert.dao_stamp,
-         cert_creator: cert.creator,
-        }
-    })
-    .collect();
+        .backpack
+        .iter()
+        .take(s.max_backpack)
+        .map(|sw| {
+            // 🌟 实时逆向解密天道指纹
+            let cert = game::fingerprint::Fingerprint64::decode(sw.fingerprint, "道友李逍遥");
+            let detail = if sw.is_tool {
+                format!("【家什】{}\n不可熔炼/上架", sw.name)
+            } else {
+                format!(
+                    "{} {}\n五行：{} 品阶：{}\n估价：{} 金币\n碳比：{:.1}% 锋锐：{}",
+                    sw.quality.badge(),
+                    sw.name,
+                    sw.element,
+                    sw.quality.rank(),
+                    format_compact_number(sw.price),
+                    sw.carbon_ratio * 100.0,
+                    sw.sharpness
+                )
+            };
+            ItemView {
+                id: sw.id,
+                name: sw.name.clone(),
+                glyph: sw.category_glyph().to_string(),
+                price: format_compact_number(sw.price),
+                quality: sw.quality.badge().to_string(),
+                color: sw.quality.color_hex(),
+                is_tool: sw.is_tool,
+                detail,
+                cert_code: cert.code,
+                cert_time: cert.timestamp_str,
+                cert_location: cert.location_str,
+                cert_stamp: cert.dao_stamp,
+                cert_creator: cert.creator,
+            }
+        })
+        .collect();
 
     let lots: Vec<LotView> = s
-    .pavilion_market
-    .iter()
-    .enumerate()
-    .map(|(i, lot)| {
-        let waiting = i >= teams;
-        let status = if lot.is_sold { "成交".into() }
-        else if waiting { format!("候场") }
-        else { "拍卖中".into() };
-        LotView {
-            name: lot.sword.name.clone(),
-         bid: format_compact_number(lot.listed_price),
-         fair: format_compact_number(lot.fair_value.max(lot.sword.price)),
-         time: lot.listing_time, bids: lot.bid_count, sold: lot.is_sold,
-         waiting, color: lot.sword.quality.color_hex(), status,
-        }
-    })
-    .collect();
+        .pavilion_market
+        .iter()
+        .enumerate()
+        .map(|(i, lot)| {
+            let waiting = i >= teams;
+            let status = if lot.is_sold {
+                "成交".into()
+            } else if waiting {
+                format!("候场")
+            } else {
+                "拍卖中".into()
+            };
+            LotView {
+                name: lot.sword.name.clone(),
+                bid: format_compact_number(lot.listed_price),
+                fair: format_compact_number(lot.fair_value.max(lot.sword.price)),
+                time: lot.listing_time,
+                bids: lot.bid_count,
+                sold: lot.is_sold,
+                waiting,
+                color: lot.sword.quality.color_hex(),
+                status,
+            }
+        })
+        .collect();
 
     let log = s.logs.back().cloned().unwrap_or_else(|| s.toast.clone());
     let logs: Vec<String> = s.logs.iter().cloned().collect();
@@ -236,48 +263,56 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
         apprentices: s.apprentices,
         max_apprentices: s.max_apprentices,
         forge_qte_hits: s.forge_qte_hits,
-            flash: s.flash_ticks > 0,
-            market_news: s.market_news.clone(),
-            auction_workers: s.auction_workers,
-            auctioneer_threads,
-            swarm_present: s.market_swarm.present,
-            swarm_bidding: s.market_swarm.bidding,
-            concurrent_hammers: s.concurrent_hammers(),
-            matrix_slots: s.matrix_slots(),
-            pending_breakthrough: s.realm.pending_breakthrough,
-            debug_mode: s.debug_mode,
-            sharpen_workers: s.sharpen_workers,
-            enchant_workers: s.enchant_workers,
-            repair_workers: s.repair_workers,
-            forge_workers: s.forge_workers,
-                physique: s.realm.body.physique,
-                qi_sense: s.realm.body.qi_sense,
-                spirit: s.realm.body.spirit,
-                core_count: s.realm.body.core_count,
-                core_size: s.realm.body.core_size,
-                core_refine: u32::from(s.realm.body.core_refine),
-                infant_size: s.realm.body.infant_size,
-                infant_count: s.realm.body.infant_count,
-                infant_power: s.realm.body.infant_power,
-                qi_machine: s.realm.body.qi_machine,
-                matrix: s.realm.body.matrix,
-                law_shards: s.realm.body.law_shards,
-                anti_gravity: s.realm.body.anti_gravity,
-                tribulation: s.realm.body.tribulation,
-                causality: s.realm.body.causality,
-                law_control: s.realm.body.law_control,
-                causal_mastery: s.realm.body.causal_mastery,
-                thermo: s.realm.body.thermo,
-                entropy_switch: s.realm.body.entropy_switch,
-                cost_hammer: format_compact_number(s.get_hammer_upgrade_cost()),
-                cost_bellows: format_compact_number(s.get_bellows_upgrade_cost()),
-                cost_hire: format_compact_number(s.get_next_apprentice_cost()),
-                cost_house: format_compact_number(s.get_house_upgrade_cost()),
-                cost_backpack: format_compact_number(s.get_backpack_upgrade_cost()),
-                cost_pavilion: format_compact_number(s.get_pavilion_upgrade_cost()),
-                matrix_progresses: s.matrix_progresses.clone(),
-                currency_protocol: s.currency_protocol_name().to_string(),
-                currency_protocol_color: s.currency_protocol_color().to_string(),
+        flash: s.flash_ticks > 0,
+        market_news: s.market_news.clone(),
+        auction_workers: s.auction_workers,
+        auctioneer_threads,
+        swarm_present: s.market_swarm.present,
+        swarm_bidding: s.market_swarm.bidding,
+        concurrent_hammers: s.concurrent_hammers(),
+        matrix_slots: s.matrix_slots(),
+        pending_breakthrough: s.realm.pending_breakthrough,
+        debug_mode: s.debug_mode,
+        sharpen_workers: s.sharpen_workers,
+        enchant_workers: s.enchant_workers,
+        repair_workers: s.repair_workers,
+        forge_workers: s.forge_workers,
+        physique: s.realm.body.physique,
+        qi_sense: s.realm.body.qi_sense,
+        spirit: s.realm.body.spirit,
+        core_count: s.realm.body.core_count,
+        core_size: s.realm.body.core_size,
+        core_refine: u32::from(s.realm.body.core_refine),
+        infant_size: s.realm.body.infant_size,
+        infant_count: s.realm.body.infant_count,
+        infant_power: s.realm.body.infant_power,
+        qi_machine: s.realm.body.qi_machine,
+        matrix: s.realm.body.matrix,
+        law_shards: s.realm.body.law_shards,
+        anti_gravity: s.realm.body.anti_gravity,
+        tribulation: s.realm.body.tribulation,
+        causality: s.realm.body.causality,
+        law_control: s.realm.body.law_control,
+        causal_mastery: s.realm.body.causal_mastery,
+        thermo: s.realm.body.thermo,
+        entropy_switch: s.realm.body.entropy_switch,
+        cost_hammer: format_compact_number(s.get_hammer_upgrade_cost()),
+        cost_bellows: format_compact_number(s.get_bellows_upgrade_cost()),
+        cost_hire: format_compact_number(s.get_next_apprentice_cost()),
+        cost_house: format_compact_number(s.get_house_upgrade_cost()),
+        cost_backpack: format_compact_number(s.get_backpack_upgrade_cost()),
+        cost_pavilion: format_compact_number(s.get_pavilion_upgrade_cost()),
+        matrix_progresses: s.matrix_progresses.clone(),
+        currency_protocol: s.currency_protocol_name().to_string(),
+        currency_protocol_color: s.currency_protocol_color().to_string(),
+        quests: quest_board.offers,
+        active_quests: quest_board.active,
+        quest_next_refresh_secs: quest_board.next_refresh_at.saturating_sub(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        ),
     }
 }
 
@@ -298,7 +333,11 @@ async fn api_player_strike(data: web::Data<AppState>) -> impl Responder {
     let progress = (inner.cycle_start.elapsed().as_secs_f64() / interval).min(1.0);
     let in_crit = progress >= 0.76 && progress < 0.88;
 
-    let AppInner { state, dao, cycle_start } = &mut *inner;
+    let AppInner {
+        state,
+        dao,
+        cycle_start,
+    } = &mut *inner;
     do_strike(state, in_crit, dao);
     *cycle_start = Instant::now();
     dao.reset_cycle();
@@ -310,6 +349,7 @@ async fn api_player_strike(data: web::Data<AppState>) -> impl Responder {
 async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
     let mut inner = data.0.lock().unwrap();
     inner.state.tick_toast();
+    inner.state.tick_quests();
     inner.state.tick_flash();
     inner.state.tick_market_rumor();
 
@@ -324,8 +364,12 @@ async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
         }
     }
 
-    if inner.state.debug_mode { inner.state.debug_tick_boost(); }
-    if inner.state.market_tick_counter % 300 == 0 { let _ = inner.state.save_to_disk(); }
+    if inner.state.debug_mode {
+        inner.state.debug_tick_boost();
+    }
+    if inner.state.market_tick_counter % 300 == 0 {
+        let _ = inner.state.save_to_disk();
+    }
     if inner.state.market_tick_counter % 10 == 0 {
         inner.state.process_immortal_buyers();
     }
@@ -343,7 +387,11 @@ async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
 
     let interval = inner.state.effective_interval_secs().max(0.01);
     if inner.cycle_start.elapsed().as_secs_f64() >= interval {
-        let AppInner { state, dao, cycle_start } = &mut *inner;
+        let AppInner {
+            state,
+            dao,
+            cycle_start,
+        } = &mut *inner;
         do_strike(state, false, dao);
         *cycle_start = Instant::now();
         dao.reset_cycle();
@@ -358,10 +406,45 @@ struct ActionPayload {
 }
 
 #[post("/api/action")]
-async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>) -> impl Responder {
+async fn api_action(
+    data: web::Data<AppState>,
+    payload: web::Json<ActionPayload>,
+) -> impl Responder {
     let mut inner = data.0.lock().unwrap();
     let s = &mut inner.state;
     let key = &payload.key;
+
+    if let Some(id) = key
+        .strip_prefix("quest_accept_")
+        .and_then(|v| v.parse::<u64>().ok())
+    {
+        s.quest_accept(id);
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+    if let Some(id) = key
+        .strip_prefix("quest_abandon_")
+        .and_then(|v| v.parse::<u64>().ok())
+    {
+        s.quest_abandon(id);
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+    if let Some(rest) = key.strip_prefix("quest_submit_") {
+        let mut parts = rest.split('_');
+        if let (Some(q), Some(item)) = (
+            parts.next().and_then(|v| v.parse().ok()),
+            parts.next().and_then(|v| v.parse().ok()),
+        ) {
+            s.quest_submit(q, item);
+        }
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
+    if let Some(id) = key
+        .strip_prefix("quest_claim_")
+        .and_then(|v| v.parse::<u64>().ok())
+    {
+        s.quest_claim(id);
+        return HttpResponse::Ok().json(snapshot(&inner));
+    }
 
     // 🌟 1. 优先匹配下拉菜单协议设置
     if let Some(mode_str) = key.strip_prefix("set_currency_protocol_") {
@@ -399,21 +482,32 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
             let mut up = 0;
             for _ in 0..count.min(10_000) {
                 let cost = s.get_hammer_upgrade_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.upgrade_hammer();
                 up += 1;
             }
             if count > 1 && up > 0 {
-                s.set_toast(format!("连续升级重锤 ×{}：[{}] Lv.{}", up, s.hammer_name(), s.hammer_level));
+                s.set_toast(format!(
+                    "连续升级重锤 ×{}：[{}] Lv.{}",
+                    up,
+                    s.hammer_name(),
+                    s.hammer_level
+                ));
             }
         }
         // 风箱升级 (W)
         "w" | "W" => {
             let mut up = 0;
             for _ in 0..count.min(10_000) {
-                if s.natural_interval_ticks <= 10 { break; }
+                if s.natural_interval_ticks <= 10 {
+                    break;
+                }
                 let cost = s.get_bellows_upgrade_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.upgrade_bellows();
                 up += 1;
             }
@@ -425,9 +519,13 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
         "a" | "A" => {
             let mut up = 0;
             for _ in 0..count.min(10_000) {
-                if s.apprentices >= s.max_apprentices { break; }
+                if s.apprentices >= s.max_apprentices {
+                    break;
+                }
                 let cost = s.get_next_apprentice_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.hire_apprentice();
                 up += 1;
             }
@@ -440,12 +538,17 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
             let mut up = 0;
             for _ in 0..count.min(10_000) {
                 let cost = s.get_house_upgrade_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.upgrade_house();
                 up += 1;
             }
             if count > 1 && up > 0 {
-                s.set_toast(format!("批量扩建厢房 ×{}：名额升至 {} 人", up, s.max_apprentices));
+                s.set_toast(format!(
+                    "批量扩建厢房 ×{}：名额升至 {} 人",
+                    up, s.max_apprentices
+                ));
             }
         }
         // 扩充背包 (D)
@@ -453,7 +556,9 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
             let mut up = 0;
             for _ in 0..count.min(10_000) {
                 let cost = s.get_backpack_upgrade_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.coins -= cost;
                 s.max_backpack += 2;
                 up += 1;
@@ -469,7 +574,9 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
             let mut up = 0;
             for _ in 0..count.min(10_000) {
                 let cost = s.get_pavilion_upgrade_cost();
-                if s.coins < cost { break; }
+                if s.coins < cost {
+                    break;
+                }
                 s.upgrade_pavilion();
                 up += 1;
             }
@@ -496,7 +603,11 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
                 };
                 let mut rng = rand::thread_rng();
                 if rng.r#gen_bool(success_rate) && s.realm.manual_breakthrough() {
-                    let msg = format!("天道引劫：成功突破至 [{}]！(概率 {:.0}%)", s.realm.realm.name(), success_rate * 100.0);
+                    let msg = format!(
+                        "天道引劫：成功突破至 [{}]！(概率 {:.0}%)",
+                        s.realm.realm.name(),
+                        success_rate * 100.0
+                    );
                     s.set_toast(&msg);
                     s.push_log(msg, true, true);
                 } else {
@@ -505,7 +616,10 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
                     s.realm.realm_exp = 0;
                     s.realm.pending_breakthrough = false;
                     s.sync_body_stats();
-                    let fail_msg = format!("天劫反噬：渡劫失败（概率 {:.0}% 翻车）！真元溃散，贬回炼体境一重！", success_rate * 100.0);
+                    let fail_msg = format!(
+                        "天劫反噬：渡劫失败（概率 {:.0}% 翻车）！真元溃散，贬回炼体境一重！",
+                        success_rate * 100.0
+                    );
                     s.set_toast(&fail_msg);
                     s.push_log(fail_msg, true, true);
                 }
@@ -534,7 +648,8 @@ async fn api_action(data: web::Data<AppState>, payload: web::Json<ActionPayload>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let state = GameState::load_from_disk();
+    let mut state = GameState::load_from_disk();
+    state.ensure_quests();
     let inner = AppInner {
         state,
         dao: DaoOrigin::new(),
@@ -546,12 +661,12 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-        .app_data(app_state.clone())
-        .service(api_get_state)
-        .service(api_player_strike)
-        .service(api_game_tick)
-        .service(api_action)
-        .service(Files::new("/", "./ui").index_file("index.html"))
+            .app_data(app_state.clone())
+            .service(api_get_state)
+            .service(api_player_strike)
+            .service(api_game_tick)
+            .service(api_action)
+            .service(Files::new("/", "./ui").index_file("index.html"))
     })
     .bind(("127.0.0.1", 8080))?
     .run()

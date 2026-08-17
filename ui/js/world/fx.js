@@ -16,6 +16,14 @@ export const fx = {
     ambientMotes: [],
     isHoloHovered: false,
 
+    clearTransient() {
+        this.sparks.length = 0;
+        this.shockwaves.length = 0;
+        this.steamPuffs.length = 0;
+        this.floatingTexts.length = 0;
+        this.gridRipples.length = 0;
+    },
+
     triggerStrikeFX(isCrit, w, h) {
         const anchorX = (bgMetrics && bgMetrics.daisX) ? bgMetrics.daisX : (w * 0.5);
         const anchorY = (bgMetrics && bgMetrics.daisY) ? (bgMetrics.daisY - 30) : (h * 0.59 - 30);

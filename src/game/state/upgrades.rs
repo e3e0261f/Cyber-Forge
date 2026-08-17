@@ -1,7 +1,7 @@
-use rand::Rng;
 use super::GameState;
 use crate::game::sword_gen::SwordGenerator;
 use crate::game::types::{Element, ForgeResult, Quality, Sword};
+use rand::Rng;
 
 impl GameState {
     pub fn get_backpack_upgrade_cost(&self) -> u128 {
@@ -32,7 +32,10 @@ impl GameState {
         let name = self.hammer_name();
         let power = self.hammer_power();
         self.sync_equipped_hammer_tool();
-        let msg = format!("重锤升阶：[{}] Lv.{}（1锤={:.1}下）·已装备", name, self.hammer_level, power);
+        let msg = format!(
+            "重锤升阶：[{}] Lv.{}（1锤={:.1}下）·已装备",
+            name, self.hammer_level, power
+        );
         self.set_toast(&msg);
         self.push_log(msg, true, false);
     }
@@ -41,26 +44,30 @@ impl GameState {
     pub fn sync_equipped_hammer_tool(&mut self) {
         use crate::game::types::{Element, Quality, Sword};
         let name = format!("【装备】{}", self.hammer_name());
-        self.backpack.retain(|s| !(s.is_tool && s.name.starts_with("【装备】")));
+        self.backpack
+            .retain(|s| !(s.is_tool && s.name.starts_with("【装备】")));
         self.backpack.push(Sword {
             id: 0x48414D4D_u64, // "HAMM"
             name,
             element: Element::Earth,
             quality: Quality::new((self.hammer_level.min(59)) as u8),
-                           price: 0,
-                           carbon_ratio: 0.0,
-                           forged_timestamp: 0,
-                               sharpness: self.hammer_level,
-                               enchantment: None,
-                               is_reforged: false,
-                               is_tool: true,
-                               fingerprint: 0x48414D4D_u64, // 🌟 补齐指纹
+            price: 0,
+            carbon_ratio: 0.0,
+            forged_timestamp: 0,
+            sharpness: self.hammer_level,
+            enchantment: None,
+            is_reforged: false,
+            is_tool: true,
+            fingerprint: 0x48414D4D_u64, // 🌟 补齐指纹
         });
     }
 
     pub fn hire_apprentice(&mut self) {
         if self.apprentices >= self.max_apprentices {
-            self.set_toast(format!("厢房已满 ({}/{})，按 [R] 扩房", self.apprentices, self.max_apprentices));
+            self.set_toast(format!(
+                "厢房已满 ({}/{})，按 [R] 扩房",
+                self.apprentices, self.max_apprentices
+            ));
             return;
         }
         let cost = self.get_next_apprentice_cost();
@@ -118,7 +125,10 @@ impl GameState {
         let secs = (10.0 - (self.bellows_level as f64 - 1.0) * (9.0 / 499.0)).max(1.0);
         self.natural_interval_ticks = (secs * 10.0) as u64;
 
-        let msg = format!("风箱升级：Lv.{}/500，锤速 {:.1}s/锤", self.bellows_level, secs);
+        let msg = format!(
+            "风箱升级：Lv.{}/500，锤速 {:.1}s/锤",
+            self.bellows_level, secs
+        );
         self.set_toast(&msg);
         self.push_log(msg, false, false);
     }
@@ -130,46 +140,97 @@ impl GameState {
         }
         match target_type {
             1 => {
-                if self.enchant_workers > 0 { self.enchant_workers -= 1; self.sharpen_workers += 1; }
-                else if self.repair_workers > 0 { self.repair_workers -= 1; self.sharpen_workers += 1; }
-                else if self.forge_workers > 0 { self.forge_workers -= 1; self.sharpen_workers += 1; }
-                else if self.auction_workers > 0 { self.auction_workers -= 1; self.sharpen_workers += 1; }
+                if self.enchant_workers > 0 {
+                    self.enchant_workers -= 1;
+                    self.sharpen_workers += 1;
+                } else if self.repair_workers > 0 {
+                    self.repair_workers -= 1;
+                    self.sharpen_workers += 1;
+                } else if self.forge_workers > 0 {
+                    self.forge_workers -= 1;
+                    self.sharpen_workers += 1;
+                } else if self.auction_workers > 0 {
+                    self.auction_workers -= 1;
+                    self.sharpen_workers += 1;
+                }
             }
             2 => {
-                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.enchant_workers += 1; }
-                else if self.repair_workers > 0 { self.repair_workers -= 1; self.enchant_workers += 1; }
-                else if self.forge_workers > 0 { self.forge_workers -= 1; self.enchant_workers += 1; }
-                else if self.auction_workers > 0 { self.auction_workers -= 1; self.enchant_workers += 1; }
+                if self.sharpen_workers > 0 {
+                    self.sharpen_workers -= 1;
+                    self.enchant_workers += 1;
+                } else if self.repair_workers > 0 {
+                    self.repair_workers -= 1;
+                    self.enchant_workers += 1;
+                } else if self.forge_workers > 0 {
+                    self.forge_workers -= 1;
+                    self.enchant_workers += 1;
+                } else if self.auction_workers > 0 {
+                    self.auction_workers -= 1;
+                    self.enchant_workers += 1;
+                }
             }
             3 => {
-                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.repair_workers += 1; }
-                else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.repair_workers += 1; }
-                else if self.forge_workers > 0 { self.forge_workers -= 1; self.repair_workers += 1; }
-                else if self.auction_workers > 0 { self.auction_workers -= 1; self.repair_workers += 1; }
+                if self.sharpen_workers > 0 {
+                    self.sharpen_workers -= 1;
+                    self.repair_workers += 1;
+                } else if self.enchant_workers > 0 {
+                    self.enchant_workers -= 1;
+                    self.repair_workers += 1;
+                } else if self.forge_workers > 0 {
+                    self.forge_workers -= 1;
+                    self.repair_workers += 1;
+                } else if self.auction_workers > 0 {
+                    self.auction_workers -= 1;
+                    self.repair_workers += 1;
+                }
             }
             4 => {
-                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.forge_workers += 1; }
-                else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.forge_workers += 1; }
-                else if self.repair_workers > 0 { self.repair_workers -= 1; self.forge_workers += 1; }
-                else if self.auction_workers > 0 { self.auction_workers -= 1; self.forge_workers += 1; }
+                if self.sharpen_workers > 0 {
+                    self.sharpen_workers -= 1;
+                    self.forge_workers += 1;
+                } else if self.enchant_workers > 0 {
+                    self.enchant_workers -= 1;
+                    self.forge_workers += 1;
+                } else if self.repair_workers > 0 {
+                    self.repair_workers -= 1;
+                    self.forge_workers += 1;
+                } else if self.auction_workers > 0 {
+                    self.auction_workers -= 1;
+                    self.forge_workers += 1;
+                }
             }
             5 => {
-                if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.auction_workers += 1; }
-                else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.auction_workers += 1; }
-                else if self.repair_workers > 0 { self.repair_workers -= 1; self.auction_workers += 1; }
-                else if self.forge_workers > 0 { self.forge_workers -= 1; self.auction_workers += 1; }
+                if self.sharpen_workers > 0 {
+                    self.sharpen_workers -= 1;
+                    self.auction_workers += 1;
+                } else if self.enchant_workers > 0 {
+                    self.enchant_workers -= 1;
+                    self.auction_workers += 1;
+                } else if self.repair_workers > 0 {
+                    self.repair_workers -= 1;
+                    self.auction_workers += 1;
+                } else if self.forge_workers > 0 {
+                    self.forge_workers -= 1;
+                    self.auction_workers += 1;
+                }
             }
             _ => {}
         }
         self.set_toast(format!(
             "磨剑 {} · 附魔 {} · 精修 {} · 盲锻 {} · 拍卖 {}",
-            self.sharpen_workers, self.enchant_workers, self.repair_workers, self.forge_workers, self.auction_workers
+            self.sharpen_workers,
+            self.enchant_workers,
+            self.repair_workers,
+            self.forge_workers,
+            self.auction_workers
         ));
     }
 
     /// 批量调配：把 n 名学徒调到指定岗位（从其他岗位抽）
     pub fn reassign_workers_n(&mut self, target_type: u8, n: u32) {
-        if n == 0 { return; }
+        if n == 0 {
+            return;
+        }
         if self.apprentices == 0 {
             self.set_toast("无学徒，按 [A] 招募");
             return;
@@ -178,49 +239,126 @@ impl GameState {
         for _ in 0..n {
             let moved_one = match target_type {
                 1 => {
-                    if self.enchant_workers > 0 { self.enchant_workers -= 1; self.sharpen_workers += 1; true }
-                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.sharpen_workers += 1; true }
-                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.sharpen_workers += 1; true }
-                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.sharpen_workers += 1; true }
-                    else { false }
+                    if self.enchant_workers > 0 {
+                        self.enchant_workers -= 1;
+                        self.sharpen_workers += 1;
+                        true
+                    } else if self.repair_workers > 0 {
+                        self.repair_workers -= 1;
+                        self.sharpen_workers += 1;
+                        true
+                    } else if self.forge_workers > 0 {
+                        self.forge_workers -= 1;
+                        self.sharpen_workers += 1;
+                        true
+                    } else if self.auction_workers > 0 {
+                        self.auction_workers -= 1;
+                        self.sharpen_workers += 1;
+                        true
+                    } else {
+                        false
+                    }
                 }
                 2 => {
-                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.enchant_workers += 1; true }
-                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.enchant_workers += 1; true }
-                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.enchant_workers += 1; true }
-                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.enchant_workers += 1; true }
-                    else { false }
+                    if self.sharpen_workers > 0 {
+                        self.sharpen_workers -= 1;
+                        self.enchant_workers += 1;
+                        true
+                    } else if self.repair_workers > 0 {
+                        self.repair_workers -= 1;
+                        self.enchant_workers += 1;
+                        true
+                    } else if self.forge_workers > 0 {
+                        self.forge_workers -= 1;
+                        self.enchant_workers += 1;
+                        true
+                    } else if self.auction_workers > 0 {
+                        self.auction_workers -= 1;
+                        self.enchant_workers += 1;
+                        true
+                    } else {
+                        false
+                    }
                 }
                 3 => {
-                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.repair_workers += 1; true }
-                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.repair_workers += 1; true }
-                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.repair_workers += 1; true }
-                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.repair_workers += 1; true }
-                    else { false }
+                    if self.sharpen_workers > 0 {
+                        self.sharpen_workers -= 1;
+                        self.repair_workers += 1;
+                        true
+                    } else if self.enchant_workers > 0 {
+                        self.enchant_workers -= 1;
+                        self.repair_workers += 1;
+                        true
+                    } else if self.forge_workers > 0 {
+                        self.forge_workers -= 1;
+                        self.repair_workers += 1;
+                        true
+                    } else if self.auction_workers > 0 {
+                        self.auction_workers -= 1;
+                        self.repair_workers += 1;
+                        true
+                    } else {
+                        false
+                    }
                 }
                 4 => {
-                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.forge_workers += 1; true }
-                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.forge_workers += 1; true }
-                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.forge_workers += 1; true }
-                    else if self.auction_workers > 0 { self.auction_workers -= 1; self.forge_workers += 1; true }
-                    else { false }
+                    if self.sharpen_workers > 0 {
+                        self.sharpen_workers -= 1;
+                        self.forge_workers += 1;
+                        true
+                    } else if self.enchant_workers > 0 {
+                        self.enchant_workers -= 1;
+                        self.forge_workers += 1;
+                        true
+                    } else if self.repair_workers > 0 {
+                        self.repair_workers -= 1;
+                        self.forge_workers += 1;
+                        true
+                    } else if self.auction_workers > 0 {
+                        self.auction_workers -= 1;
+                        self.forge_workers += 1;
+                        true
+                    } else {
+                        false
+                    }
                 }
                 5 => {
-                    if self.sharpen_workers > 0 { self.sharpen_workers -= 1; self.auction_workers += 1; true }
-                    else if self.enchant_workers > 0 { self.enchant_workers -= 1; self.auction_workers += 1; true }
-                    else if self.repair_workers > 0 { self.repair_workers -= 1; self.auction_workers += 1; true }
-                    else if self.forge_workers > 0 { self.forge_workers -= 1; self.auction_workers += 1; true }
-                    else { false }
+                    if self.sharpen_workers > 0 {
+                        self.sharpen_workers -= 1;
+                        self.auction_workers += 1;
+                        true
+                    } else if self.enchant_workers > 0 {
+                        self.enchant_workers -= 1;
+                        self.auction_workers += 1;
+                        true
+                    } else if self.repair_workers > 0 {
+                        self.repair_workers -= 1;
+                        self.auction_workers += 1;
+                        true
+                    } else if self.forge_workers > 0 {
+                        self.forge_workers -= 1;
+                        self.auction_workers += 1;
+                        true
+                    } else {
+                        false
+                    }
                 }
                 _ => false,
             };
-            if !moved_one { break; }
+            if !moved_one {
+                break;
+            }
             moved += 1;
         }
         if moved > 0 {
             self.set_toast(format!(
                 "批量×{}：磨{} 附{} 精{} 盲{} 拍{}",
-                moved, self.sharpen_workers, self.enchant_workers, self.repair_workers, self.forge_workers, self.auction_workers
+                moved,
+                self.sharpen_workers,
+                self.enchant_workers,
+                self.repair_workers,
+                self.forge_workers,
+                self.auction_workers
             ));
         } else {
             self.set_toast("无可调配学徒");
@@ -228,7 +366,9 @@ impl GameState {
     }
 
     pub fn process_apprentice_work(&mut self) {
-        if self.apprentices == 0 { return; }
+        if self.apprentices == 0 {
+            return;
+        }
 
         let mut rng = rand::thread_rng();
 
@@ -243,13 +383,19 @@ impl GameState {
 
                 self.apprentice_forge_progress += self.forge_workers as f64;
 
-                while self.apprentice_forge_progress >= 630.0 && self.backpack.len() < self.max_backpack {
+                while self.apprentice_forge_progress >= 630.0
+                    && self.backpack.len() < self.max_backpack
+                {
                     self.apprentice_forge_progress -= 630.0;
 
                     let base_type = SwordGenerator::random_base_type(&mut rng);
-                    let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
+                    let ts = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
                     let rand_id = rng.r#gen::<u64>();
-                    let fingerprint = crate::game::fingerprint::Fingerprint64::pack(ts, 0x112233, rand_id);
+                    let fingerprint =
+                        crate::game::fingerprint::Fingerprint64::pack(ts, 0x112233, rand_id);
 
                     let sword = Sword {
                         id: rand_id,
@@ -259,14 +405,17 @@ impl GameState {
                         price: rng.gen_range(15..=80),
                         carbon_ratio: 0.10,
                         forged_timestamp: ts,
-                            sharpness: 0,
-                            enchantment: None,
-                            is_reforged: false,
-                            is_tool: false,
-                            fingerprint, // 🌟 补齐指纹
+                        sharpness: 0,
+                        enchantment: None,
+                        is_reforged: false,
+                        is_tool: false,
+                        fingerprint, // 🌟 补齐指纹
                     };
 
-                    let log_msg = format!("徒弟盲锻出炉：[{}]（无品阶，估价 {} 铜钱）", sword.name, sword.price);
+                    let log_msg = format!(
+                        "徒弟盲锻出炉：[{}]（无品阶，估价 {} 铜钱）",
+                        sword.name, sword.price
+                    );
                     self.backpack.push(sword);
                     self.sort_backpack();
                     self.push_log(log_msg, false, false);
@@ -294,7 +443,13 @@ impl GameState {
             let workers = self.enchant_workers;
             for sword in &mut self.backpack {
                 if sword.enchantment.is_none() && rng.gen_bool((0.15 * workers as f64).min(1.0)) {
-                    let elements = [Element::Gold, Element::Wood, Element::Water, Element::Fire, Element::Earth];
+                    let elements = [
+                        Element::Gold,
+                        Element::Wood,
+                        Element::Water,
+                        Element::Fire,
+                        Element::Earth,
+                    ];
                     sword.enchantment = Some(elements[rng.gen_range(0..elements.len())]);
                     let bump = ((sword.price as f64) * 0.25 * mult) as u128;
                     sword.price = sword.price.saturating_add(bump.max(1));
@@ -318,13 +473,13 @@ impl GameState {
                     self.level,
                     self.carbon_ratio,
                     rng.r#gen(),
-                                                                                  self.apprentices,
-                                                                                  0.0,
-                                                                                  0,
-                                                                                  63,
-                                                                                  qi_bonus,
-                                                                                  0.15,
-                                                                                  0,
+                    self.apprentices,
+                    0.0,
+                    0,
+                    63,
+                    qi_bonus,
+                    0.15,
+                    0,
                 ) {
                     sword.name = format!("精修 · {}", base_type);
                     sword.sharpness = 100;
@@ -333,7 +488,8 @@ impl GameState {
                     let mult = self.station_mult[2];
                     sword.price = ((sword.price as f64 * 0.30 * mult) as u128).max(1);
 
-                    let log_msg = format!("学徒精修出炉：[{}]（估价金{}）", sword.name, sword.price);
+                    let log_msg =
+                        format!("学徒精修出炉：[{}]（估价金{}）", sword.name, sword.price);
                     self.backpack.push(sword);
                     self.sort_backpack();
                     self.push_log(log_msg, false, false);

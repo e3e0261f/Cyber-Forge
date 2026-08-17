@@ -1,9 +1,9 @@
-use std::time::Instant;
-use rand::Rng;
 use super::dao_origin::DaoOrigin;
-use super::state::{GameState, AutoListTier};
+use super::state::{AutoListTier, GameState};
 use super::sword_gen::SwordGenerator;
 use super::types::ForgeResult;
+use rand::Rng;
+use std::time::Instant;
 
 pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
     let power = state.total_hammer_power() * state.concurrent_power_mul();
@@ -11,7 +11,9 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
 
     // 🌟 1. 恢复主进度条的正常推进（这样大进度条和倒计时就能动了！）
     let progress_gain = power * pulse.progress_mul;
-    let cult = (power.max(1.0).floor() as u128).saturating_mul(state.core_cult_bonus()).max(1);
+    let cult = (power.max(1.0).floor() as u128)
+        .saturating_mul(state.core_cult_bonus())
+        .max(1);
     if pulse.is_perfect {
         state.forge_qte_hits += power;
         state.sub_strikes += progress_gain;
@@ -28,7 +30,9 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
     state.total_strikes_count = state.total_strikes_count.saturating_add(power as u64);
     state.sync_body_stats();
     state.strikes = state.sub_strikes as u32;
-    state.exp = state.exp.saturating_add((1.0 * state.exp_multiplier()).round().max(1.0) as u32);
+    state.exp = state
+        .exp
+        .saturating_add((1.0 * state.exp_multiplier()).round().max(1.0) as u32);
 
     // 🌟 2. 多轨道独立矩阵流水线结算逻辑
     let stations = state.matrix_slots().max(1) as usize;
@@ -55,18 +59,21 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
                 state.level,
                 state.carbon_ratio,
                 Instant::now().elapsed().as_nanos() as u64 ^ (i as u64),
-                                           state.apprentices,
-                                           state.effective_god_rate(0.0),
-                                           0,
-                                           state.max_strikes,
-                                           qi_bonus,
-                                           verdict.fail_rate,
-                                           verdict.rank_boost,
+                state.apprentices,
+                state.effective_god_rate(0.0),
+                0,
+                state.max_strikes,
+                qi_bonus,
+                verdict.fail_rate,
+                verdict.rank_boost,
             ) {
                 ForgeResult::Success(sword) => {
                     let st_id = (i / hammers) + 1;
                     let hm_id = (i % hammers) + 1;
-                    let log_msg = format!("流水线 [台{}-轨{}] 出炉：[{}]（估价金{}）", st_id, hm_id, sword.name, sword.price);
+                    let log_msg = format!(
+                        "流水线 [台{}-轨{}] 出炉：[{}]（估价金{}）",
+                        st_id, hm_id, sword.name, sword.price
+                    );
                     state.push_log(log_msg, sword.quality.rank() >= 36, false);
 
                     if state.backpack.len() < state.max_backpack {
@@ -81,7 +88,14 @@ pub fn do_strike(state: &mut GameState, qte: bool, dao: &mut DaoOrigin) {
                     state.add_iron_slag(slag_gained);
                     let st_id = (i / hammers) + 1;
                     let hm_id = (i % hammers) + 1;
-                    state.push_log(format!("流水线 [台{}-轨{}] 炸炉：碎铁 +{}", st_id, hm_id, slag_gained), false, false);
+                    state.push_log(
+                        format!(
+                            "流水线 [台{}-轨{}] 炸炉：碎铁 +{}",
+                            st_id, hm_id, slag_gained
+                        ),
+                        false,
+                        false,
+                    );
                 }
             }
         }

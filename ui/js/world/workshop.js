@@ -131,9 +131,10 @@ export function drawHammer(ctx, w, h) {
     ctx.fill(); ctx.stroke();
 
     // 锤心雷灵珠
-    ctx.fillStyle = isCritHit ? '#ff4d7a' : '#00e5ff';
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 12;
+    // 锤心保持恒定冷色，暴击只交给锤头描边和粒子表达，避免高频变色闪烁。
+    ctx.fillStyle = '#00e5ff';
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 6;
     ctx.beginPath();
     ctx.arc(0, -84, 7, 0, Math.PI * 2);
     ctx.fill();
