@@ -9,7 +9,8 @@ import { getModalBounds } from './input.js';
 
 const SORT_MODES = ['默认', '品质', '价格', '时间', '关闭'];
 const SORT_OFF = 4;
-let currentSortMode = 0;
+// 背包默认保持手动布局；仅在玩家点击排序按钮后进入排序循环。
+let currentSortMode = SORT_OFF;
 
 export let stashScrollY = 0;
 export let stashMaxScroll = 0;
