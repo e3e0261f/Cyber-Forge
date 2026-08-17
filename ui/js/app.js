@@ -4,7 +4,7 @@
 // 文件路径：ui/js/app.js 顶部引入
 import { loadGameAssets } from './world/assets.js';
 // 文件路径：ui/js/app.js 顶部引入
-import { invoke } from './core.js';
+import { invoke, setupAuthUI } from './core.js';
 import { syncState } from './state.js';
 import { drawWorld, initMotes, resetImpactFX } from './world.js';
 import { drawHUD, hudState } from './hud.js';
@@ -84,6 +84,8 @@ async function runGameLoop() {
 (async function boot() {
   // 🌟 1. 立即异步加载所有 2D 高清原画贴图
   loadGameAssets();
+  
+  setupAuthUI();
 
   initCanvas();
   setupInteractions();

@@ -6,19 +6,20 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use std::time::Instant;
+use std::collections::HashMap;
 
 use game::dao_origin::DaoOrigin;
 use game::numbers::format_compact_number;
 use game::state::GameState;
 use game::strike::do_strike;
 
-struct AppInner {
+struct Session {
     state: GameState,
     dao: DaoOrigin,
     cycle_start: Instant,
 }
 
-struct AppState(Mutex<AppInner>);
+struct AppState(Mutex<HashMap<String, Session>>);
 
 #[derive(Serialize, Clone)]
 struct ItemView {
@@ -139,7 +140,7 @@ struct UiSnapshot {
     quest_next_refresh_secs: u64,
 }
 
-fn snapshot(inner: &AppInner) -> UiSnapshot {
+fn snapshot(inner: &Session) -> UiSnapshot {
     let s = &inner.state;
     let mut quest_board = s.quests.clone();
     quest_board.ensure(s);
@@ -317,87 +318,124 @@ fn snapshot(inner: &AppInner) -> UiSnapshot {
 }
 
 // ----------------------------------------------------------------
+// 会话获取助手函数
+// ----------------------------------------------------------------
+
+fn get_account_id(req: &actix_web::HttpRequest) -> String {
+    req.headers()
+        .get("X-Auth-Token")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("default_account")
+        .to_string()
+}
+
+fn get_or_create_session<'a>(
+    sessions: &'a mut HashMap<String, Session>,
+    account_id: &str,
+) -> &'a mut Session {
+    if !sessions.contains_key(account_id) {
+        let mut state = GameState::load_from_disk(account_id);
+        state.ensure_quests();
+        let session = Session {
+            state,
+            dao: DaoOrigin::new(),
+            cycle_start: Instant::now(),
+        };
+        sessions.insert(account_id.to_string(), session);
+    }
+    sessions.get_mut(account_id).unwrap()
+}
+
+// ----------------------------------------------------------------
 // Actix-web API 路由
 // ----------------------------------------------------------------
 
 #[get("/api/state")]
-async fn api_get_state(data: web::Data<AppState>) -> impl Responder {
-    let inner = data.0.lock().unwrap();
-    HttpResponse::Ok().json(snapshot(&inner))
+async fn api_get_state(req: actix_web::HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    let account_id = get_account_id(&req);
+    let mut sessions = data.0.lock().unwrap();
+    let session = get_or_create_session(&mut sessions, &account_id);
+    HttpResponse::Ok().json(snapshot(session))
 }
 
 #[post("/api/strike")]
-async fn api_player_strike(data: web::Data<AppState>) -> impl Responder {
-    let mut inner = data.0.lock().unwrap();
-    let interval = inner.state.effective_interval_secs().max(0.01);
-    let progress = (inner.cycle_start.elapsed().as_secs_f64() / interval).min(1.0);
+async fn api_player_strike(req: actix_web::HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    let account_id = get_account_id(&req);
+    let mut sessions = data.0.lock().unwrap();
+    let session = get_or_create_session(&mut sessions, &account_id);
+    
+    let interval = session.state.effective_interval_secs().max(0.01);
+    let progress = (session.cycle_start.elapsed().as_secs_f64() / interval).min(1.0);
     let in_crit = progress >= 0.76 && progress < 0.88;
 
-    let AppInner {
+    let Session {
         state,
         dao,
         cycle_start,
-    } = &mut *inner;
+    } = session;
     do_strike(state, in_crit, dao);
     *cycle_start = Instant::now();
     dao.reset_cycle();
 
-    HttpResponse::Ok().json(snapshot(&inner))
+    HttpResponse::Ok().json(snapshot(session))
 }
 
 #[post("/api/tick")]
-async fn api_game_tick(data: web::Data<AppState>) -> impl Responder {
-    let mut inner = data.0.lock().unwrap();
-    inner.state.tick_toast();
-    inner.state.tick_quests();
-    inner.state.tick_flash();
-    inner.state.tick_market_rumor();
+async fn api_game_tick(req: actix_web::HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    let account_id = get_account_id(&req);
+    let mut sessions = data.0.lock().unwrap();
+    let session = get_or_create_session(&mut sessions, &account_id);
+    
+    session.state.tick_toast();
+    session.state.tick_quests();
+    session.state.tick_flash();
+    session.state.tick_market_rumor();
 
     // 🌟 核心：只执行听从用户模式的协议（模式0时完全不自动动钱）
-    inner.state.process_currency_protocol();
+    session.state.process_currency_protocol();
 
     // 后台矩阵轨道推进
     let tick_delta = 0.05;
-    for prog in &mut inner.state.matrix_progresses {
+    for prog in &mut session.state.matrix_progresses {
         if *prog < 1.0 {
             *prog = (*prog + tick_delta).min(1.0);
         }
     }
 
-    if inner.state.debug_mode {
-        inner.state.debug_tick_boost();
+    if session.state.debug_mode {
+        session.state.debug_tick_boost();
     }
-    if inner.state.market_tick_counter % 300 == 0 {
-        let _ = inner.state.save_to_disk();
+    if session.state.market_tick_counter % 300 == 0 {
+        let _ = session.state.save_to_disk(&account_id);
     }
-    if inner.state.market_tick_counter % 10 == 0 {
-        inner.state.process_immortal_buyers();
+    if session.state.market_tick_counter % 10 == 0 {
+        session.state.process_immortal_buyers();
     }
-    if inner.state.encounter_timer > 0 {
-        inner.state.encounter_timer = inner.state.encounter_timer.saturating_sub(1);
-        if inner.state.encounter_timer == 0 {
-            inner.state.process_encounters();
+    if session.state.encounter_timer > 0 {
+        session.state.encounter_timer = session.state.encounter_timer.saturating_sub(1);
+        if session.state.encounter_timer == 0 {
+            session.state.process_encounters();
         }
     }
-    inner.state.process_auto_melt();
-    inner.state.process_auto_list();
-    if inner.state.market_tick_counter % 5 == 0 {
-        inner.state.process_apprentice_work();
+    session.state.process_auto_melt();
+    session.state.process_auto_list();
+    if session.state.market_tick_counter % 5 == 0 {
+        session.state.process_apprentice_work();
     }
 
-    let interval = inner.state.effective_interval_secs().max(0.01);
-    if inner.cycle_start.elapsed().as_secs_f64() >= interval {
-        let AppInner {
+    let interval = session.state.effective_interval_secs().max(0.01);
+    if session.cycle_start.elapsed().as_secs_f64() >= interval {
+        let Session {
             state,
             dao,
             cycle_start,
-        } = &mut *inner;
+        } = session;
         do_strike(state, false, dao);
         *cycle_start = Instant::now();
         dao.reset_cycle();
     }
 
-    HttpResponse::Ok().json(snapshot(&inner))
+    HttpResponse::Ok().json(snapshot(session))
 }
 
 #[derive(Deserialize)]
@@ -407,11 +445,14 @@ struct ActionPayload {
 
 #[post("/api/action")]
 async fn api_action(
+    req: actix_web::HttpRequest,
     data: web::Data<AppState>,
     payload: web::Json<ActionPayload>,
 ) -> impl Responder {
-    let mut inner = data.0.lock().unwrap();
-    let s = &mut inner.state;
+    let account_id = get_account_id(&req);
+    let mut sessions = data.0.lock().unwrap();
+    let session = get_or_create_session(&mut sessions, &account_id);
+    let s = &mut session.state;
     let key = &payload.key;
 
     if let Some(id) = key
@@ -419,14 +460,14 @@ async fn api_action(
         .and_then(|v| v.parse::<u64>().ok())
     {
         s.quest_accept(id);
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
     if let Some(id) = key
         .strip_prefix("quest_abandon_")
         .and_then(|v| v.parse::<u64>().ok())
     {
         s.quest_abandon(id);
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
     if let Some(rest) = key.strip_prefix("quest_submit_") {
         let mut parts = rest.split('_');
@@ -436,14 +477,14 @@ async fn api_action(
         ) {
             s.quest_submit(q, item);
         }
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
     if let Some(id) = key
         .strip_prefix("quest_claim_")
         .and_then(|v| v.parse::<u64>().ok())
     {
         s.quest_claim(id);
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
 
     // 🌟 1. 优先匹配下拉菜单协议设置
@@ -451,7 +492,7 @@ async fn api_action(
         if let Ok(mode) = mode_str.parse::<u8>() {
             s.set_currency_protocol(mode);
         }
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
 
     // 右键菜单：按神兵 id 熔炼 / 上架
@@ -459,13 +500,13 @@ async fn api_action(
         if let Ok(id) = id_str.parse::<u64>() {
             s.melt_sword_by_id(id);
         }
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
     if let Some(id_str) = key.strip_prefix("list_id_") {
         if let Ok(id) = id_str.parse::<u64>() {
             s.list_sword_by_id(id);
         }
-        return HttpResponse::Ok().json(snapshot(&inner));
+        return HttpResponse::Ok().json(snapshot(session));
     }
 
     // 🌟 2. 通用一视同仁解析器：自动拆解 (基础按键, 批量次数)
@@ -643,19 +684,12 @@ async fn api_action(
 
         _ => {}
     }
-    HttpResponse::Ok().json(snapshot(&inner))
+    HttpResponse::Ok().json(snapshot(session))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let mut state = GameState::load_from_disk();
-    state.ensure_quests();
-    let inner = AppInner {
-        state,
-        dao: DaoOrigin::new(),
-        cycle_start: Instant::now(),
-    };
-    let app_state = web::Data::new(AppState(Mutex::new(inner)));
+    let app_state = web::Data::new(AppState(Mutex::new(HashMap::new())));
 
     println!("【天道锻造大师 WEB版 v2.5.0 (WEEB)】服务器已启动：http://127.0.0.1:8080");
 

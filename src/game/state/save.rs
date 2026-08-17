@@ -24,8 +24,8 @@ pub fn save_dir() -> PathBuf {
     }
     PathBuf::from(".")
 }
-pub fn save_file_path() -> PathBuf {
-    save_dir().join("cyber_forge.save")
+pub fn save_file_path(account_id: &str) -> PathBuf {
+    save_dir().join(format!("cyber_forge_{}.save", account_id))
 }
 fn ensure_dir(path: &Path) {
     if let Some(p) = path.parent() {
@@ -56,23 +56,31 @@ impl GameState {
         st.sync_body_stats();
         Some(st)
     }
-    pub fn save_to_disk(&self) -> bool {
-        let path = save_file_path();
+    pub fn save_to_disk(&self, account_id: &str) -> bool {
+        let path = save_file_path(account_id);
         ensure_dir(&path);
         self.to_save_json()
             .map(|c| fs::write(&path, c).is_ok())
             .unwrap_or(false)
     }
-    pub fn load_from_disk() -> Self {
-        let path = save_file_path();
+    pub fn load_from_disk(account_id: &str) -> Self {
+        let path = save_file_path(account_id);
         if let Ok(c) = fs::read_to_string(&path) {
             if let Some(s) = Self::from_save_json(&c) {
                 return s;
             }
         }
+        
+        // 兼容旧版本单机存档：如果在读取特定账号的存档时失败，尝试读取最初的 `cyber_forge.save`，并重新保存。
+        if let Ok(c) = fs::read_to_string(save_dir().join("cyber_forge.save")) {
+            if let Some(s) = Self::from_save_json(&c) {
+                let _ = s.save_to_disk(account_id);
+                return s;
+            }
+        }
         if let Ok(c) = fs::read_to_string("./cyber_forge.save") {
             if let Some(s) = Self::from_save_json(&c) {
-                let _ = s.save_to_disk();
+                let _ = s.save_to_disk(account_id);
                 return s;
             }
         }

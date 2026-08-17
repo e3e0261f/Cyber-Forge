@@ -2,18 +2,46 @@
 export const $ = (id) => document.getElementById(id);
 export const snap = { current: null };
 
+import { auth } from './auth.js';
+
+export function setupAuthUI() {
+    const authBtn = document.createElement('div');
+    authBtn.id = 'auth-btn';
+    authBtn.innerHTML = '📜';
+    authBtn.title = '天道密证 (助记词)';
+    authBtn.onclick = () => {
+        const m = auth.getMnemonic();
+        const action = prompt(
+            `【您的天道密证】\n\n${m}\n\n⚠️ 请妥善保管。输入新的密证可切换账号：`,
+            ''
+        );
+        if (action) {
+            if (auth.importMnemonic(action.trim())) {
+                alert('密证切换成功，即将重载世界...');
+                location.reload();
+            } else {
+                alert('密证格式错误，未作更改。');
+            }
+        }
+    };
+    document.body.appendChild(authBtn);
+}
+
 export async function invoke(name, args = {}) {
   try {
     let url = '';
     let options = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Auth-Token': auth.getAccountId()
+      },
     };
 
     // 🌟 兼容各种长短别名
     if (name === 'state' || name === 'get_state') {
       options.method = 'GET';
-      delete options.headers;
+      options.headers = { 'X-Auth-Token': auth.getAccountId() };
       url = '/api/state';
     } else if (name === 'tick' || name === 'game_tick') {
       url = '/api/tick';
