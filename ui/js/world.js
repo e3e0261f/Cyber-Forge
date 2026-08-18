@@ -25,14 +25,29 @@ let flashLightIntensity = 0;
 export function resetImpactFX() {
     screenShake = 0;
     flashLightIntensity = 0;
+    fx.clearTransient();
 }
 
 export function triggerStrikeImpact(isCrit, w, h) {
     setHammerTarget(0.42);
-    screenShake = isCrit ? 9.0 : 4.0;
+    // 🌟 P0-2 Juice: 弹簧式震动衰减 (普通 4px / 暴击 9px)
+    screenShake = Math.max(isCrit ? 9.0 : 4.0, screenShake);
     // 仅保留低强度、局部暖光，避免连续锻造造成全屏白闪。
     flashLightIntensity = Math.min(0.28, flashLightIntensity + (isCrit ? 0.16 : 0.10));
     fx.triggerStrikeFX(isCrit, w, h);
+}
+
+/** ⛩️ 渡劫大震屏 (由 state.js 境界变化时调用) */
+export function triggerBreakthroughJuice() {
+    screenShake = 24;
+    fx.triggerBreakthroughJuice();
+}
+
+// 🌟 P0-2 Juice: 监听 state.js 派发的渡劫事件 (解耦循环依赖)
+if (typeof window !== 'undefined') {
+    window.addEventListener('game:breakthrough', () => {
+        triggerBreakthroughJuice();
+    });
 }
 
 export function drawWorld(ctx, w, h, now) {
@@ -41,7 +56,10 @@ export function drawWorld(ctx, w, h, now) {
     ctx.save();
     if (screenShake > 0) {
         ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
-        screenShake -= 0.35;
+        // 🌟 P0-2 Juice: 弹簧衰减 (渡劫强震时保持更久)
+        screenShake *= (fx.breakthroughTick > 0) ? 0.93 : 0.86;
+        if (screenShake < 0.5) screenShake = 0;
+        if (fx.breakthroughTick > 0) fx.breakthroughTick--;
     }
 
     // 1. 环境层

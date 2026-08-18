@@ -6,6 +6,7 @@
 import { invoke } from './core.js';
 import { clock, syncState, uiState, gameState } from './state.js';
 import { triggerStrikeImpact, fx } from './world.js';
+import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
 import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, setStashScroll, stashScrollY, stashMaxScroll, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
@@ -19,6 +20,25 @@ let autoStrikeOn = false;
 let actionBusy = false;
 let strikeBusy = false;
 let mainLoopTimer = null;
+
+// 🌟 P0-2 Juice: 连击计数 (input.js 维护, fx 渲染光环)
+let comboCount = 0;
+let comboTimer = null;
+const COMBO_RESET_MS = 2000; // 2 秒无挥锤则归零
+function bumpCombo(crit = false) {
+    comboCount = crit ? comboCount + 2 : comboCount + 1;
+    fx.setCombo(comboCount);
+    clearTimeout(comboTimer);
+    comboTimer = setTimeout(() => {
+        comboCount = 0;
+        fx.setCombo(0);
+    }, COMBO_RESET_MS);
+}
+function resetCombo() {
+    comboCount = 0;
+    fx.setCombo(0);
+    if (comboTimer) { clearTimeout(comboTimer); comboTimer = null; }
+}
 
 const scrollbarDrag = {
   active: false,
@@ -108,6 +128,13 @@ export async function doStrike() {
   try {
     clock.resetCycle();
     triggerStrikeImpact(crit, window.innerWidth, window.innerHeight);
+
+    // 🎵 打击音效 (暴击使用更高音高)
+    if (crit) audio.playCrit();
+    else audio.playHit();
+
+    // 🌟 P0-2 Juice: 连击递增
+    bumpCombo(crit);
 
     const snap = await invoke('strike');
     if (snap) syncState(snap);

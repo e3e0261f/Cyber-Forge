@@ -10,6 +10,7 @@ import { drawWorld, initMotes, resetImpactFX } from './world.js';
 import { drawHUD, hudState } from './hud.js';
 import { setupInteractions, doStrike, isAutoStrikeActive } from './input.js';
 import { fx } from './world.js';
+import { audio, bindAudioUnlock } from './audio.js';
 
 const rootEl = document.getElementById('game-root');
 let canvas = null;
@@ -90,6 +91,9 @@ async function runGameLoop() {
   initCanvas();
   setupInteractions();
 
+  // 🎵 音频系统：首次用户交互时解锁 AudioContext 并启动 BGM
+  bindAudioUnlock();
+
   const s = await invoke('state');
   if (s) syncState(s);
 
@@ -97,8 +101,11 @@ async function runGameLoop() {
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden) {
       stopGameLoop();
+      audio.handleVisibility(true);  // 🎵 暂停 BGM
       return;
     }
+
+    audio.handleVisibility(false);  // 🎵 恢复 BGM
 
     // 回到前台只同步最新状态，不补播后台期间的动画。
     fx.clearTransient();
