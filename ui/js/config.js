@@ -28,7 +28,8 @@ export const gameConfig = {
         { id: 'quest', label: '📋 任务(J)', color: '#f97316', defaultKey: 'KeyJ' },
         { id: 'apprentice', label: '🛠️ 学徒(M)', color: '#f59e0b', defaultKey: 'KeyM' },
         { id: 'logs', label: '📜 日志(I)', color: '#a855f7', defaultKey: 'KeyI' },
-        { id: 'body', label: '👤 身体(C)', color: '#22c55e', defaultKey: 'KeyC' }
+        { id: 'body', label: '👤 身体(C)', color: '#22c55e', defaultKey: 'KeyC' },
+        { id: 'debug', label: '🎛️ 调试(F3)', color: '#00ffc8', defaultKey: 'F3' }
     ],
 
     // 快捷键排除黑名单

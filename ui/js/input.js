@@ -11,6 +11,8 @@ import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, setStashScroll, stashScrollY, stashMaxScroll, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
 import { scrollAuction, setAuctionScroll, auctionScrollY, auctionMaxScroll } from './auction-view.js';
 import { handleQuestClick, scrollQuest } from './quest-view.js';
+import { handleDebugClick } from './debug-view.js';
+import { handleMinimapClick } from './minimap-view.js';
 import { getStepMultiplier } from './step-acceleration-engine.js';
 
 let autoStrikeOn = false;
@@ -79,8 +81,8 @@ function resetScrollbarDrag() {
 
 const KEY_MAP = {
   Space: 'strike',
-  KeyU: 'u', KeyW: 'w', KeyN: 'n', KeyR: 'r', KeyD: 'd', KeyE: 'e',
-  KeyT: 't', KeyG: 'g', KeyF: 'f', KeyS: 's', KeyX: 'b',
+  KeyU: 'u', KeyN: 'n', KeyR: 'r', KeyE: 'e',
+  KeyT: 't', KeyG: 'g', KeyF: 'f', KeyX: 'b',
   Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5',
   Btn_i: 'i', Btn_I: 'I', Btn_o: 'o', Btn_O: 'O',
   Btn_u: 'u', Btn_w: 'w', Btn_n: 'n', Btn_r: 'r', Btn_d: 'd', Btn_e: 'e',
@@ -178,20 +180,13 @@ function startMainLoop() {
     playerPos.x = Math.max(0, Math.min(playerPos.x, 2000));
     playerPos.y = Math.max(0, Math.min(playerPos.y, 1500));
 
-    // 每 200ms 心跳同步一次坐标到后端进行校验
+    // 每 200ms 心跳同步一次坐标到后端进行保存
     if ((moveX !== 0 || moveY !== 0) && now - lastSyncTime > 200) {
         lastSyncTime = now;
         invoke('action', { key: 'sync_pos', x: playerPos.x, y: playerPos.y })
             .then(snap => { 
                 if (snap) {
                     syncState(snap);
-                    // 校验被拉回逻辑：如果后端返回的坐标和本地差距过大（比如超过50像素），说明被拉回了
-                    const dx = snap.player_x - playerPos.x;
-                    const dy = snap.player_y - playerPos.y;
-                    if (Math.sqrt(dx*dx + dy*dy) > 50) {
-                        playerPos.x = snap.player_x;
-                        playerPos.y = snap.player_y;
-                    }
                 }
             });
     }
@@ -222,6 +217,7 @@ export function getModalBounds(id, w, h) {
   if (id === 'inspect') { mw = 480; mh = 320; }
   if (id === 'body') { mw = 580; mh = 560; }
   if (id === 'auction') { mw = 560; mh = 420; }
+  if (id === 'debug') { mw = 480; mh = 430; }
   mw = Math.min(mw, w * 0.9);
   mh = Math.min(mh, h * 0.85);
 
@@ -399,6 +395,10 @@ export function setupInteractions() {
         return;
       }
 
+      if (id === 'debug' && handleDebugClick(clickX, clickY, bounds, w, h)) {
+        return;
+      }
+
       if (id === 'apprentice') {
         // Handle apprentice modal click if needed
       }
@@ -478,6 +478,11 @@ export function setupInteractions() {
       if (clickX >= mx && clickX <= mx + mw && clickY >= my && clickY <= my + mh) {
         return;
       }
+    }
+
+    // B2. 点击右下角小地图与坐标罗盘交互
+    if (handleMinimapClick(clickX, clickY, w, h)) {
+      return;
     }
 
     // C. 底部功能栏点击 [T]/[G]/[X]/[K]
@@ -593,6 +598,7 @@ export function setupInteractions() {
     if (e.ctrlKey || e.metaKey) return;
 
     // MMO 单独切换弹窗
+    if (e.code === 'F3' || e.code === 'Backquote' || e.code === 'KeyO') { e.preventDefault(); uiState.toggleModal('debug'); return; }
     if (e.code === 'KeyC') { e.preventDefault(); uiState.toggleModal('body'); return; }
     if (e.code === 'KeyB') { e.preventDefault(); uiState.toggleModal('stash'); return; }
     if (e.code === 'KeyP') { e.preventDefault(); uiState.toggleModal('auction'); return; }
@@ -634,7 +640,25 @@ export function setupInteractions() {
   });
 
   window.addEventListener('keyup', (e) => {
+    const isMovementKey = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code);
     heldKeys.delete(e.code);
+
+    if (isMovementKey) {
+      const hasUp = heldKeys.has('KeyW') || heldKeys.has('ArrowUp');
+      const hasDown = heldKeys.has('KeyS') || heldKeys.has('ArrowDown');
+      const hasLeft = heldKeys.has('KeyA') || heldKeys.has('ArrowLeft');
+      const hasRight = heldKeys.has('KeyD') || heldKeys.has('ArrowRight');
+
+      if (!hasUp && !hasDown) playerPos.vy = 0;
+      if (!hasLeft && !hasRight) playerPos.vx = 0;
+
+      if (!hasUp && !hasDown && !hasLeft && !hasRight) {
+        invoke('action', { key: 'sync_pos', x: playerPos.x, y: playerPos.y }).then(snap => {
+          if (snap) syncState(snap);
+        });
+      }
+    }
+
     if (!heldKeys.size && mainLoopTimer) {
       clearInterval(mainLoopTimer);
       mainLoopTimer = null;
@@ -643,6 +667,8 @@ export function setupInteractions() {
 
   window.addEventListener('blur', () => {
     heldKeys.clear();
+    playerPos.vx = 0;
+    playerPos.vy = 0;
     uiState.draggingModal = null;
     resetScrollbarDrag();
     if (mainLoopTimer) {

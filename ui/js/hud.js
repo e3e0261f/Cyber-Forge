@@ -11,6 +11,8 @@ import { drawAuctionModal, auctionHoveredLot } from './auction-view.js';
 import { drawApprenticeModal } from './apprentice-view.js';
 import { getModalBounds, isAutoStrikeActive } from './input.js';
 import { drawQuestModal } from './quest-view.js';
+import { drawDebugModal, drawDebugOverlays } from './debug-view.js';
+import { drawMinimap } from './minimap-view.js';
 
 export const hudState = {
     fps: 60,
@@ -107,6 +109,9 @@ export function scrollBody(deltaY) {
 export function drawHUD(ctx, w, h, now) {
     hudState.updateFps(now);
     const time = now * 0.003;
+
+    // 0. 绘制调试辅助网格、十字准星与头顶坐标
+    drawDebugOverlays(ctx, w, h);
 
     // 1. 顶部 HUD 底板
     ctx.fillStyle = 'rgba(10, 14, 22, 0.94)';
@@ -228,7 +233,8 @@ export function drawHUD(ctx, w, h, now) {
     ctx.font = 'bold 12px monospace';
     ctx.fillText(`FPS: ${hudState.fps}`, w - 85, dockY + 23);
 
-    // 🌟 2.5 左侧升级面板已经迁移到各自UI窗口中
+    // 🌟 2.6 右下角全息小地图与实时罗盘
+    drawMinimap(ctx, w, h, time);
 
     // 🌟 3. 绘制并存全息弹窗
     drawStashModal(ctx, w, h, time);
@@ -238,6 +244,7 @@ export function drawHUD(ctx, w, h, now) {
     drawLogsModal(ctx, w, h, time);
     drawBodyModal(ctx, w, h, time);
     drawInspectModal(ctx, w, h, time);
+    drawDebugModal(ctx, w, h, time);
 
     // 🌟 4. 悬停查看物品详情 Tooltip (悬浮在所有窗口之上)
     if (uiState.isOpen('stash') && stashHoveredItem) {

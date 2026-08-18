@@ -34,7 +34,8 @@ export const uiState = {
         logs: { x: null, y: null },
         body: { x: null, y: null },
         inspect: { x: null, y: null },
-        quest: { x: null, y: null }
+        quest: { x: null, y: null },
+        debug: { x: null, y: null }
     },
 
     draggingModal: null, // 当前正在拖拽的窗口 ID

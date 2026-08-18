@@ -1,0 +1,41 @@
+// server/encounters_lore.ts
+
+export const SUCCESS_PREFIXES: string[] = [
+  '隔壁老张头倒退三步，颤抖递过',
+  '雨后冷冽金光破土而出，刨出',
+  '昨夜梦入太虚与剑圣对弈，醒来案头多出',
+  '破庙青砖塌陷，暗格落出',
+  '路过渡口，老渔翁网起一柄',
+  '古井深处倒映异光，捞出一件',
+  '雷击枯木崩裂，树心嵌着',
+  '盲眼道人扣住你手腕，塞下',
+  '云游货郎打翻木箱，遗留下',
+  '古坛封印崩解，飞出一件',
+];
+
+export const MISSED_LORE_TEMPLATES: string[] = [
+  '观云卷云舒，忽见一道紫极剑气划破长空。失之交臂，亦是天意。',
+  '深潭紫气冲天，刚欲靠近却化为飞灰。对天道有了新的体悟。',
+  '路过古树梦见九天玄女讲道，醒来手心残留余香，暗合天理。',
+  '闻到千年古酒香，循香只有空坛。咂摸残香，心境大开。',
+  '一只三足金乌抚过树梢，遗下一缕神华，触碰即散。',
+  '青石板上浮现无字天书，三息后风吹雨打去，若有所思。',
+  '耳畔隐隐传来太古梵音，静心聆听，体内气血奔涌。',
+  '路遇残棋局，落下一子棋盘崩解，隐隐窥见因果运转。',
+  '虚空中落下一滴仙露，化于眉心，精神大振。',
+  '渡口老叟独钓寒江，钓起一口空棺，大笑离去。观之有所悟。',
+  '夜观星象，见北斗七星异动，隐隐感应天道规则。',
+  '古刹晚钟震响，钟声在识海回荡，洗涤神魂。',
+  '路遇疯癫道人赠你一字“道”，字迹凭空消散，若有所感。',
+  '枯井中升起一朵冷焰，触之不伤，心神微动。',
+  '山崖间采得一株灵草，尚未服下便风化归真，天地同源。',
+];
+
+export function randomSuccessPrefix(): string {
+  return SUCCESS_PREFIXES[Math.floor(Math.random() * SUCCESS_PREFIXES.length)];
+}
+
+export function randomMissedLore(expGain: bigint | number): string {
+  const base = MISSED_LORE_TEMPLATES[Math.floor(Math.random() * MISSED_LORE_TEMPLATES.length)];
+  return `错失奇遇：${base}（仙缘 +${expGain}）`;
+}
