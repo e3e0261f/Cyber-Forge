@@ -11,6 +11,7 @@ import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, setStashScroll, stashScrollY, stashMaxScroll, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
 import { scrollAuction, setAuctionScroll, auctionScrollY, auctionMaxScroll } from './auction-view.js';
 import { handleQuestClick, scrollQuest } from './quest-view.js';
+import { handleDungeonClick } from './dungeon-view.js';
 
 let autoStrikeOn = false;
 let actionBusy = false;
@@ -78,9 +79,11 @@ function resetScrollbarDrag() {
 
 const KEY_MAP = {
   Space: 'strike',
-  KeyU: 'u', KeyW: 'w', KeyA: 'a', KeyR: 'r', KeyD: 'd', KeyE: 'e',
+  KeyU: 'u', KeyW: 'w', KeyN: 'n', KeyR: 'r', KeyD: 'd', KeyE: 'e',
   KeyT: 't', KeyG: 'g', KeyF: 'f', KeyS: 's', KeyX: 'b',
   Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5',
+  Btn_i: 'i', Btn_I: 'I', Btn_o: 'o', Btn_O: 'O',
+  Btn_u: 'u', Btn_w: 'w', Btn_n: 'n', Btn_r: 'r', Btn_d: 'd', Btn_e: 'e',
 };
 
 // 📍 本地客户端预测坐标
@@ -226,6 +229,7 @@ export function getModalBounds(id, w, h) {
   if (id === 'inspect') { mw = 480; mh = 320; }
   if (id === 'body') { mw = 580; mh = 560; }
   if (id === 'auction') { mw = 560; mh = 420; }
+  if (id === 'dungeon') { mw = 840; mh = 640; }
   mw = Math.min(mw, w * 0.9);
   mh = Math.min(mh, h * 0.85);
 
@@ -402,6 +406,14 @@ export function setupInteractions() {
       if (id === 'quest' && handleQuestClick(clickX, clickY, bounds)) {
         return;
       }
+      
+      if (id === 'dungeon') {
+        handleDungeonClick(clickX, clickY);
+      }
+
+      if (id === 'apprentice') {
+        // Handle apprentice modal click if needed
+      }
 
       // 2) 可滚动窗口：点击轨道定位，按住滑块拖拽
       if (id === 'stash' || id === 'auction' || id === 'logs') {
@@ -440,15 +452,15 @@ export function setupInteractions() {
         const hubY = my + mh - 46;
         if (clickY >= hubY + 5 && clickY <= hubY + 23) {
           let k = null;
-          if (clickX >= mx + 120 && clickX <= mx + 148) k = 'i';
-          else if (clickX >= mx + 152 && clickX <= mx + 180) k = 'I';
-          else if (clickX >= mx + 286 && clickX <= mx + 314) k = 'o';
-          else if (clickX >= mx + 318 && clickX <= mx + 346) k = 'O';
+          if (clickX >= mx + 120 && clickX <= mx + 148) k = 'Btn_i';
+          else if (clickX >= mx + 152 && clickX <= mx + 180) k = 'Btn_I';
+          else if (clickX >= mx + 286 && clickX <= mx + 314) k = 'Btn_o';
+          else if (clickX >= mx + 318 && clickX <= mx + 346) k = 'Btn_O';
 
           if (k) {
-              if (e.ctrlKey) k += '_100';
-              else if (e.shiftKey) k += '_10';
-              invoke('action', { key: k }).then(snap => { if (snap) syncState(snap); });
+              heldKeys.set(k, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
+              fireKey(k, e.shiftKey, e.ctrlKey, 1);
+              startMainLoop();
               return;
           }
         }
@@ -509,14 +521,47 @@ export function setupInteractions() {
       return;
     }
 
+    // F. 点击左侧升级面板
+    const panelX = 16;
+    const panelY = 80;
+    const btnW = 160;
+    const btnH = 32;
+    const gap = 8;
+    if (clickX >= panelX && clickX <= panelX + btnW) {
+        for (let i = 0; i < 6; i++) {
+            const upY = panelY + i * (btnH + gap);
+            if (clickY >= upY && clickY <= upY + btnH) {
+                const keys = ['Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
+                const k = keys[i];
+                heldKeys.set(k, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
+                fireKey(k, e.shiftKey, e.ctrlKey, 1);
+                startMainLoop();
+                return;
+            }
+        }
+    }
+
     // E. 点击工坊区域挥锤
-    if (clickY > h * 0.25 && clickY < h * 0.85) {
+    if (clickY > h * 0.25 && clickY < h * 0.85 && clickX > 250) { // 避开左侧面板
       doStrike();
     }
   });
 
   // 🌟 4. 鼠标抬起 -> 结束窗口拖拽或完成背包物品换位
   window.addEventListener('pointerup', (e) => {
+    const mouseKeys = ['Btn_i', 'Btn_I', 'Btn_o', 'Btn_O', 'Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
+    let cleared = false;
+    for (const k of mouseKeys) {
+        if (heldKeys.has(k)) {
+            heldKeys.delete(k);
+            cleared = true;
+        }
+    }
+    if (cleared && !heldKeys.size && mainLoopTimer) {
+        clearInterval(mainLoopTimer);
+        mainLoopTimer = null;
+    }
+
     if (scrollbarDrag.active && (scrollbarDrag.pointerId === null || scrollbarDrag.pointerId === e.pointerId)) {
       updateScrollbarDrag(e.clientY);
       resetScrollbarDrag();
@@ -551,6 +596,18 @@ export function setupInteractions() {
   window.addEventListener('pointercancel', () => {
     resetScrollbarDrag();
     document.body.style.cursor = 'default';
+    const mouseKeys = ['Btn_i', 'Btn_I', 'Btn_o', 'Btn_O', 'Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
+    let cleared = false;
+    for (const k of mouseKeys) {
+        if (heldKeys.has(k)) {
+            heldKeys.delete(k);
+            cleared = true;
+        }
+    }
+    if (cleared && !heldKeys.size && mainLoopTimer) {
+        clearInterval(mainLoopTimer);
+        mainLoopTimer = null;
+    }
   });
 
   // 🌟 5. 键盘快捷键 (C/B/P/I/M 独立开关窗口)

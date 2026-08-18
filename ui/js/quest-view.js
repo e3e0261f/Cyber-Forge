@@ -1,22 +1,10 @@
 import { gameState, uiState, syncState } from './state.js';
 import { invoke } from './core.js';
 import { drawHoloModalFrame } from './hud.js';
+import { getModalBounds } from './input.js';
 
 let selectedQuest = null;
 let scrollY = 0;
-
-function getModalBounds(id, w, h) {
-    let mw = 520, mh = 390;
-    if (id === 'auction') { mw = 560; mh = 420; }
-    mw = Math.min(mw, w * 0.9);
-    mh = Math.min(mh, h * 0.85);
-    const pos = uiState.modalPositions[id] || { x: null, y: null };
-    return {
-        mx: pos.x !== null ? pos.x : (w * 0.5 - mw / 2),
-        my: pos.y !== null ? pos.y : (h * 0.5 - mh / 2),
-        mw, mh,
-    };
-}
 
 export function scrollQuest(deltaY) {
     const offerHeight = (gameState.quests || []).length * 76;
@@ -35,15 +23,20 @@ export function handleQuestClick(x, y, bounds) {
     let curY = my + 80 - scrollY;
     
     if (selectedQuest) {
-        const items = (gameState.backpack || []).filter((item) => !item.is_tool);
+        // 放行标题栏，允许拖拽和关闭
+        if (y < my + 44) return false;
+        
+        const items = (gameState.backpack || []).filter((item) => item && !item.is_tool);
         for (let i = 0; i < items.length; i++) {
             const iy = my + 92 + i * 28;
             if (x >= mx + 20 && x <= mx + mw - 20 && y >= iy && y <= iy + 24) {
-                send(`quest_submit_${selectedQuest}_${items[i].id}`); selectedQuest = null; return true;
+                send(`quest_submit_${selectedQuest}_${items[i].id}`); 
+                selectedQuest = null; 
+                return true;
             }
         }
-        // 点击外部区域取消物品选择
-        if (y < my + 52 || x < mx + 12 || x > mx + mw - 12 || y > my + mh - 24) selectedQuest = null;
+        // 任何非物品区域（在窗口内部）的点击都会取消物品选择
+        selectedQuest = null;
         return true;
     }
 
@@ -116,7 +109,7 @@ export function drawQuestModal(ctx, w, h, time) {
         ctx.font = 'bold 13px sans-serif';
         ctx.fillText('选择提交物品（点击后立即消耗）', mx + 24, my + 76);
         ctx.font = '12px sans-serif';
-        (gameState.backpack || []).filter((i) => !i.is_tool).forEach((item, i) => {
+        (gameState.backpack || []).filter((item) => item && !item.is_tool).forEach((item, i) => {
             ctx.fillStyle = '#f1f5f9';
             ctx.fillText(`${item.quality} ${item.name} · ${item.price}`, mx + 24, my + 108 + i * 28);
         });

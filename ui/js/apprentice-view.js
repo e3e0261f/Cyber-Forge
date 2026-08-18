@@ -52,5 +52,5 @@ export function drawApprenticeModal(ctx, w, h, time) {
 
     ctx.fillStyle = '#64748b';
     ctx.font = '10px sans-serif';
-    ctx.fillText('提示：按住键盘 [1]~[5] 快速调配学徒到指定岗位 | 按 [A] 招募 | 按 [R] 扩建厢房', mx + 16, my + mh - 12);
+    ctx.fillText('提示：按住键盘 [1]~[5] 快速调配学徒到指定岗位 | 按 [N] 招募 | 按 [R] 扩建厢房', mx + 16, my + mh - 12);
 }

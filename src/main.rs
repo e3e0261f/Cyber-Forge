@@ -1,4 +1,4 @@
-mod game;
+ 我d game;
 
 use actix_files::Files;
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
@@ -598,8 +598,8 @@ async fn api_action(
                 s.set_toast(format!("连续升级风箱 ×{}：Lv.{}/500", up, s.bellows_level));
             }
         }
-        // 招募学徒 (A)
-        "a" | "A" => {
+        // 招募学徒 (N)
+        "n" | "N" => {
             let mut up = 0;
             for _ in 0..count.min(10_000) {
                 if s.apprentices >= s.max_apprentices {

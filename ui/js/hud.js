@@ -11,6 +11,7 @@ import { drawAuctionModal, auctionHoveredLot } from './auction-view.js';
 import { drawApprenticeModal } from './apprentice-view.js';
 import { getModalBounds, isAutoStrikeActive } from './input.js';
 import { drawQuestModal } from './quest-view.js';
+import { drawDungeonModal } from './dungeon-view.js';
 
 export const hudState = {
     fps: 60,
@@ -228,10 +229,14 @@ export function drawHUD(ctx, w, h, now) {
     ctx.font = 'bold 12px monospace';
     ctx.fillText(`FPS: ${hudState.fps}`, w - 85, dockY + 23);
 
+    // 🌟 2.5 左侧升级面板
+    drawUpgradesPanel(ctx, w, h);
+
     // 🌟 3. 绘制并存全息弹窗
     drawStashModal(ctx, w, h, time);
     drawAuctionModal(ctx, w, h, time);
     drawQuestModal(ctx, w, h, time);
+    drawDungeonModal(ctx, w, h, time);
     drawApprenticeModal(ctx, w, h, time);
     drawLogsModal(ctx, w, h, time);
     drawBodyModal(ctx, w, h, time);
@@ -337,6 +342,53 @@ export function drawHoloModalFrame(ctx, mx, my, mw, mh, themeColor, title, time)
 }
 
 // 🌟 绘制悬浮查看神兵属性与四维天道出生证明 Tooltip
+function drawUpgradesPanel(ctx, w, h) {
+    const s = gameState;
+    if (!s) return;
+
+    const hammerCost = Math.floor(100 * Math.pow(1.015, s.hammer_level || 0));
+    const bellowsCost = Math.floor(50 * Math.pow(1.015, s.bellows_level || 0));
+    const apprenticeCost = Math.floor(200 * Math.pow(1.0135, s.apprentices || 0));
+    const houseCost = Math.floor(1000 * Math.pow(1.025, Math.max(0, (s.max_apprentices || 10) / 5 - 1)));
+    const stashCost = Math.floor(500 * Math.pow(1.02, Math.max(0, (s.max_stash_slots || 20) / 10 - 2)));
+    const marketCost = Math.floor(2000 * Math.pow(1.03, Math.max(0, (s.max_market_slots || 5) / 5 - 1)));
+
+    const upgrades = [
+        { key: 'U', label: '重锤升级', cost: hammerCost, currency: '铜钱', color: '#c89664' },
+        { key: 'W', label: '风箱升级', cost: bellowsCost, currency: '铜钱', color: '#c89664' },
+        { key: 'N', label: '招募学徒', cost: apprenticeCost, currency: '铜钱', color: '#c89664' },
+        { key: 'R', label: '扩建厢房', cost: houseCost, currency: '铜钱', color: '#c89664' },
+        { key: 'D', label: '扩充背包', cost: stashCost, currency: '金币', color: '#ffd700' },
+        { key: 'E', label: '扩建展位', cost: marketCost, currency: '金币', color: '#ffd700' },
+    ];
+
+    const panelX = 16;
+    const panelY = 80;
+    const btnW = 160;
+    const btnH = 32;
+    const gap = 8;
+
+    upgrades.forEach((up, i) => {
+        const y = panelY + i * (btnH + gap);
+        
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(panelX, y, btnW, btnH, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`[${up.key}] ${up.label}`, panelX + 10, y + 20);
+
+        ctx.fillStyle = up.color;
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`费用: ${formatNum(up.cost)} ${up.currency}`, panelX + btnW + 8, y + 20);
+    });
+}
+
 export function drawItemTooltip(ctx, info, w, h) {
     const item = info.item || info.lot;
     if (!item) return;

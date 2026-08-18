@@ -63,7 +63,7 @@ export function drawHUD(ctx, w, h, now) {
 
     ctx.font = '11px sans-serif';
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText('【操作】空格/点击铁砧: 挥锤 | 点击全息蓝图: 查看神兵出生证 | U/W/A/R/D/E: 狂飙升级 | K: 挂机锤', 20, y + 22);
+    ctx.fillText('【操作】空格/点击铁砧: 挥锤 | 点击全息蓝图: 查看神兵出生证 | U/W/N/R/D/E: 狂飙升级 | K: 挂机锤', 20, y + 22);
 
     let fpsColor = '#00ffc8';
     if (hudState.fps < 30) fpsColor = '#ff4d7a';

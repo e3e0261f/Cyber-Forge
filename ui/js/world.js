@@ -15,6 +15,7 @@ import {
 } from './world/workshop.js';
 import { playerPos } from './input.js';
 import { textures } from './world/assets.js';
+import { uiState } from './state.js';
 
 export { fx, initMotes };
 
@@ -60,6 +61,8 @@ export function drawWorld(ctx, w, h, now) {
     // 📍 绘制玩家 (MVP 版本：发光方块或简单小人)
     drawPlayer(ctx, now);
 
+    drawPortal(ctx, w, h, now);
+
     // 3. 漫反射强光
     if (flashLightIntensity > 0) {
         const flashGrad = ctx.createRadialGradient(w * 0.5, h * 0.60, 25, w * 0.5, h * 0.60, w * 0.28);
@@ -76,6 +79,57 @@ export function drawWorld(ctx, w, h, now) {
     drawParticles(ctx, w, h);
 
     ctx.restore();
+}
+
+let wasInPortal = false;
+function drawPortal(ctx, w, h, now) {
+    const portalX = w * 0.9;
+    const portalY = h * 0.75;
+    
+    const distance = Math.hypot(playerPos.x - portalX, playerPos.y - portalY);
+    
+    ctx.save();
+    ctx.translate(portalX, portalY);
+    
+    const pulse = Math.sin(now * 0.003) * 0.1 + 0.9;
+    const grad = ctx.createRadialGradient(0, -20, 10, 0, -20, 70 * pulse);
+    grad.addColorStop(0, 'rgba(239, 68, 68, 0.8)');
+    grad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, -20, 35 * pulse, 70 * pulse, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#fca5a5';
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.ellipse(0, -20, 10, 35, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    if (distance < 150) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 4;
+        ctx.fillText('地牢入口', 0, -110);
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('靠近进入', 0, -90);
+    }
+    ctx.restore();
+
+    if (distance < 60) {
+        if (!wasInPortal) {
+            if (!uiState.isOpen('dungeon')) {
+                uiState.toggleModal('dungeon');
+            }
+            wasInPortal = true;
+        }
+    } else {
+        wasInPortal = false;
+    }
 }
 
 function drawPlayer(ctx, now) {
