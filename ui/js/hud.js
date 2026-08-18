@@ -11,7 +11,6 @@ import { drawAuctionModal, auctionHoveredLot } from './auction-view.js';
 import { drawApprenticeModal } from './apprentice-view.js';
 import { getModalBounds, isAutoStrikeActive } from './input.js';
 import { drawQuestModal } from './quest-view.js';
-import { drawDungeonModal } from './dungeon-view.js';
 
 export const hudState = {
     fps: 60,
@@ -236,7 +235,6 @@ export function drawHUD(ctx, w, h, now) {
     drawStashModal(ctx, w, h, time);
     drawAuctionModal(ctx, w, h, time);
     drawQuestModal(ctx, w, h, time);
-    drawDungeonModal(ctx, w, h, time);
     drawApprenticeModal(ctx, w, h, time);
     drawLogsModal(ctx, w, h, time);
     drawBodyModal(ctx, w, h, time);

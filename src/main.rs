@@ -1,4 +1,4 @@
- 我d game;
+mod game;
 
 use actix_files::Files;
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};

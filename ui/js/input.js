@@ -11,7 +11,6 @@ import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, setStashScroll, stashScrollY, stashMaxScroll, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
 import { scrollAuction, setAuctionScroll, auctionScrollY, auctionMaxScroll } from './auction-view.js';
 import { handleQuestClick, scrollQuest } from './quest-view.js';
-import { handleDungeonClick } from './dungeon-view.js';
 
 let autoStrikeOn = false;
 let actionBusy = false;
@@ -229,7 +228,6 @@ export function getModalBounds(id, w, h) {
   if (id === 'inspect') { mw = 480; mh = 320; }
   if (id === 'body') { mw = 580; mh = 560; }
   if (id === 'auction') { mw = 560; mh = 420; }
-  if (id === 'dungeon') { mw = 840; mh = 640; }
   mw = Math.min(mw, w * 0.9);
   mh = Math.min(mh, h * 0.85);
 
@@ -406,10 +404,6 @@ export function setupInteractions() {
       if (id === 'quest' && handleQuestClick(clickX, clickY, bounds)) {
         return;
       }
-      
-      if (id === 'dungeon') {
-        handleDungeonClick(clickX, clickY);
-      }
 
       if (id === 'apprentice') {
         // Handle apprentice modal click if needed
@@ -524,13 +518,13 @@ export function setupInteractions() {
     // F. 点击左侧升级面板
     const panelX = 16;
     const panelY = 80;
-    const btnW = 160;
-    const btnH = 32;
+    const upBtnW = 160;
+    const upBtnH = 32;
     const gap = 8;
-    if (clickX >= panelX && clickX <= panelX + btnW) {
+    if (clickX >= panelX && clickX <= panelX + upBtnW) {
         for (let i = 0; i < 6; i++) {
-            const upY = panelY + i * (btnH + gap);
-            if (clickY >= upY && clickY <= upY + btnH) {
+            const upY = panelY + i * (upBtnH + gap);
+            if (clickY >= upY && clickY <= upY + upBtnH) {
                 const keys = ['Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
                 const k = keys[i];
                 heldKeys.set(k, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
