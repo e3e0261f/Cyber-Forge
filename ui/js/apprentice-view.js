@@ -50,33 +50,6 @@ export function drawApprenticeModal(ctx, w, h, time) {
         ctx.fillText(`${job.count} 人`, mx + mw - 75, cy + 28);
     });
 
-    // 招募学徒按钮
-    const s = gameState;
-    const apprenticeCost = Math.floor(200 * Math.pow(1.0135, s.apprentices || 0));
-    const btnW = 120;
-    const btnX = mx + 24;
-    const btnY = my + mh - 46;
-    ctx.fillStyle = 'rgba(200, 150, 100, 0.15)';
-    ctx.strokeStyle = '#c89664';
-    ctx.beginPath();
-    ctx.roundRect(btnX, btnY, btnW, 24, 4);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#c89664';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(`[N] 招募学徒 - ${apprenticeCost}铜`, btnX + 8, btnY + 16);
-
-    // 扩建厢房按钮
-    const houseCost = Math.floor(1000 * Math.pow(1.025, Math.max(0, (s.max_apprentices || 10) / 5 - 1)));
-    const btnX2 = mx + 160;
-    ctx.fillStyle = 'rgba(200, 150, 100, 0.15)';
-    ctx.strokeStyle = '#c89664';
-    ctx.beginPath();
-    ctx.roundRect(btnX2, btnY, btnW, 24, 4);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#c89664';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(`[R] 扩建厢房 - ${houseCost}铜`, btnX2 + 8, btnY + 16);
-
     ctx.fillStyle = '#64748b';
     ctx.font = '10px sans-serif';
     ctx.fillText('提示：按住键盘 [1]~[5] 快速调配学徒到指定岗位', mx + 16, my + mh - 12);

@@ -1,19 +1,7 @@
-# 行为准则 (Behavior Rules)
-1. **直接执行**：除非绝对必要，否则不要对整个项目进行漫无目的的全局搜索。
-2. **极简思考**：不要在思考（Thinking）过程中过度发散或尝试多种架构设计，以最直接、最符合直觉的代码解决当前问题。
-3. **严格遵守范围**：如果用户指定了文件、行号或特定方案，必须严格在该范围内操作，禁止擅自重构或修改无关代码。
-
-# 任务解析规范 (Task Parsing Specification)
-在开始任务前，优先检查用户 Prompt 中是否包含以下三要素：
-- 如果提到了特定文件（如 @filename），直接定位并读取该文件，不要使用 grep 搜索全项目。
-- 如果提到了修改范围（如“只修改 X 行”），只能修改该区域，保持文件其余部分原封不动。
-- 如果提供了具体方案或伪代码，必须优先采用该方案，禁止自行替换为其他技术栈或工具库。
-
-#把每次我的提问总结为一下四点。
-【核心任务】：[一句话说明要做什么]
-【精确定位】：请直接打开 @路径/文件名 [可选：并查看第 X 行到第 Y 行]
-【限定范围】：只允许修改 [具体函数名/具体行号/特定逻辑块]，绝对不要改动此文件中的其他代码，也不要修改其他文件。
-【指定方案】：请使用 [指定的函数/库/伪代码逻辑] 来实现。
-
-每次版本变动需要更改文件 Cargo.toml  内的 version = "2.5.4.1" 词条
-每次的更新日志 创建新的已版本号为名的update格式文件，放入update-log目录
+Role: Ultra-Fast CLI Dev (Token-Saver)
+Tools Preferred: Use `rg` for text search, `fd` for file finding, `sg` (ast-grep) for code pattern matching, and `jq` for JSON parsing. NEVER use slow native commands.
+Rules:
+1. **Zero Exploration**: Use `fd`/`rg`/`sg` to locate targets instantly. No blind file reading.
+2. **Zero Verbosity**: Output ONLY the required code block. 
+3. **One-Shot**: Solve in 1 turn to minimize API request counts.
+4. **Auto-Version**: Every 10 changes, increment `Cargo.toml` version (e.g. 2.5.4 -> 2.5.5) and log to `update-log/v{version}.md`.

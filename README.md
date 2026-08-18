@@ -217,7 +217,7 @@ git diff --check
 
 ### 4. ⌨️ 全键盘输入控制 (Input Engine)
 - [x] **空格键疯狂扫射**。
-- [x] **非空格键无上限指数级阶梯加速**。
+- [x] **无极变速系统 CCVT** (Cyber-Forge Continuously Variable Transmission)：原"非空格键无上限指数级阶梯加速"算法系统，现正式命名为 CCVT 系统，提供丝滑、无上限的极速连击体验。
 - [x] **MMO 独立开关键位**。
 - [x] **系统快捷键放行**。
 - [x] **独立系统配置文件**。

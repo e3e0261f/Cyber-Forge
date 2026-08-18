@@ -3,61 +3,6 @@ use crate::game::types::MarketListing;
 use rand::Rng;
 
 impl GameState {
-    // 金融兑换业务 (5% 藏宝阁规费抽成)
-    #[allow(dead_code)]
-    pub fn exchange_copper_to_gold(&mut self) {
-        let amount = 10_000u128;
-        if self.copper >= amount {
-            self.copper -= amount;
-            self.coins += 1; // 10000 铜钱 -> 0.95 金币 (已折算规费)
-            let msg = "藏宝阁兑换：10,000 铜钱 → 金币 1（含 5% 规费抽成）".to_string();
-            self.set_toast(&msg);
-            self.push_log(msg, false, false);
-        } else {
-            self.set_toast("兑换失败：需 10,000 铜钱");
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn exchange_gold_to_copper(&mut self) {
-        if self.coins >= 1 {
-            self.coins -= 1;
-            self.copper += 9_500; // 1 金币 -> 9,500 铜钱 (抽成 500 铜钱)
-            let msg = "藏宝阁兑换：1 金币 → 铜钱 9,500（含 5% 规费抽成）".to_string();
-            self.set_toast(&msg);
-            self.push_log(msg, false, false);
-        } else {
-            self.set_toast("兑换失败：金币不足 1");
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn exchange_gold_to_jade(&mut self) {
-        let amount = 10_000u128;
-        if self.coins >= amount {
-            self.coins -= amount;
-            self.jade += 1; // 10000 金币 -> 0.95 仙玉 (精算入账 1 仙玉)
-            let msg = "藏宝阁兑换：10,000 金币 → 仙玉 1（含 5% 规费抽成）".to_string();
-            self.set_toast(&msg);
-            self.push_log(msg, false, false);
-        } else {
-            self.set_toast("兑换失败：需 10,000 金币");
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn exchange_jade_to_gold(&mut self) {
-        if self.jade >= 1 {
-            self.jade -= 1;
-            self.coins += 9_500; // 1 仙玉 -> 9,500 金币 (抽成 500 金币)
-            let msg = "藏宝阁兑换：1 仙玉 → 金币 9,500（含 5% 规费抽成）".to_string();
-            self.set_toast(&msg);
-            self.push_log(msg, false, false);
-        } else {
-            self.set_toast("兑换失败：仙玉不足 1");
-        }
-    }
-
     pub fn reroll_station_mult(&mut self, announce: bool) {
         let mut rng = rand::thread_rng();
         for m in &mut self.station_mult {

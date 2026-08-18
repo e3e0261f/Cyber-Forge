@@ -84,7 +84,7 @@ const KEY_MAP = {
   KeyU: 'u', KeyN: 'n', KeyR: 'r', KeyE: 'e',
   KeyT: 't', KeyG: 'g', KeyF: 'f', KeyX: 'b',
   Digit0: '0', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5',
-  Btn_i: 'i', Btn_I: 'I', Btn_o: 'o', Btn_O: 'O',
+  Digit6: '6', Digit7: '7', Digit8: '8', Digit9: '9',
   Btn_u: 'u', Btn_w: 'w', Btn_n: 'n', Btn_r: 'r', Btn_d: 'd', Btn_e: 'e',
 };
 
@@ -128,11 +128,8 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
 
   if (!gameConfig.excludeHoldKeys.includes(code)) {
     const step = getStepMultiplier(code, hitCount);
-    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
-      if (ctrlKey) k = k + '_100';
-      else if (shiftKey) k = k + '_10';
-      else if (step > 1) k = `${k}_${step}`;
-    } else if (step > 1) {
+    if (step > 1) {
+      // 对数字键 1-5 等操作进行 CCVT 加速，注意不修改原生 key 字符串
       k = `${k}_${step}`;
     }
   }
@@ -436,23 +433,6 @@ export function setupInteractions() {
           return;
         }
 
-        // 货币互换按钮点击
-        const hubY = my + mh - 46;
-        if (clickY >= hubY + 5 && clickY <= hubY + 23) {
-          let k = null;
-          if (clickX >= mx + 120 && clickX <= mx + 148) k = 'Btn_i';
-          else if (clickX >= mx + 152 && clickX <= mx + 180) k = 'Btn_I';
-          else if (clickX >= mx + 286 && clickX <= mx + 314) k = 'Btn_o';
-          else if (clickX >= mx + 318 && clickX <= mx + 346) k = 'Btn_O';
-
-          if (k) {
-              heldKeys.set(k, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
-              fireKey(k, e.shiftKey, e.ctrlKey, 1);
-              startMainLoop();
-              return;
-          }
-        }
-
         // 背包格子内按下 -> 开启物品拖拽
         const idx = hitTestStashSlot(clickX, clickY, bounds);
         const items = gameState.backpack || [];
@@ -524,7 +504,7 @@ export function setupInteractions() {
 
   // 🌟 4. 鼠标抬起 -> 结束窗口拖拽或完成背包物品换位
   window.addEventListener('pointerup', (e) => {
-    const mouseKeys = ['Btn_i', 'Btn_I', 'Btn_o', 'Btn_O', 'Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
+    const mouseKeys = ['Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
     let cleared = false;
     for (const k of mouseKeys) {
         if (heldKeys.has(k)) {
@@ -571,7 +551,7 @@ export function setupInteractions() {
   window.addEventListener('pointercancel', () => {
     resetScrollbarDrag();
     document.body.style.cursor = 'default';
-    const mouseKeys = ['Btn_i', 'Btn_I', 'Btn_o', 'Btn_O', 'Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
+    const mouseKeys = ['Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
     let cleared = false;
     for (const k of mouseKeys) {
         if (heldKeys.has(k)) {
@@ -598,7 +578,7 @@ export function setupInteractions() {
     if (e.ctrlKey || e.metaKey) return;
 
     // MMO 单独切换弹窗
-    if (e.code === 'F3' || e.code === 'Backquote' || e.code === 'KeyO') { e.preventDefault(); uiState.toggleModal('debug'); return; }
+    if (e.code === 'F3' || e.code === 'Backquote') { e.preventDefault(); uiState.toggleModal('debug'); return; }
     if (e.code === 'KeyC') { e.preventDefault(); uiState.toggleModal('body'); return; }
     if (e.code === 'KeyB') { e.preventDefault(); uiState.toggleModal('stash'); return; }
     if (e.code === 'KeyP') { e.preventDefault(); uiState.toggleModal('auction'); return; }

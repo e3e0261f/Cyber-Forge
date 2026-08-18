@@ -10,7 +10,13 @@ impl GameState {
     // duration_ms: 按键持续的时间
     #[allow(dead_code)]
     pub fn get_step_by_duration(duration_ms: u64) -> u32 {
-        if duration_ms > 5000 {
+        if duration_ms > 10000 {
+            500
+        } else if duration_ms > 8000 {
+            200
+        } else if duration_ms > 6000 {
+            100
+        } else if duration_ms > 5000 {
             50
         }
         // 5秒后，50人/Tick

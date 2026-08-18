@@ -352,18 +352,10 @@ function drawUpgradesPanel(ctx, w, h) {
 
     const hammerCost = Math.floor(100 * Math.pow(1.015, s.hammer_level || 0));
     const bellowsCost = Math.floor(50 * Math.pow(1.015, s.bellows_level || 0));
-    const apprenticeCost = Math.floor(200 * Math.pow(1.0135, s.apprentices || 0));
-    const houseCost = Math.floor(1000 * Math.pow(1.025, Math.max(0, (s.max_apprentices || 10) / 5 - 1)));
-    const stashCost = Math.floor(500 * Math.pow(1.02, Math.max(0, (s.max_stash_slots || 20) / 10 - 2)));
-    const marketCost = Math.floor(2000 * Math.pow(1.03, Math.max(0, (s.max_market_slots || 5) / 5 - 1)));
 
     const upgrades = [
         { key: 'U', label: '重锤升级', cost: hammerCost, currency: '铜钱', color: '#c89664' },
         { key: 'W', label: '风箱升级', cost: bellowsCost, currency: '铜钱', color: '#c89664' },
-        { key: 'N', label: '招募学徒', cost: apprenticeCost, currency: '铜钱', color: '#c89664' },
-        { key: 'R', label: '扩建厢房', cost: houseCost, currency: '铜钱', color: '#c89664' },
-        { key: 'D', label: '扩充背包', cost: stashCost, currency: '金币', color: '#ffd700' },
-        { key: 'E', label: '扩建展位', cost: marketCost, currency: '金币', color: '#ffd700' },
     ];
 
     const panelX = 16;

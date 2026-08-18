@@ -715,12 +715,6 @@ async fn api_action(
         "4" => s.reassign_workers_n(4, count.min(100_000) as u32),
         "5" => s.reassign_workers_n(5, count.min(100_000) as u32),
 
-        // 🌟 货币瞬时 O(1) 批量无损兑换
-        "i" => s.exchange_copper_to_gold_n(count),
-        "I" => s.exchange_gold_to_copper_n(count),
-        "o" => s.exchange_gold_to_jade_n(count),
-        "O" => s.exchange_jade_to_gold_n(count),
-
         // 🌟 放在 _ => {} 之前，确保可以被正常匹配执行
         "toggle_currency_protocol" => s.toggle_currency_protocol(),
 

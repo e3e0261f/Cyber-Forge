@@ -114,7 +114,7 @@ export function drawStashModal(ctx, w, h, time) {
     const totalSlots = gameState.max_backpack || 20;
 
     // 1. 全息外框
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', `【矩阵锦囊】 ${filled}/${totalSlots} [D]扩`, time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', `【矩阵锦囊】 ${filled}/${totalSlots}`, time);
 
     // 2. 排序与协议按钮
     const sortBtnX = mx + mw - 280, sortBtnY = my + 14;
@@ -225,21 +225,6 @@ export function drawStashModal(ctx, w, h, time) {
         ctx.restore();
     }
 
-    // 扩充背包按钮
-    const s = gameState;
-    const stashCost = Math.floor(500 * Math.pow(1.02, Math.max(0, (s.max_stash_slots || 20) / 10 - 2)));
-    const btnW = 120;
-    const btnX = mx + mw / 2 - btnW / 2;
-    const btnY = my + mh - 75;
-    ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
-    ctx.strokeStyle = '#ffd700';
-    ctx.beginPath();
-    ctx.roundRect(btnX, btnY, btnW, 24, 4);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(`扩充背包 (长按) - ${stashCost}金`, btnX + 8, btnY + 16);
-
     // 货币中心
     const hubY = my + mh - 46;
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
@@ -253,25 +238,9 @@ export function drawStashModal(ctx, w, h, time) {
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText(`铜钱 ${gameState.copper}`, mx + 24, hubY + 19);
 
-    const drawSmallBtn = (bx, text) => {
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.strokeStyle = '#475569';
-        ctx.beginPath(); ctx.roundRect(bx, hubY + 5, 28, 18, 3);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(text, bx + 4, hubY + 18);
-    };
-
-    drawSmallBtn(mx + 120, '→金');
-    drawSmallBtn(mx + 152, '←金');
-
     ctx.fillStyle = '#fbbf24'; // gold
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText(`金币 ${gameState.coins}`, mx + 190, hubY + 19);
-
-    drawSmallBtn(mx + 286, '→玉');
-    drawSmallBtn(mx + 318, '←玉');
 
     ctx.fillStyle = '#10b981'; // jade
     ctx.font = 'bold 12px sans-serif';
@@ -281,8 +250,8 @@ export function drawStashModal(ctx, w, h, time) {
     ctx.font = '10px sans-serif';
     ctx.fillText(
         sortOff
-            ? '排序关 · 右键菜单 · 可拖拽 (Shift/Ctrl兑换)'
-            : '右键菜单 | 点排序到关闭可留空 (Shift/Ctrl兑换)',
+            ? '排序关 · 右键菜单 · 可拖拽'
+            : '右键菜单 | 点排序到关闭可留空',
         mx + 16, my + mh - 5
     );
 }
