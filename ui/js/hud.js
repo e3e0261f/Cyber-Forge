@@ -228,8 +228,7 @@ export function drawHUD(ctx, w, h, now) {
     ctx.font = 'bold 12px monospace';
     ctx.fillText(`FPS: ${hudState.fps}`, w - 85, dockY + 23);
 
-    // 🌟 2.5 左侧升级面板
-    drawUpgradesPanel(ctx, w, h);
+    // 🌟 2.5 左侧升级面板已经迁移到各自UI窗口中
 
     // 🌟 3. 绘制并存全息弹窗
     drawStashModal(ctx, w, h, time);

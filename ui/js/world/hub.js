@@ -72,6 +72,31 @@ export function drawHUD(ctx, w, h, now) {
     ctx.font = 'bold 12px monospace';
     ctx.fillText(`FPS: ${hudState.fps}`, w - 85, y + 22);
 
+    // 重锤升级和风箱升级
+    const s = gameState;
+    const hammerCost = Math.floor(100 * Math.pow(1.015, s.hammer_level || 0));
+    const bellowsCost = Math.floor(50 * Math.pow(1.015, s.bellows_level || 0));
+    const btnW = 120;
+    const btnY = y - 36;
+    
+    ctx.fillStyle = 'rgba(200, 150, 100, 0.15)';
+    ctx.strokeStyle = '#c89664';
+    ctx.beginPath();
+    ctx.roundRect(20, btnY, btnW, 24, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c89664';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(`[U] 重锤升级 - ${hammerCost}铜`, 28, btnY + 16);
+
+    ctx.fillStyle = 'rgba(200, 150, 100, 0.15)';
+    ctx.strokeStyle = '#c89664';
+    ctx.beginPath();
+    ctx.roundRect(150, btnY, btnW, 24, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c89664';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(`[W] 风箱升级 - ${bellowsCost}铜`, 158, btnY + 16);
+
     // 3. 全息四维出生证明弹窗
     if (hudState.isInspectModalOpen) {
         drawInspectModal(ctx, w, h);

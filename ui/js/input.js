@@ -11,6 +11,7 @@ import { gameConfig } from './config.js';
 import { stashDrag, cycleSortMode, scrollStash, setStashScroll, stashScrollY, stashMaxScroll, hitTestStashSlot, padBackpackSlots, isStashSortOff } from './stash-view.js';
 import { scrollAuction, setAuctionScroll, auctionScrollY, auctionMaxScroll } from './auction-view.js';
 import { handleQuestClick, scrollQuest } from './quest-view.js';
+import { getStepMultiplier } from './step-acceleration-engine.js';
 
 let autoStrikeOn = false;
 let actionBusy = false;
@@ -113,13 +114,6 @@ export async function doStrike() {
   }
 }
 
-function getStepMultiplier(hits) {
-  for (const tier of gameConfig.stepTiers) {
-    if (hits >= tier.hitsThreshold) return tier.stepSize;
-  }
-  return 1;
-}
-
 async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   if (actionBusy && code !== 'Space') return;
   let k = KEY_MAP[code];
@@ -131,7 +125,7 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   }
 
   if (!gameConfig.excludeHoldKeys.includes(code)) {
-    const step = getStepMultiplier(hitCount);
+    const step = getStepMultiplier(code, hitCount);
     if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
       if (ctrlKey) k = k + '_100';
       else if (shiftKey) k = k + '_10';
@@ -515,25 +509,7 @@ export function setupInteractions() {
       return;
     }
 
-    // F. 点击左侧升级面板
-    const panelX = 16;
-    const panelY = 80;
-    const upBtnW = 160;
-    const upBtnH = 32;
-    const gap = 8;
-    if (clickX >= panelX && clickX <= panelX + upBtnW) {
-        for (let i = 0; i < 6; i++) {
-            const upY = panelY + i * (upBtnH + gap);
-            if (clickY >= upY && clickY <= upY + upBtnH) {
-                const keys = ['Btn_u', 'Btn_w', 'Btn_n', 'Btn_r', 'Btn_d', 'Btn_e'];
-                const k = keys[i];
-                heldKeys.set(k, { hitCount: 1, lastFiredTime: performance.now(), shiftKey: e.shiftKey, ctrlKey: e.ctrlKey });
-                fireKey(k, e.shiftKey, e.ctrlKey, 1);
-                startMainLoop();
-                return;
-            }
-        }
-    }
+    // F. 点击左侧升级面板（已废弃）
 
     // E. 点击工坊区域挥锤
     if (clickY > h * 0.25 && clickY < h * 0.85 && clickX > 250) { // 避开左侧面板

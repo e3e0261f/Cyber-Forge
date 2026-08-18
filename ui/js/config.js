@@ -11,6 +11,10 @@ export const gameConfig = {
 
     // 🌟 2. 阶梯提速算法配置表 (随时可调整点数与倍率)
     stepTiers: [
+        // 确保无极阶梯没有封顶，后续会使用数学公式计算
+        { hitsThreshold: 1000000, stepSize: 1000000 }, 
+        { hitsThreshold: 100000, stepSize: 100000 },
+        { hitsThreshold: 10000, stepSize: 10000 },
         { hitsThreshold: 1000, stepSize: 1000 },  // 1000点后: 每次 +1000
         { hitsThreshold: 100,  stepSize: 100 },   // 100点后: 每次 +100
         { hitsThreshold: 10,   stepSize: 10 },    // 10点后: 每次 +10

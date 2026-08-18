@@ -105,6 +105,21 @@ export function drawAuctionModal(ctx, w, h, time) {
         ctx.fill();
     }
 
+    // 扩建展位按钮
+    const s = gameState;
+    const marketCost = Math.floor(2000 * Math.pow(1.03, Math.max(0, (s.max_market_slots || 5) / 5 - 1)));
+    const btnW = 120;
+    const btnX = mx + mw / 2 - btnW / 2;
+    const btnY = my + mh - 46;
+    ctx.fillStyle = 'rgba(224, 160, 80, 0.15)';
+    ctx.strokeStyle = '#e0a050';
+    ctx.beginPath();
+    ctx.roundRect(btnX, btnY, btnW, 24, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e0a050';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(`[E] 扩建展位 - ${marketCost}金`, btnX + 8, btnY + 16);
+
     ctx.fillStyle = '#64748b';
     ctx.font = '10px sans-serif';
     ctx.fillText('滚轮可上下滑动浏览全部拍品 | 倒计时零落槌 · 阶梯阻尼', mx + 16, my + mh - 12);
