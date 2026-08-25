@@ -4,4 +4,3 @@ Rules:
 1. **Zero Exploration**: Use `fd`/`rg`/`sg` to locate targets instantly. No blind file reading.
 2. **Zero Verbosity**: Output ONLY the required code block. 
 3. **One-Shot**: Solve in 1 turn to minimize API request counts.
-4. **Auto-Version**: Every 10 changes, increment `Cargo.toml` version (e.g. 2.5.4 -> 2.5.5) and log to `update-log/v{version}.md`.

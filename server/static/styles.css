@@ -1,0 +1,15 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100vw;
+  height: 100vh;
+  background: #05070c;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+}
+#game-root {
+width: 100vw;
+height: 100vh;
+display: block;
+}
+

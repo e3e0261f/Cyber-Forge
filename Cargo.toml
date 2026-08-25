@@ -1,12 +1,12 @@
-[package]
-name = "Cyber-Forge"
-version = "2.5.10"
-edition = "2024"
+[workspace]
+members = [
+    "server",
+    "client",
+    "shared",
+]
+resolver = "2"
 
-[dependencies]
-actix-web = "4"
-actix-files = "0.6"  # 🌟 专门用来托管静态 HTML/CSS/JS 的库
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-rand = "0.8"
-sha2 = "0.10" # 🌟 补上存档加密需要的 sha2 依赖
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

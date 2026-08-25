@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>天道锻造大师 · 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a1f3a 50%, #0d1425 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 背景粒子效果 */
+    .bg-particles {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: rgba(0, 255, 200, 0.5);
+      border-radius: 50%;
+      animation: float 15s infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(100vh) scale(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
+
+    /* 登录容器 */
+    .login-container {
+      position: relative;
+      z-index: 10;
+      width: 400px;
+      padding: 40px;
+      background: rgba(15, 20, 35, 0.95);
+      border: 1px solid rgba(0, 255, 200, 0.3);
+      border-radius: 16px;
+      box-shadow: 
+        0 0 60px rgba(0, 255, 200, 0.1),
+        inset 0 0 60px rgba(0, 255, 200, 0.02);
+      backdrop-filter: blur(10px);
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      background: linear-gradient(45deg, #00ffc8, #38bdf8, #a78bfa, #00ffc8);
+      border-radius: 18px;
+      z-index: -1;
+      opacity: 0.3;
+      animation: border-glow 3s linear infinite;
+    }
+
+    @keyframes border-glow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* 标题 */
+    .login-title {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .login-title h1 {
+      font-size: 28px;
+      color: #00ffc8;
+      text-shadow: 0 0 20px rgba(0, 255, 200, 0.5);
+      margin-bottom: 8px;
+    }
+
+    .login-title p {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    /* 输入框 */
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #00ffc8;
+      box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+    }
+
+    .input-group input::placeholder {
+      color: #475569;
+    }
+
+    /* 登录按钮 */
+    .login-btn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #00ffc8 0%, #38bdf8 100%);
+      border: none;
+      border-radius: 8px;
+      color: #0a0e1a;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 255, 200, 0.3);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 错误提示 */
+    .error-msg {
+      color: #ef4444;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 15px;
+      min-height: 20px;
+    }
+
+    /* 游客登录 */
+    .guest-link {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .guest-link a {
+      color: #64748b;
+      font-size: 13px;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .guest-link a:hover {
+      color: #00ffc8;
+    }
+
+    /* 加载状态 */
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0, 255, 200, 0.3);
+      border-top-color: #00ffc8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- 背景粒子 -->
+  <div class="bg-particles" id="particles"></div>
+
+  <!-- 登录表单 -->
+  <div class="login-container">
+    <div class="login-title">
+      <h1>天道锻造大师</h1>
+      <p>Cyber-Forge · WEB v2.5.12</p>
+    </div>
+
+    <form id="loginForm">
+      <div class="input-group">
+        <label>账号</label>
+        <input type="text" id="username" placeholder="请输入账号" autocomplete="username" required>
+      </div>
+
+      <div class="input-group">
+        <label>密码</label>
+        <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">进入游戏</button>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </form>
+
+    <div class="guest-link">
+      <a href="#" id="guestLogin">游客快速登录 →</a>
+    </div>
+  </div>
+
+  <script>
+    // 生成背景粒子
+    const particlesEl = document.getElementById('particles');
+    for (let i = 0; i < 50; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 15 + 's';
+      p.style.animationDuration = (10 + Math.random() * 10) + 's';
+      particlesEl.appendChild(p);
+    }
+
+    // 登录逻辑
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const loading = document.getElementById('loading');
+    const guestLink = document.getElementById('guestLogin');
+
+    // 检查是否已登录
+    const savedToken = localStorage.getItem('auth_token');
+    const savedAccount = localStorage.getItem('account_id');
+    if (savedToken && savedAccount) {
+      // 自动登录
+      enterGame(savedAccount, savedToken);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!username) {
+        showError('请输入账号');
+        return;
+      }
+
+      await doLogin(username, password);
+    });
+
+    guestLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
+      await doLogin(guestId, '', true);
+    });
+
+    async function doLogin(username, password, isGuest = false) {
+      showError('');
+      loading.classList.add('show');
+      loginBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('account_id', data.account_id);
+          
+          // 🌟 确保每个账号都有助记词 (首次登录时生成)
+          if (!localStorage.getItem('player_mnemonic')) {
+            const mnemonic = generateGuestMnemonic();
+            localStorage.setItem('player_mnemonic', mnemonic);
+          }
+          
+          enterGame(data.account_id, data.token);
+        } else {
+          showError(data.message || '登录失败');
+        }
+      } catch (err) {
+        showError('网络错误，请重试');
+      } finally {
+        loading.classList.remove('show');
+        loginBtn.disabled = false;
+      }
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+    }
+
+    function enterGame(accountId, token) {
+      // 存储到全局变量供游戏使用
+      window.GAME_AUTH = { accountId, token };
+      // 加载游戏
+      loadGame();
+    }
+
+    function loadGame() {
+      // 隐藏登录界面，显示游戏
+      document.querySelector('.login-container').style.display = 'none';
+      const particles = document.getElementById('particles') || document.querySelector('.bg-particles');
+      if (particles) particles.style.display = 'none';
+      
+      // 创建游戏容器
+      let gameRoot = document.getElementById('game-root');
+      if (!gameRoot) {
+        gameRoot = document.createElement('div');
+        gameRoot.id = 'game-root';
+        document.body.appendChild(gameRoot);
+      }
+
+      // 动态加载游戏主模块
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'js/app.js?v=2.9.26';
+      document.body.appendChild(script);
+    }
+
+    // 🌟 国风助记词生成 (与 auth.js 同步)
+    function generateGuestMnemonic() {
+      const P1 = ["甲子时","乙丑时","丙寅时","丁卯时","戊辰时","己巳时","庚午时","辛未时","壬申时","癸酉时","甲戌时","乙亥时","甲辰时","丙辰时","戊辰时","庚辰时","壬辰时"];
+      const P2 = ["离火之极","坎水之渊","震雷之怒","巽风之灵","乾天之高","坤地之厚","艮山之稳","兑泽之静","紫气东来","玄阴宿海","太极混元","两仪四象"];
+      const P3 = ["剑宗逍遥","气宗缥缈","体修霸道","丹谷悬壶","阵枢千机","符塔万象","器阁百炼","御兽通灵","魔门桀骜","妖宫诡秘","佛堂普度","道门清静"];
+      const P4 = ["道法自然","万剑归宗","天地无极","乾坤借法","大道无情","因果轮回","涅槃重生","羽化登仙","万法归一","天人合一","上善若水","大音希声"];
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      return `${pick(P1)} · ${pick(P2)} · ${pick(P3)} · ${pick(P4)}`;
+    }
+  </script>
+</body>
+</html>

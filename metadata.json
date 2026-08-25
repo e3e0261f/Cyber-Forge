@@ -1,6 +1,0 @@
-{
-  "name": "Cyber-Forge (天道锻造大师)",
-  "description": "赛博修仙像素风锻造放置挂机游戏，包含天道本源、五行锻造、神兵拍卖、宗门学徒与境界突破系统。",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
