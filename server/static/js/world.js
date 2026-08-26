@@ -562,19 +562,142 @@ function drawCityPortals(ctx, zone, now, time) {
   const portals = zone.portals || zone.gates || [];
   if (!portals.length) return;
 
+  const mapW = zone.width || 27000;
+  const mapH = zone.height || 27000;
+
   ctx.save();
   for (const portal of portals) {
     const px = Number.isFinite(portal.x) ? portal.x : 13500;
     const py = Number.isFinite(portal.y) ? portal.y : 13500;
-    const radius = Number.isFinite(portal.radius) ? portal.radius : 320;
     const pColor = portal.color || '#38bdf8';
-
     const validTime = Number.isFinite(time) ? time : 0;
-    const pulse = Math.sin(validTime * 3 + px * 0.001) * 30;
-    const outRadius = Math.max(25, radius + pulse);
+    const dir = portal.dir || (px <= 1500 ? 'west' : px >= mapW - 1500 ? 'east' : py <= 1500 ? 'north' : py >= mapH - 1500 ? 'south' : 'center');
 
-    if (Number.isFinite(px) && Number.isFinite(py) && Number.isFinite(outRadius)) {
-      const grad = ctx.createRadialGradient(px, py, 20, px, py, outRadius);
+    if (dir === 'west' || dir === 'east') {
+      // 🌟 东西向墙体豁口城门 (贴墙嵌入式，深度 60px，跨度 100px)
+      const gateX = dir === 'west' ? 180 : mapW - 180;
+      const wallEdgeX = dir === 'west' ? 40 : mapW - 40;
+      const gateH = 100;
+      const wave = Math.sin(validTime * 2.5 + py * 0.01) * 4;
+
+      // 1. 墙体豁口凹槽与空间裂隙
+      const grad = ctx.createLinearGradient(dir === 'west' ? wallEdgeX : gateX - 30, py, dir === 'west' ? gateX + 40 : wallEdgeX, py);
+      grad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
+      grad.addColorStop(0.4, `${pColor}88`);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(dir === 'west' ? wallEdgeX : gateX - 40, py - gateH * 0.5, 80, gateH, 6);
+      ctx.fill();
+
+      // 2. 虚空光幕 (沿墙线流动)
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(gateX + (dir === 'west' ? wave : -wave), py - gateH * 0.5 + 6);
+      ctx.lineTo(gateX + (dir === 'west' ? -wave : wave), py + gateH * 0.5 - 6);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 3. 上下石关门柱 (Wall Pillars)
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      // 上门柱
+      ctx.beginPath();
+      ctx.roundRect(dir === 'west' ? wallEdgeX : mapW - 80, py - gateH * 0.5 - 14, 50, 24, 3);
+      ctx.fill(); ctx.stroke();
+      // 下门柱
+      ctx.beginPath();
+      ctx.roundRect(dir === 'west' ? wallEdgeX : mapW - 80, py + gateH * 0.5 - 10, 50, 24, 3);
+      ctx.fill(); ctx.stroke();
+
+      // 4. 门楣标牌 (悬挂于墙顶)
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      const label = portal.name || '城门关隘';
+      const nameW = ctx.measureText(label).width + 24;
+      const tagX = dir === 'west' ? 260 : mapW - 260;
+      const tagY = py - gateH * 0.5 - 28;
+
+      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(tagX - nameW * 0.5, tagY - 14, nameW, 28, 5);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, tagX, tagY + 5);
+
+    } else if (dir === 'north' || dir === 'south') {
+      // 🌟 南北向墙体豁口城门 (贴墙嵌入式，深度 60px，跨度 100px)
+      const gateY = dir === 'north' ? 180 : mapH - 180;
+      const wallEdgeY = dir === 'north' ? 40 : mapH - 40;
+      const gateW = 100;
+      const wave = Math.sin(validTime * 2.5 + px * 0.01) * 4;
+
+      // 1. 墙体豁口凹槽与空间裂隙
+      const grad = ctx.createLinearGradient(px, dir === 'north' ? wallEdgeY : gateY - 30, px, dir === 'north' ? gateY + 40 : wallEdgeY);
+      grad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
+      grad.addColorStop(0.4, `${pColor}88`);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(px - gateW * 0.5, dir === 'north' ? wallEdgeY : gateY - 40, gateW, 80, 6);
+      ctx.fill();
+
+      // 2. 虚空光幕
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(px - gateW * 0.5 + 6, gateY + (dir === 'north' ? wave : -wave));
+      ctx.lineTo(px + gateW * 0.5 - 6, gateY + (dir === 'north' ? -wave : wave));
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 3. 左右石关门柱
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      // 左门柱
+      ctx.beginPath();
+      ctx.roundRect(px - gateW * 0.5 - 14, dir === 'north' ? wallEdgeY : mapH - 80, 24, 50, 3);
+      ctx.fill(); ctx.stroke();
+      // 右门柱
+      ctx.beginPath();
+      ctx.roundRect(px + gateW * 0.5 - 10, dir === 'north' ? wallEdgeY : mapH - 80, 24, 50, 3);
+      ctx.fill(); ctx.stroke();
+
+      // 4. 门楣标牌
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      const label = portal.name || '城门关隘';
+      const nameW = ctx.measureText(label).width + 24;
+      const tagX = px;
+      const tagY = dir === 'north' ? 260 : mapH - 260;
+
+      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(tagX - nameW * 0.5, tagY - 14, nameW, 28, 5);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, tagX, tagY + 5);
+
+    } else {
+      // 🌟 地图中央特殊阵眼 (如天坛) - 50px 半径
+      const radius = 50;
+      const pulse = Math.sin(validTime * 3 + px * 0.001) * 5;
+      const outRadius = Math.max(15, radius + pulse);
+
+      const grad = ctx.createRadialGradient(px, py, 10, px, py, outRadius);
       grad.addColorStop(0, `${pColor}aa`);
       grad.addColorStop(0.5, `${pColor}44`);
       grad.addColorStop(1, 'transparent');
@@ -582,34 +705,31 @@ function drawCityPortals(ctx, zone, now, time) {
       ctx.beginPath();
       ctx.arc(px, py, outRadius, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(validTime * 0.8);
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-radius * 0.4, -radius * 0.4, radius * 0.8, radius * 0.8);
+      ctx.restore();
+
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      const label = portal.name || '虚空法阵';
+      const nameW = ctx.measureText(label).width + 24;
+      const labelY = py - radius - 16;
+
+      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(px - nameW * 0.5, labelY - 14, nameW, 28, 5);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, px, labelY + 5);
     }
-
-    ctx.save();
-    ctx.translate(px, py);
-    ctx.rotate(validTime * 0.8);
-    ctx.strokeStyle = pColor;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(-radius * 0.35, -radius * 0.35, radius * 0.7, radius * 0.7);
-
-    ctx.rotate(-validTime * 1.6);
-    ctx.strokeRect(-radius * 0.25, -radius * 0.25, radius * 0.5, radius * 0.5);
-    ctx.restore();
-
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'center';
-    const nameW = ctx.measureText(portal.name || '传送门').width + 32;
-
-    const labelY = py - radius - 30;
-    ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
-    ctx.strokeStyle = pColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(px - nameW * 0.5, labelY - 20, nameW, 40, 8);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(portal.name || '传送门', px, labelY + 8);
   }
   ctx.restore();
 }
@@ -637,6 +757,11 @@ function drawCityGatherNodes(ctx, zone, now, time) {
     const subLevel = res.subLevel || 1;
     const subColor = SUB_LEVEL_COLORS[subLevel] || SUB_LEVEL_COLORS[1];
     const subTag = res.subLevelTag || 'Ⅰ';
+
+    // 🌟 1.4 ~ 8.4 采集物 (subLevel === 4) 特殊规则: 采集次数耗尽后直接消失，不再渲染
+    if (subLevel === 4 && rem <= 0) {
+      continue;
+    }
 
     // 1. 判定玩家与该矿点的距离 (1人身位 <= 80px)
     const distToPlayer = Math.hypot(playerPos.x - rx, playerPos.y - ry);

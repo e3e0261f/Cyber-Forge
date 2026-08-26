@@ -1,0 +1,5 @@
+{
+    "chat.tools.terminal.autoReplyToPrompts": true,
+    "chat.editing.autoAcceptDelay": 3,
+    "files.autoSaveWorkspaceFilesOnly": true
+}

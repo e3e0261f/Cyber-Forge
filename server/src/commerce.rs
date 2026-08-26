@@ -97,9 +97,11 @@ impl CommerceEngine {
         attrs.insert("buy_price".to_string(), unit_price as f64);
 
         if let Some(slot) = player.backpack.iter_mut().find(|i| i.item_id == trade_item_id && i.stack_count < i.max_stack) {
+            let old_cnt = slot.stack_count as u64;
+            let old_buy = slot.attributes.get("buy_price").copied().unwrap_or(unit_price as f64) as u64;
+            let new_avg = (old_buy * old_cnt + unit_price * (count as u64)) / (old_cnt + count as u64);
             slot.stack_count += count;
-            // 加权均价更新 (供卖出时按成本释放额度)
-            slot.attributes.insert("buy_price".to_string(), unit_price as f64);
+            slot.attributes.insert("buy_price".to_string(), new_avg as f64);
         } else {
             player.backpack.push(GameItem {
                 id: format!("{}_{}", trade_item_id, player.backpack.len()),

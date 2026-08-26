@@ -582,6 +582,21 @@ export function drawStashModal(ctx, w, h, time) {
                 ctx.restore();
             }
 
+            // 🌟 5. 特产买入价极小字标识 (记账无忧: 自动在格底标注当初买入价)
+            const isTrade = item.isTradeGood || item.itemType === 'TradeGood' || (typeof item.id === 'string' && item.id.startsWith('trade_')) || (typeof item.itemId === 'string' && item.itemId.startsWith('trade_'));
+            const buyP = item.attributes?.buy_price ?? item.buy_price ?? item.buyPrice;
+            if (isTrade && buyP !== undefined) {
+                ctx.save();
+                ctx.font = 'bold 8px sans-serif';
+                ctx.fillStyle = '#fde047';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'bottom';
+                ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                ctx.shadowBlur = 3;
+                ctx.fillText(`${buyP}铜`, cx + 3, cy + cellH - 2);
+                ctx.restore();
+            }
+
             if (uiState.mouseX >= cx && uiState.mouseX <= cx + cellW &&
                 uiState.mouseY >= cy && uiState.mouseY <= cy + cellH && !stashDrag.active) {
                 stashHoveredItem = { item, x: cx + cellW + 8, y: cy };

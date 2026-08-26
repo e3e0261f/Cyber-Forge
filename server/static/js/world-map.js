@@ -62,9 +62,9 @@ export function drawWorldMapModal(ctx, w, h, time) {
   // 2. 标签页切换栏
   const tabY = my + 38;
   const tabs = [
-    { id: 'zone', label: '🧭 区域地图 [M]' },
-    { id: 'world', label: '🗺️ 世界拓扑图谱 [L]' },
-    { id: 'trade', label: '🚚 跨城贸易车队' },
+    { id: 'zone', label: '🧭 区域地图 [Tab/M]' },
+    { id: 'world', label: '🗺️ 世界地图 [S+Tab/L]' },
+    { id: 'trade', label: '🚚 跑商路线与行情' },
     { id: 'sky_city', label: '✨ 天空之城解封' },
   ];
   const tabW = 160, tabH = 26;
@@ -281,20 +281,21 @@ function drawZoneMapView(ctx, cx, cy, cw, ch, time, zone) {
   ctx.fillText(`当前坐标: (${Math.round(playerPos.x)}, ${Math.round(playerPos.y)}) | 气候: 【${zone.weather}】 (${zone.weatherBuff || '无特别增益'})`, cx + 24, cardY + 42);
   ctx.fillText(`出口数量: ${gates.length} 个固定星轨门 (坐标锁定于边界 25%~75% 黄金通道)`, cx + 24, cardY + 58);
 
+  const isCarryingTicket = !!(gameState.merchant_ticket && gameState.merchant_ticket.is_active);
   const tpCenterBtnX = cx + cw - 170;
   const tpCenterBtnY = cardY + 16;
-  ctx.fillStyle = 'rgba(0, 255, 200, 0.2)';
-  ctx.strokeStyle = '#00ffc8';
+  ctx.fillStyle = isCarryingTicket ? 'rgba(239, 68, 68, 0.15)' : 'rgba(0, 255, 200, 0.2)';
+  ctx.strokeStyle = isCarryingTicket ? '#ef4444' : '#00ffc8';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.roundRect(tpCenterBtnX, tpCenterBtnY, 140, 36, 4);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#00ffc8';
+  ctx.fillStyle = isCarryingTicket ? '#f87171' : '#00ffc8';
   ctx.font = 'bold 11px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('⚡ 神行归位 (中心点)', tpCenterBtnX + 70, tpCenterBtnY + 22);
+  ctx.fillText(isCarryingTicket ? '🚫 押运中(禁归位)' : '⚡ 神行归位 (中心点)', tpCenterBtnX + 70, tpCenterBtnY + 22);
   ctx.textAlign = 'left'; // 🌟 严谨复位
 }
 
@@ -421,20 +422,21 @@ function drawWorldTopologyView(ctx, cx, cy, cw, ch, time, curZoneId) {
   ctx.fillText(`耗时: 跨越 ${shortest.steps} 张地图 | 全程总需: ${shortest.totalSeconds} 秒 (${etaMins} 分钟) | ${selZone.weatherBuff || '无特殊增益'}`, cx + 24, cardY + 58);
 
   const isHere = curZoneId === selectedZoneId;
+  const isCarryingTicket = !!(gameState.merchant_ticket && gameState.merchant_ticket.is_active);
   const tpBtnX = cx + cw - 160;
   const tpBtnY = cardY + 18;
-  ctx.fillStyle = isHere ? 'rgba(51, 65, 85, 0.5)' : 'rgba(0, 255, 200, 0.25)';
-  ctx.strokeStyle = isHere ? '#475569' : '#00ffc8';
+  ctx.fillStyle = isCarryingTicket ? 'rgba(239, 68, 68, 0.15)' : (isHere ? 'rgba(51, 65, 85, 0.5)' : 'rgba(0, 255, 200, 0.25)');
+  ctx.strokeStyle = isCarryingTicket ? '#ef4444' : (isHere ? '#475569' : '#00ffc8');
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.roundRect(tpBtnX, tpBtnY, 130, 38, 4);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = isHere ? '#64748b' : '#00ffc8';
+  ctx.fillStyle = isCarryingTicket ? '#f87171' : (isHere ? '#64748b' : '#00ffc8');
   ctx.font = 'bold 11px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(isHere ? '已在此地' : '✨ 跨界穿梭 (传送)', tpBtnX + 65, tpBtnY + 23);
+  ctx.fillText(isCarryingTicket ? '🚫 押运商票(禁传送)' : (isHere ? '已在此地' : '✨ 跨界穿梭 (传送)'), tpBtnX + 65, tpBtnY + 23);
   ctx.textAlign = 'left'; // 🌟 严谨复位
 }
 
@@ -637,6 +639,11 @@ export function handleWorldMapClick(mouseX, mouseY) {
     const tpCenterBtnX = contentX + contentW - 170;
     const tpCenterBtnY = cardY + 16;
     if (mouseX >= tpCenterBtnX && mouseX <= tpCenterBtnX + 140 && mouseY >= tpCenterBtnY && mouseY <= tpCenterBtnY + 36) {
+      if (gameState.merchant_ticket && gameState.merchant_ticket.is_active) {
+        gameStore.setToast('⚠️ 持有商票期间严禁飞行与快速传送，必须脚踏实地徒步跑商！', '#ef4444');
+        audio.playUI();
+        return true;
+      }
       playerPos.x = 13500;
       playerPos.y = 13500;
       camera.snapTo(13500, 13500);
@@ -664,6 +671,11 @@ export function handleWorldMapClick(mouseX, mouseY) {
     const tpBtnX = contentX + contentW - 160;
     const tpBtnY = cardY + 18;
     if (mouseX >= tpBtnX && mouseX <= tpBtnX + 130 && mouseY >= tpBtnY && mouseY <= tpBtnY + 38) {
+      if (gameState.merchant_ticket && gameState.merchant_ticket.is_active) {
+        gameStore.setToast('⚠️ 持有商票期间严禁飞行与快速传送，必须脚踏实地徒步跑商！', '#ef4444');
+        audio.playUI();
+        return true;
+      }
       triggerWarpEffect();
       audio.playUI();
       gameStore.dispatchAction(`teleport_zone:${selectedZoneId}`).then(snap => {

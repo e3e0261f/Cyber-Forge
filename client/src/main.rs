@@ -208,69 +208,63 @@ async fn main() {
         }
 
         // ==========================================
-        // 3. 传送门碰撞检测与过图逻辑 (严格 5s 冷却 / 30s 无敌 / 1m 疲劳)
+        // 3. 传送门碰撞检测与过图逻辑 (严格 9¾ 物理碰撞 / 5s 冷却 / 30s 无敌 / 1m 疲劳)
         // ==========================================
-        if let Some(current_zone) = topology.zones.get(&player.zone_id) {
-            for gate in &current_zone.gates {
-                let dist = ((player.x - gate.x).powi(2) + (player.y - gate.y).powi(2)).sqrt();
-                if dist <= PORTAL_RADIUS {
-                    if now < teleport_cooldown_until {
-                        // 处于传送冷却中
-                        let cd_left = teleport_cooldown_until - now;
-                        if now - toast_time >= 1.0 {
-                            toast_message = format!("⏳ 传送阵充能冷却中，剩余 {:.1} 秒", cd_left);
-                            toast_time = now;
-                        }
+        if let Some((_gate, _dir, target_zone_id_ref)) = topology.check_portal_trigger(player.x, player.y, &player.zone_id) {
+            if now < teleport_cooldown_until {
+                // 处于传送冷却中
+                let cd_left = teleport_cooldown_until - now;
+                if now - toast_time >= 1.0 {
+                    toast_message = format!("⏳ 传送阵充能冷却中，剩余 {:.1} 秒", cd_left);
+                    toast_time = now;
+                }
+            } else {
+                // 触发过图传送
+                let from_zone_id = player.zone_id.clone();
+                let target_zone_id = target_zone_id_ref.to_string();
+
+                if let Some(target_zone) = topology.zones.get(&target_zone_id) {
+                    let (rebirth_x, rebirth_y) = topology.get_portal_rebirth_pos(&from_zone_id, &target_zone_id);
+                    
+                    // 附加传送冷却
+                    teleport_cooldown_until = now + GameConfig::TELEPORT_COOLDOWN_SECS as f64;
+
+                    // 判定无敌与疲劳
+                    let got_invul = if now >= invulnerable_fatigue_until {
+                        invulnerable_until = now + GameConfig::INVULNERABLE_DURATION_SECS as f64;
+                        invulnerable_fatigue_until = now + GameConfig::INVULNERABLE_FATIGUE_SECS as f64;
+                        true
                     } else {
-                        // 触发过图传送
-                        let from_zone_id = player.zone_id.clone();
-                        let target_zone_id = gate.target_zone_id.clone();
+                        false
+                    };
 
-                        if let Some(target_zone) = topology.zones.get(&target_zone_id) {
-                            let (rebirth_x, rebirth_y) = topology.get_portal_rebirth_pos(&from_zone_id, &target_zone_id);
-                            
-                            // 附加传送冷却
-                            teleport_cooldown_until = now + GameConfig::TELEPORT_COOLDOWN_SECS as f64;
+                    player.zone_id = target_zone.id.clone();
+                    player.zone_name = target_zone.name.clone();
+                    player.weather = target_zone.weather.clone();
+                    player.weather_effect = target_zone.weather_buff.clone();
+                    player.x = rebirth_x;
+                    player.y = rebirth_y;
 
-                            // 判定无敌与疲劳
-                            let got_invul = if now >= invulnerable_fatigue_until {
-                                invulnerable_until = now + GameConfig::INVULNERABLE_DURATION_SECS as f64;
-                                invulnerable_fatigue_until = now + GameConfig::INVULNERABLE_FATIGUE_SECS as f64;
-                                true
-                            } else {
-                                false
-                            };
+                    // 立即更新相机，消除跳跃感
+                    camera_x = player.x as f32;
+                    camera_y = player.y as f32;
 
-                            player.zone_id = target_zone.id.clone();
-                            player.zone_name = target_zone.name.clone();
-                            player.weather = target_zone.weather.clone();
-                            player.weather_effect = target_zone.weather_buff.clone();
-                            player.x = rebirth_x;
-                            player.y = rebirth_y;
-
-                            // 立即更新相机，消除跳跃感
-                            camera_x = player.x as f32;
-                            camera_y = player.y as f32;
-
-                            _last_teleport_time = now;
-                            if got_invul {
-                                toast_message = format!("🌀 踏入【{}】 🛡️ 获得30秒过图无敌保护！", target_zone.name);
-                            } else {
-                                toast_message = format!("🌀 踏入【{}】 (无敌疲劳中，未获保护)", target_zone.name);
-                            }
-                            toast_time = now;
-
-                            // 强制立即持久化新坐标与区域
-                            storage.save_position(&PlayerPosition {
-                                x: player.x,
-                                y: player.y,
-                                zone_id: player.zone_id.clone(),
-                                last_updated: (now * 1000.0) as u64,
-                            });
-                            last_save_time = now;
-                            break;
-                        }
+                    _last_teleport_time = now;
+                    if got_invul {
+                        toast_message = format!("🌀 踏入【{}】 🛡️ 获得30秒过图无敌保护！", target_zone.name);
+                    } else {
+                        toast_message = format!("🌀 踏入【{}】 (无敌疲劳中，未获保护)", target_zone.name);
                     }
+                    toast_time = now;
+
+                    // 强制立即持久化新坐标与区域
+                    storage.save_position(&PlayerPosition {
+                        x: player.x,
+                        y: player.y,
+                        zone_id: player.zone_id.clone(),
+                        last_updated: (now * 1000.0) as u64,
+                    });
+                    last_save_time = now;
                 }
             }
         }

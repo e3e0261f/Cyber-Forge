@@ -15,9 +15,6 @@ pub struct PortalDef {
     pub target_dir: String,
     pub name: String,
     pub color: Color,
-    // 🧱 核心整合：给图纸增加两个“动态偏移法宝”
-    pub spawn_offset_x: f64, // 落地时，X 轴要附加的偏移量（比如 +450.0 或 -450.0）
-    pub spawn_offset_y: f64, // 落地时，Y 轴要附加的偏移量（比如 +450.0 或 -450.0）
 }
 
 #[derive(Debug, Clone)]
@@ -455,7 +452,7 @@ impl ClientTopology {
         }
     }
 
-    /// 严厉的边界对齐与点对点跨图重生 (绝对禁止回退到地图中央 13500, 13500)
+    /// 严厉的边界对齐与点对点跨图重生 (安全内推 PORTAL_SAFE_INSET)
     pub fn get_portal_rebirth_pos(&self, from_zone_id: &str, target_zone_id: &str) -> (f64, f64) {
         let target_zone = self.zones.get(target_zone_id)
             .expect("致命错误：尝试传送到一个不存在的拓扑域！");
@@ -463,10 +460,15 @@ impl ClientTopology {
         // 寻找目标区域中，能够通回“出发区域”的那个门
         let return_gate = target_zone.gates.iter().find(|g| g.target_zone_id == from_zone_id);
 
-            // 🛠️ 终极因果律整合：没有 if，没有 match，只有纯粹的、跨宇宙通用的物理公式！
-            if let Some(gate) = return_gate {
-                // 无论从哪个方向进、无论哪个地图，CPU 直接去抓这个门自己带的偏移量，啪的一下加减完事！
-                return (gate.x + gate.spawn_offset_x, gate.y + gate.spawn_offset_y);
+        let safe_inset = GameConfig::PORTAL_SAFE_INSET;
+
+        if let Some(gate) = return_gate {
+            match gate.dir.as_str() {
+                "north" => return (gate.x, gate.y + safe_inset), // 从北门进，向南偏移
+                "south" => return (gate.x, gate.y - safe_inset), // 从南门进，向北偏移
+                "east"  => return (gate.x - safe_inset, gate.y), // 从东门进，向西偏移
+                "west"  => return (gate.x + safe_inset, gate.y),  // 从西门进，向东偏移
+                _       => return (gate.x, gate.y + safe_inset),
             }
         }
 
@@ -474,11 +476,36 @@ impl ClientTopology {
         let fallback_gate = target_zone.gates.first()
             .expect("致命拓扑错误：目标区域没有任何传送门定义！");
         
+        let fallback_inset = GameConfig::PORTAL_FALLBACK_INSET;
         match fallback_gate.dir.as_str() {
-            "north" => (fallback_gate.x, 1550.0),
-            "south" => (fallback_gate.x, 25450.0),
-            "east"  => (25450.0, fallback_gate.y),
-            _       => (1550.0, fallback_gate.y),
+            "north" => (fallback_gate.x, fallback_gate.y + fallback_inset),
+            "south" => (fallback_gate.x, fallback_gate.y - fallback_inset),
+            "east"  => (fallback_gate.x - fallback_inset, fallback_gate.y),
+            _       => (fallback_gate.x + fallback_inset, fallback_gate.y),
         }
+    }
+
+    /// 🌟 全局统一：传送门严格物理接触判定
+    pub fn check_portal_trigger(&self, player_x: f64, player_y: f64, zone_id: &str) -> Option<(&PortalDef, &str, &str)> {
+        let zone = self.zones.get(zone_id)?;
+        let gate_half_width = 30.0;
+        let touch_depth = 6.0;
+
+        for gate in &zone.gates {
+            let gx = gate.x;
+            let gy = gate.y;
+            let is_hit = match gate.dir.as_str() {
+                "north" => player_y <= gy + touch_depth && player_y >= gy - 40.0 && (player_x - gx).abs() <= gate_half_width,
+                "south" => player_y >= gy - touch_depth && player_y <= gy + 40.0 && (player_x - gx).abs() <= gate_half_width,
+                "west"  => player_x <= gx + touch_depth && player_x >= gx - 40.0 && (player_y - gy).abs() <= gate_half_width,
+                "east"  => player_x >= gx - touch_depth && player_x <= gx + 40.0 && (player_y - gy).abs() <= gate_half_width,
+                _ => ((player_x - gx).powi(2) + (player_y - gy).powi(2)).sqrt() <= 24.0,
+            };
+
+            if is_hit {
+                return Some((gate, gate.dir.as_str(), gate.target_zone_id.as_str()));
+            }
+        }
+        None
     }
 }

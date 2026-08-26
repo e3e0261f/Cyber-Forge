@@ -80,20 +80,23 @@ export function drawItemTooltip(ctx, info, w, h) {
     const maxStack = Number(item.maxStack || item.max_stack || 99);
     const itemColor = item.color || item.colorHex || '#38bdf8';
     const isMaterial = item.itemType === 'Material' || !item.cert_creator;
-    const isTradeGood = item.isTradeGood || item.itemType === 'TradeGood';
+    const isTradeGood = item.isTradeGood || item.itemType === 'TradeGood' || (typeof item.id === 'string' && item.id.startsWith('trade_')) || (typeof item.itemId === 'string' && item.itemId.startsWith('trade_'));
     const unitW = item.weight || (item.attributes && item.attributes.unit_weight) || 1.0;
     const totalW = (unitW * count).toFixed(1);
 
-    const tw = 270, th = isMaterial ? 190 : 200;
+    const buyPrice = item.attributes?.buy_price ?? item.buy_price ?? item.buyPrice;
+    const originCity = item.attributes?.origin_city || item.attributes?.buy_city || item.origin || 'beijing';
+
+    const tw = 280, th = isTradeGood ? 210 : isMaterial ? 190 : 200;
     let tx = info.x, ty = info.y;
     if (tx + tw > w - 10) tx = w - tw - 15;
     if (ty + th > h - 45) ty = h - th - 50;
 
     ctx.save();
     ctx.fillStyle = 'rgba(6, 10, 18, 0.96)';
-    ctx.strokeStyle = itemColor;
+    ctx.strokeStyle = isTradeGood ? '#f59e0b' : itemColor;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = itemColor;
+    ctx.shadowColor = isTradeGood ? '#f59e0b' : itemColor;
     ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.roundRect(tx, ty, tw, th, 8);
@@ -103,15 +106,15 @@ export function drawItemTooltip(ctx, info, w, h) {
 
     // 🌟 1. 标题与图标
     ctx.textAlign = 'left';
-    ctx.fillStyle = itemColor;
+    ctx.fillStyle = isTradeGood ? '#fbbf24' : itemColor;
     ctx.font = 'bold 13px sans-serif';
     ctx.fillText(`${item.glyph || '💎'} ${item.name || '天地奇珍'}`, tx + 12, ty + 23);
 
     // 估价与类型
     ctx.fillStyle = '#94a3b8';
     ctx.font = '11px monospace';
-    const typeLabel = isMaterial ? '灵矿玄材' : isTradeGood ? '行商特产' : '天道神兵';
-    ctx.fillText(`【${typeLabel}】估价: ${item.price || item.fair || '50'} 金币`, tx + 12, ty + 41);
+    const typeLabel = isTradeGood ? '行商特产' : isMaterial ? '灵矿玄材' : '天道神兵';
+    ctx.fillText(`【${typeLabel}】负重: ${totalW} KG (单件 ${unitW}KG)`, tx + 12, ty + 41);
 
     // 🌟 2. 鼠标提示圆形角标 (标记数量 Circular Count Badge)
     const badgeCenterX = tx + tw - 26;
@@ -158,7 +161,32 @@ export function drawItemTooltip(ctx, info, w, h) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
 
-    if (isMaterial) {
+    if (isTradeGood) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('📦【跨城商贸特产详情】', tx + 12, ty + 68);
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '10px monospace';
+        ctx.fillText(`• 随身堆叠: ${count} 份 ｜ 组总重 ${totalW} KG`, tx + 12, ty + 88);
+
+        const buyStr = buyPrice !== undefined ? `${Number(buyPrice).toLocaleString()} 铜` : '随商票签发';
+        ctx.fillStyle = '#fde047';
+        ctx.fillText(`• 当初买入价: ${buyStr} (原产/进货: ${originCity})`, tx + 12, ty + 108);
+
+        if (buyPrice !== undefined) {
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillText(`• 批次总成本: ${(Number(buyPrice) * count).toLocaleString()} 铜 (释放等额额度)`, tx + 12, ty + 128);
+        } else {
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillText(`• 贸易属性: 九州大宗特产，各大城驿馆无滞销包销`, tx + 12, ty + 128);
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`• 跑商提示: 运往更远或受灾急缺的城池可获暴利`, tx + 12, ty + 148);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(`• 规则约束: 存入银行的货物不可在驿馆卖出`, tx + 12, ty + 168);
+    } else if (isMaterial) {
         ctx.fillStyle = '#10b981';
         ctx.font = 'bold 11px sans-serif';
         ctx.fillText('🌿【天道灵材资质】', tx + 12, ty + 68);

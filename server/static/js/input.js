@@ -6,7 +6,24 @@
 import { clock, syncState, uiState, gameState, gameStore } from './state.js';
 import { triggerStrikeImpact, fx, triggerWarpEffect } from './world.js';
 import { camera } from './camera.js';
-import { WORLD_ZONES, MAP_SIZE, PLAYER_SPEED, PORTAL_RADIUS, RESOURCE_TOOL_MAP, canToolMine, minToolTierFor, formatT4LockRemain, getPortalRebirthPos } from './world/world-topology.js';
+import { 
+  WORLD_ZONES, 
+  MAP_SIZE, 
+  PLAYER_SPEED, 
+  PORTAL_RADIUS, 
+  PORTAL_INTERACT_RADIUS,
+  TELEPORT_COOLDOWN_SECS,
+  INVULNERABLE_DURATION_SECS,
+  INVULNERABLE_FATIGUE_SECS,
+  PORTAL_SAFE_INSET,
+  PORTAL_FALLBACK_INSET,
+  RESOURCE_TOOL_MAP, 
+  canToolMine, 
+  minToolTierFor, 
+  formatT4LockRemain, 
+  getPortalRebirthPos,
+  checkPortalTrigger
+} from './world/world-topology.js';
 import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
 import { auditReporter } from './security/audit-reporter.js';
@@ -282,6 +299,12 @@ export function getNearbyInteractable() {
   let minDist = 100; // 紧贴资源光圈边缘才能采集 (与渲染 isNearby<=80 匹配，留 20px 容差)
 
   for (const res of resources) {
+    const subLevel = res.subLevel || 1;
+    const nodeId = res.id || `${res.x}_${res.y}`;
+    const rem = gatheringState ? gatheringState.getNodeRemaining(nodeId) : 8;
+    // 🌟 1.4 ~ 8.4 采集物 (subLevel === 4) 特殊规则: 采光即消失，不可被交互
+    if (subLevel === 4 && rem <= 0) continue;
+
     const dist = Math.hypot(px - res.x, py - res.y);
     if (dist <= minDist) {
       minDist = dist;
@@ -332,67 +355,6 @@ function checkClientCollision(x, y, radius = 24) {
 }
 
 /**
- * 🌟 贴墙式传送门判定：传送门视为墙上的豁口，而不是地面圆形触发区。
- *
- * 只有玩家的实际移动方向明显指向豁口外侧，并且玩家位于豁口的横向
- * 通行范围内时才允许过门。沿墙平行移动不会触发传送。
- */
-function getPortalWallDirection(portal, zone) {
-  if (portal.dir) return portal.dir;
-
-  const mapW = zone.width || MAP_SIZE;
-  const mapH = zone.height || MAP_SIZE;
-  const distances = {
-    north: Math.abs(portal.y),
-    south: Math.abs(mapH - portal.y),
-    west: Math.abs(portal.x),
-    east: Math.abs(mapW - portal.x),
-  };
-
-  return Object.entries(distances).sort((a, b) => a[1] - b[1])[0][0];
-}
-
-function canEnterPortalThroughWall(portal, zone, x, y, vx, vy) {
-  const speed = Math.hypot(vx, vy);
-  if (speed < 1) return false;
-
-  const dir = getPortalWallDirection(portal, zone);
-  let normalX = 0;
-  let normalY = 0;
-  let lateralDistance = Infinity;
-
-  switch (dir) {
-    case 'north':
-      normalY = -1;
-      lateralDistance = Math.abs(x - portal.x);
-      break;
-    case 'south':
-      normalY = 1;
-      lateralDistance = Math.abs(x - portal.x);
-      break;
-    case 'east':
-      normalX = 1;
-      lateralDistance = Math.abs(y - portal.y);
-      break;
-    case 'west':
-      normalX = -1;
-      lateralDistance = Math.abs(y - portal.y);
-      break;
-    default:
-      return false;
-  }
-
-  const portalRadius = Number.isFinite(portal.radius) ? portal.radius : PORTAL_RADIUS;
-  // 横向必须真正进入豁口，不能擦着门框边缘通过。
-  if (lateralDistance > portalRadius) return false;
-
-  // 移动方向必须至少 65% 指向墙外的豁口方向。
-  // 因此贴墙平行奔跑（点积接近 0）不会误触。
-  const outwardIntent = (vx * normalX + vy * normalY) / speed;
-  return outwardIntent >= 0.65;
-}
-
-/**
  * 🌟 阿尔比恩式硬核采集读条状态机 (Albion-Style Channeling Gathering Engine)
  */
 export const gatheringState = {
@@ -415,6 +377,12 @@ export const gatheringState = {
       this.nodeIdToRemaining[nodeId] = 8;
     }
     return this.nodeIdToRemaining[nodeId];
+  },
+
+  isT4Node(nodeId, res) {
+    if (res && (Number(res.subLevel) === 4 || res.isT4)) return true;
+    if (typeof nodeId === 'string' && nodeId.includes('_t4_')) return true;
+    return false;
   },
 
   start(target) {
@@ -457,7 +425,11 @@ export const gatheringState = {
     const rem = this.getNodeRemaining(nodeId);
     if (rem <= 0) {
       console.warn('[Gathering] start 拒绝: 节点储量耗尽', nodeId);
-      gameStore.setToast('⚠️ 资源节点已开采耗尽，正在汲取天地灵气再生中...');
+      if (resSubLevel === 4 || resData.isT4) {
+        gameStore.setToast('⚠️ 4级珍稀灵物已开采完毕并化为灵气消散，将在下次天地异变(6小时后)刷新重现');
+      } else {
+        gameStore.setToast('⚠️ 资源节点已开采耗尽，正在汲取天地灵气再生中...');
+      }
       return;
     }
     console.log('[Gathering] 开始连续读条:', nodeId, 'remaining:', rem,
@@ -511,10 +483,12 @@ export const gatheringState = {
     }
 
     // 2. 客户端资源点自然再生循环 (每 5 秒检测一次，20 秒静止再生 1 点储量，上限 8 点)
+    // 🌟 1.4~8.4 采集物 (subLevel === 4) 特殊规则: 采光后不参与自然再生，直接消散，仅随 6 小时世界刷新重新生成
     if (now - this.lastRegenTick > 5000) {
       this.lastRegenTick = now;
       for (const [id, rem] of Object.entries(this.nodeIdToRemaining)) {
         if (rem < 8) {
+          if (this.isT4Node(id)) continue;
           const lastTime = this.nodeIdToLastHarvest[id] || 0;
           if (now - lastTime > 20000) {
             this.nodeIdToRemaining[id] = Math.min(8, rem + 1);
@@ -743,7 +717,17 @@ export const gatheringState = {
 
     // 检查是否彻底采光 (8次)
     if (newRem <= 0) {
-      gameStore.setToast(`🎉【${resData?.name || targetItemName}】已完全开采耗尽 (${baseHarvestCount}/8)！按 B 打开锦囊查看物品`);
+      if (resSubLevel === 4 || resData?.isT4) {
+        gameStore.setToast(`🎉 4级天地珍宝【${resData?.name || targetItemName}】采掘完毕已化为灵气消散，将在 6 小时后天地异变重现！`);
+        gameStore.addLog(`✨ 4级天地珍宝【${resData?.name || targetItemName}】已采尽消散，下轮 6 小时刷新重聚`);
+        // 🌟 1.4~8.4 采集物采完直接从当前地图资源列表中剔除，实现立即消失
+        const zone = getCurrentZone();
+        if (zone && Array.isArray(zone.resources)) {
+          zone.resources = zone.resources.filter(r => (r.id || `${r.x}_${r.y}`) !== nodeId);
+        }
+      } else {
+        gameStore.setToast(`🎉【${resData?.name || targetItemName}】已完全开采耗尽 (${baseHarvestCount}/8)！按 B 打开锦囊查看物品`);
+      }
       this._autoChain = false;
     } else if (!this._autoChain) {
       gameStore.setToast(`✨ 采掘成功！获得【${targetItemName}】x${finalHarvestCount} (${newRem}/8) 按B查看锦囊`);
@@ -857,6 +841,9 @@ async function fireKey(code, shiftKey, ctrlKey, hitCount = 1) {
   }
 }
 
+// 🌟 导出全局统一传送门检测函数
+export { checkPortalTrigger };
+
 /**
  * 🌟 核心：帧驱动本地零延迟移动物理积分与视口预测 (Frame-Driven Physics & Movement)
  * 在 requestAnimationFrame 循环中调用，与垂直同步严格对齐，彻底消除 setInterval 导致的掉帧与颤抖
@@ -936,41 +923,18 @@ export function updatePlayerMovement(now = performance.now()) {
     gameStore.updatePlayerPosition(playerPos.x, playerPos.y, zone.id, { persist: true, syncServer: false });
   }
 
-  // 🌟 贴墙式 / 豁口传送：不再使用“圆形范围擦边即传送”。
-  // 只有玩家明确朝着墙上豁口的法线方向移动才会过门；沿墙平行奔跑不会触发。
-  if (now - lastPortalTime > 1200) {
-    for (const portal of (zone.portals || zone.gates || [])) {
-      if (!canEnterPortalThroughWall(portal, zone, playerPos.x, playerPos.y, playerPos.vx, playerPos.vy)) {
-        continue;
-      }
-
-      const isSky = portal.targetZoneId === 'sky_city' || portal.targetCityId === 'sky_city';
-      if (isSky && !gameState.sky_city_unlocked) {
-        continue;
-      }
+  // 🌟 传送门触发检测 (全局统一极短物理接触判定)
+  const cooldownMs = (TELEPORT_COOLDOWN_SECS || 5) * 1000;
+  if (now - lastPortalTime > cooldownMs) {
+    const hit = checkPortalTrigger(playerPos, zone, mapW, mapH, gameState.sky_city_unlocked);
+    if (hit) {
+      const { portal, dir, targetId } = hit;
       lastPortalTime = now;
       triggerWarpEffect();
       audio.playUI();
-      const targetId = portal.targetZoneId || portal.targetCityId;
-      const targetZone = WORLD_ZONES[targetId];
-      if (!targetZone) {
-        console.error(`[Portal] 目标地图不存在: ${targetId}`);
-        lastPortalTime = now;
-        continue;
-      }
-
-      // 本地位置必须与服务端的点对点重生规则一致：从目标地图的“返回门”内侧进入。
-      // 绝不再使用 targetZone.spawnX/spawnY 作为普通传送落点，避免落到地图中央。
-      let targetSpawn;
-      try {
-        targetSpawn = getPortalRebirthPos(zone.id, targetId, portal.dir);
-      } catch (error) {
-        console.error('[Portal] 拓扑入口缺失，取消传送:', error);
-        lastPortalTime = now;
-        continue;
-      }
-      const targetSpawnX = targetSpawn.x;
-      const targetSpawnY = targetSpawn.y;
+      const rebirthPos = getPortalRebirthPos(zone.id, targetId, dir);
+      const targetSpawnX = rebirthPos.x;
+      const targetSpawnY = rebirthPos.y;
 
       // 本地立即更新坐标与区域，平滑无缝过图
       playerPos.x = targetSpawnX;
@@ -1001,7 +965,6 @@ export function updatePlayerMovement(now = performance.now()) {
           camera.snapTo(playerPos.x, playerPos.y);
         }
       });
-      break;
     }
   }
 
@@ -1436,6 +1399,29 @@ export function setupInteractions() {
       return;
     }
     if (e.ctrlKey || e.metaKey) return;
+
+    // 🌟 商票跑商快捷键：Tab (区域地图) / Shift+Tab (世界地图)
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Shift + TAB 键：打开“世界地图”，方便玩家查看全局城市分布与远距离路线
+        if (uiState.isOpen('map') && activeTab === 'world') {
+          uiState.closeModal('map');
+        } else {
+          setActiveTab('world');
+          uiState.openModal('map');
+        }
+      } else {
+        // TAB 键：打开“区域地图”，方便玩家规划当前区域的跑商路线
+        if (uiState.isOpen('map') && activeTab === 'zone') {
+          uiState.closeModal('map');
+        } else {
+          setActiveTab('zone');
+          uiState.openModal('map');
+        }
+      }
+      return;
+    }
 
     if (dropConfirmState.active) {
       if (e.code === 'Escape') {

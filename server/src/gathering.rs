@@ -72,6 +72,10 @@ impl GatheringEngine {
                 ticker.tick().await;
                 for mut item in nodes.iter_mut() {
                     let node = item.value_mut();
+                    // 🌟 1.4~8.4 采集物 (T4 纪元刷新) 采光后不参与常规自然再生，待 6 小时纪元刷新
+                    if node.node_id.contains("_t4_") {
+                        continue;
+                    }
                     if node.current_yield < node.max_capacity {
                         node.current_yield = (node.current_yield + GameConfig::GATHER_RESPAWN_AMOUNT).min(node.max_capacity);
                     }

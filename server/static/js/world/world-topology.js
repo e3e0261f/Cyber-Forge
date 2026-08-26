@@ -15,10 +15,16 @@
 
 export const MAP_SIZE = 27000;
 export const PLAYER_SPEED = 300; // px/s -> 27000 / 300 = 90 seconds
-export const PORTAL_RADIUS = 320;
+export const PORTAL_RADIUS = 24;
+export const PORTAL_INTERACT_RADIUS = 36;
+export const TELEPORT_COOLDOWN_SECS = 5;
+export const INVULNERABLE_DURATION_SECS = 30;
+export const INVULNERABLE_FATIGUE_SECS = 60;
+export const PORTAL_SAFE_INSET = 120;
+export const PORTAL_FALLBACK_INSET = 120;
 export const GATE_BOUNDARY_MIN = 6750; // 25% of 27000
 export const GATE_BOUNDARY_MAX = 20250; // 75% of 27000
-export const SAFE_PORTAL_OFFSET = 450; // 跨图重生安全内推像素 (防止立即二次触发传送)
+export const SAFE_PORTAL_OFFSET = 120; // 跨图重生安全内推像素 (防止立即二次触发传送)
 
 export const BIOME_THEMES = {
   capital: { primary: '#ef4444', bg: '#160808', tile1: '#1c0a0a', tile2: '#240e0e', glow: '#f87171' },
@@ -472,8 +478,6 @@ export const WORLD_ZONES = {
     spawnY: 13500,
     gates: [
       { dir: 'north', x: 8100, y: 500, targetZoneId: 'wild_bj_hb_1', targetDir: 'south', name: '北直门 ➔ 太行官道·幽燕关隘', color: '#f97316' },
-      { dir: 'south', x: 10800, y: 26500, targetZoneId: 'wild_bj_zj_1', targetDir: 'north', name: '运河南门 ➔ 大运河津·张家湾津', color: '#06b6d4' },
-      { dir: 'north', x: 13500, y: 500, targetZoneId: 'sky_city', targetDir: 'south', name: '太虚星门 ➔ 天空之城', color: '#a855f7' },
       { dir: 'east', x: 26500, y: 17550, targetZoneId: 'wild_bj_sh_1', targetDir: 'west', name: '东华门 ➔ 京沪漕运·通州泊口', color: '#f59e0b' },
       { dir: 'south', x: 18900, y: 26500, targetZoneId: 'wild_bj_yn_1', targetDir: 'north', name: '南薰门 ➔ 蜀道滇南·秦岭古栈', color: '#10b981' },
       { dir: 'west', x: 500, y: 10800, targetZoneId: 'wild_bj_qh_1', targetDir: 'east', name: '西便门 ➔ 丝路陇右·居庸天堑', color: '#a855f7' },
@@ -533,7 +537,6 @@ export const WORLD_ZONES = {
     spawnY: 13500,
     gates: [
       { dir: 'west', x: 500, y: 18900, targetZoneId: 'wild_bj_sh_6', targetDir: 'east', name: '申西门 ➔ 京沪漕运·吴淞商港', color: '#ef4444' },
-      { dir: 'west', x: 500, y: 13500, targetZoneId: 'sky_city', targetDir: 'east', name: '太虚西门 ➔ 天空之城', color: '#a855f7' },
       { dir: 'north', x: 12150, y: 500, targetZoneId: 'wild_hb_sh_6', targetDir: 'south', name: '长江门 ➔ 渤海通途·崇明外泽', color: '#f97316' },
       { dir: 'south', x: 17550, y: 26500, targetZoneId: 'wild_sh_zj_1', targetDir: 'north', name: '沪杭门 ➔ 钱塘水陆·松江古渡', color: '#06b6d4' },
     ],
@@ -564,7 +567,7 @@ export const WORLD_ZONES = {
     gates: [
       { dir: 'north', x: 10800, y: 500, targetZoneId: 'wild_sh_zj_6', targetDir: 'south', name: '武林门 ➔ 钱塘水陆·诸暨剑潭', color: '#f59e0b' },
       { dir: 'west', x: 500, y: 16200, targetZoneId: 'wild_zj_yn_1', targetDir: 'east', name: '钱清门 ➔ 百越灵岭·仙霞古道', color: '#10b981' },
-      { dir: 'north', x: 18900, y: 500, targetZoneId: 'wild_bj_zj_6', targetDir: 'south', name: '运河门 ➔ 大运河津·拱宸古桥', color: '#ef4444' },
+      { dir: 'northwest', x: 8100, y: 500, targetZoneId: 'wild_bj_zj_6', targetDir: 'south', name: '运河门 ➔ 大运河津·拱宸古桥', color: '#ef4444' },
     ],
     resources: [],
     obstacles: [
@@ -593,7 +596,7 @@ export const WORLD_ZONES = {
     gates: [
       { dir: 'north', x: 16200, y: 500, targetZoneId: 'wild_bj_yn_6', targetDir: 'south', name: '金马门 ➔ 蜀道滇南·苍山古林', color: '#ef4444' },
       { dir: 'east', x: 26500, y: 12150, targetZoneId: 'wild_zj_yn_6', targetDir: 'west', name: '碧鸡门 ➔ 百越灵岭·罗霄绝顶', color: '#06b6d4' },
-      { dir: 'north', x: 9450, y: 500, targetZoneId: 'wild_yn_qh_1', targetDir: 'south', name: '苍山门 ➔ 茶马雪山·玉龙雪峰', color: '#eab308' },
+      { dir: 'northwest', x: 500, y: 9450, targetZoneId: 'wild_yn_qh_1', targetDir: 'southeast', name: '苍山门 ➔ 茶马雪山·玉龙雪峰', color: '#eab308' },
     ],
     resources: [],
     obstacles: [
@@ -621,7 +624,6 @@ export const WORLD_ZONES = {
     spawnY: 13500,
     gates: [
       { dir: 'east', x: 26500, y: 16200, targetZoneId: 'wild_bj_qh_6', targetDir: 'west', name: '湟水门 ➔ 丝路陇右·倒淌河畔', color: '#ef4444' },
-      { dir: 'east', x: 26500, y: 13500, targetZoneId: 'sky_city', targetDir: 'west', name: '太虚东门 ➔ 天空之城', color: '#a855f7' },
       { dir: 'south', x: 13500, y: 26500, targetZoneId: 'wild_yn_qh_6', targetDir: 'north', name: '唐蕃门 ➔ 茶马雪山·巴颜喀拉', color: '#10b981' },
       { dir: 'north', x: 8100, y: 500, targetZoneId: 'wild_qh_hb_1', targetDir: 'south', name: '祁连门 ➔ 黄土陇东·祁连雪积', color: '#f97316' },
     ],
@@ -728,36 +730,19 @@ function createWildernessChain(prefix, baseName, stationNames, startCityId, endC
 
     const gates = [];
 
-    const entryGate = startDir === 'north'
-      ? { dir: 'south', x: entryOffset, y: 26500, targetZoneId: prevZoneId, targetDir: 'north', name: `南口 ➔ ${prevZoneName}` }
-      : startDir === 'south'
-        ? { dir: 'north', x: entryOffset, y: 500, targetZoneId: prevZoneId, targetDir: 'south', name: `北口 ➔ ${prevZoneName}` }
-        : startDir === 'east'
-          ? { dir: 'west', x: 500, y: entryOffset, targetZoneId: prevZoneId, targetDir: 'east', name: `西口 ➔ ${prevZoneName}` }
-          : { dir: 'east', x: 26500, y: entryOffset, targetZoneId: prevZoneId, targetDir: 'west', name: `东口 ➔ ${prevZoneName}` };
-
-    let exitGate;
-    if (i === count) {
-      // endDir 表示“终点主城一侧的门方向”；荒野终点门必须位于相反边界。
-      exitGate = endDir === 'north'
-        ? { dir: 'south', x: exitOffset, y: 26500, targetZoneId: nextZoneId, targetDir: 'north', name: `南口 ➔ ${nextZoneName}` }
-        : endDir === 'south'
-          ? { dir: 'north', x: exitOffset, y: 500, targetZoneId: nextZoneId, targetDir: 'south', name: `北口 ➔ ${nextZoneName}` }
-          : endDir === 'east'
-            ? { dir: 'west', x: 500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'east', name: `西口 ➔ ${nextZoneName}` }
-            : { dir: 'east', x: 26500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'west', name: `东口 ➔ ${nextZoneName}` };
+    if (startDir === 'north') {
+      gates.push({ dir: 'south', x: entryOffset, y: 26500, targetZoneId: prevZoneId, targetDir: 'north', name: `南口 ➔ ${prevZoneName}` });
+      gates.push({ dir: 'north', x: exitOffset, y: 500, targetZoneId: nextZoneId, targetDir: 'south', name: `北口 ➔ ${nextZoneName}` });
+    } else if (startDir === 'south') {
+      gates.push({ dir: 'north', x: entryOffset, y: 500, targetZoneId: prevZoneId, targetDir: 'south', name: `北口 ➔ ${prevZoneName}` });
+      gates.push({ dir: 'south', x: exitOffset, y: 26500, targetZoneId: nextZoneId, targetDir: 'north', name: `南口 ➔ ${nextZoneName}` });
+    } else if (startDir === 'east') {
+      gates.push({ dir: 'west', x: 500, y: entryOffset, targetZoneId: prevZoneId, targetDir: 'east', name: `西口 ➔ ${prevZoneName}` });
+      gates.push({ dir: 'east', x: 26500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'west', name: `东口 ➔ ${nextZoneName}` });
     } else {
-      exitGate = startDir === 'north'
-        ? { dir: 'north', x: exitOffset, y: 500, targetZoneId: nextZoneId, targetDir: 'south', name: `北口 ➔ ${nextZoneName}` }
-        : startDir === 'south'
-          ? { dir: 'south', x: exitOffset, y: 26500, targetZoneId: nextZoneId, targetDir: 'north', name: `南口 ➔ ${nextZoneName}` }
-          : startDir === 'east'
-            ? { dir: 'east', x: 26500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'west', name: `东口 ➔ ${nextZoneName}` }
-            : { dir: 'west', x: 500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'east', name: `西口 ➔ ${nextZoneName}` };
+      gates.push({ dir: 'east', x: 26500, y: entryOffset, targetZoneId: prevZoneId, targetDir: 'west', name: `东口 ➔ ${prevZoneName}` });
+      gates.push({ dir: 'west', x: 500, y: exitOffset, targetZoneId: nextZoneId, targetDir: 'east', name: `西口 ➔ ${nextZoneName}` });
     }
-
-    gates.push(entryGate);
-    gates.push(exitGate);
 
     const sName = stationNames[i - 1] || `${baseName}·第${i}驿`;
     const obsOffset = (i * 3100) % 5000;
@@ -865,7 +850,7 @@ for (const [key, zone] of Object.entries(WORLD_ZONES)) {
 applyT4Resources();
 
 /**
- * 点对点跨图重生计算函数 (Edge-to-Edge Portal Rebirth - 严厉禁止回退到 13500,13500)
+ * 点对点跨图重生计算函数 (Edge-to-Edge Portal Rebirth - 函数版，基于 PORTAL_SAFE_INSET = 50)
  */
 export function getPortalRebirthPos(fromZoneId, targetZoneId, fromGateDir) {
   const targetZone = WORLD_ZONES[targetZoneId];
@@ -873,29 +858,116 @@ export function getPortalRebirthPos(fromZoneId, targetZoneId, fromGateDir) {
     throw new Error(`致命错误：尝试传送到一个不存在的拓扑域【${targetZoneId}】！`);
   }
 
-  let returnGate = (targetZone.gates || []).find((g) => g.targetZoneId === fromZoneId);
+  const mapW = targetZone.width || MAP_SIZE;
+  const mapH = targetZone.height || MAP_SIZE;
+  const safeInset = PORTAL_SAFE_INSET; // 50
+  const fallbackInset = PORTAL_FALLBACK_INSET; // 50
 
-  if (!returnGate && (targetZone.gates || []).length > 0) {
+  const allGates = targetZone.gates || targetZone.portals || [];
+  let returnGate = allGates.find((g) => g.targetZoneId === fromZoneId || g.targetCityId === fromZoneId);
+
+  if (!returnGate && allGates.length > 0) {
     const oppMap = { north: 'south', south: 'north', east: 'west', west: 'east' };
     const wantDir = fromGateDir ? oppMap[fromGateDir] : undefined;
-    returnGate = (wantDir ? targetZone.gates.find((g) => g.dir === wantDir) : undefined) || targetZone.gates[0];
+    returnGate = (wantDir ? allGates.find((g) => g.dir === wantDir) : undefined) || allGates[0];
   }
 
   if (returnGate) {
-    if (returnGate.dir === 'south') {
-      return { x: returnGate.x, y: 25900 - 450 };
-    } else if (returnGate.dir === 'north') {
-      return { x: returnGate.x, y: 1100 + 450 };
-    } else if (returnGate.dir === 'east') {
-      return { x: 25900 - 450, y: returnGate.y };
-    } else if (returnGate.dir === 'west') {
-      return { x: 1100 + 450, y: returnGate.y };
+    const gx = Number.isFinite(returnGate.x) ? returnGate.x : mapW * 0.5;
+    const gy = Number.isFinite(returnGate.y) ? returnGate.y : mapH * 0.5;
+    const dir = returnGate.dir || (gx <= 1500 ? 'west' : gx >= mapW - 1500 ? 'east' : gy <= 1500 ? 'north' : gy >= mapH - 1500 ? 'south' : 'center');
+
+    if (dir === 'south') {
+      return { x: gx, y: gy - safeInset };
+    } else if (dir === 'north') {
+      return { x: gx, y: gy + safeInset };
+    } else if (dir === 'east') {
+      return { x: gx - safeInset, y: gy };
+    } else if (dir === 'west') {
+      return { x: gx + safeInset, y: gy };
+    } else {
+      return { x: gx, y: gy + safeInset };
     }
   }
 
-  // 正常世界传送必须有明确的对向门；绝不再悄悄把玩家送到地图中央。
-  // 如果这里失败，说明拓扑数据本身损坏，应在开发阶段立即暴露，而不是用中心点掩盖问题。
-  throw new Error(`传送拓扑错误：${fromZoneId} -> ${targetZoneId} 没有对应的入口门`);
+  const fallbackGate = allGates[0];
+  if (fallbackGate) {
+    const gx = Number.isFinite(fallbackGate.x) ? fallbackGate.x : mapW * 0.5;
+    const gy = Number.isFinite(fallbackGate.y) ? fallbackGate.y : mapH * 0.5;
+    const dir = fallbackGate.dir || (gx <= 1500 ? 'west' : gx >= mapW - 1500 ? 'east' : gy <= 1500 ? 'north' : gy >= mapH - 1500 ? 'south' : 'center');
+
+    if (dir === 'north') return { x: gx, y: gy + fallbackInset };
+    if (dir === 'south') return { x: gx, y: gy - fallbackInset };
+    if (dir === 'east') return { x: gx - fallbackInset, y: gy };
+    if (dir === 'west') return { x: gx + fallbackInset, y: gy };
+    return { x: gx, y: gy + fallbackInset };
+  }
+
+  return { x: targetZone.spawnX || 13500, y: targetZone.spawnY || 13500 };
+}
+
+/**
+ * 🌟 全局统一：传送门与城门严格物理碰撞触发检测函数 (Harry Potter 9¾ 站台体验 - 极限接触判定)
+ * 规则：
+ * 1. 极限交互距离：玩家必须主动“撞上”传送门，发生实质性模型重合/碰撞才能触发。
+ * 2. 距离传送门哪怕 5 到 10 个像素，也绝不会被误吸进去。
+ * 3. 边界城门 (东西南北) 判定：严格要求玩家处于豁口通道跨度内 (±30px)，且深度穿入或紧贴门线阈值 (±6px)。
+ * 4. 中央阵眼/圆形法阵判定：严格要求模型核心进入阵眼 (dist <= 24px)。
+ * 5. 全局所有传送门统一遵循此逻辑，配合 120px 的跨图安全推入距离，彻底杜绝两门互传死循环 (Portal Bouncing)。
+ */
+export function checkPortalTrigger(playerPos, zone, mapW = MAP_SIZE, mapH = MAP_SIZE, skyUnlocked = false) {
+  const portals = zone?.portals || zone?.gates || [];
+  const mw = mapW || MAP_SIZE;
+  const mh = mapH || MAP_SIZE;
+
+  for (const portal of portals) {
+    const isSky = portal.targetZoneId === 'sky_city' || portal.targetCityId === 'sky_city';
+    if (isSky && !skyUnlocked) {
+      continue;
+    }
+
+    const px = Number.isFinite(portal.x) ? portal.x : mw * 0.5;
+    const py = Number.isFinite(portal.y) ? portal.y : mh * 0.5;
+    const dir = portal.dir || (px <= 1500 ? 'west' : px >= mw - 1500 ? 'east' : py <= 1500 ? 'north' : py >= mh - 1500 ? 'south' : 'center');
+
+    let isTriggered = false;
+    const gateHalfWidth = 30; // 门洞通过跨度 (左右/上下各 30px)
+    const touchDepth = 6;      // 实质接触门线的深度容差 (6px)
+
+    if (dir === 'west') {
+      // 西门：玩家向西撞门，X 坐标实质触碰或穿过门线 px
+      if (playerPos.x <= px + touchDepth && playerPos.x >= px - 40 && Math.abs(playerPos.y - py) <= gateHalfWidth) {
+        isTriggered = true;
+      }
+    } else if (dir === 'east') {
+      // 东门：玩家向东撞门，X 坐标实质触碰或穿过门线 px
+      if (playerPos.x >= px - touchDepth && playerPos.x <= px + 40 && Math.abs(playerPos.y - py) <= gateHalfWidth) {
+        isTriggered = true;
+      }
+    } else if (dir === 'north') {
+      // 北门：玩家向北撞门，Y 坐标实质触碰或穿过门线 py
+      if (playerPos.y <= py + touchDepth && playerPos.y >= py - 40 && Math.abs(playerPos.x - px) <= gateHalfWidth) {
+        isTriggered = true;
+      }
+    } else if (dir === 'south') {
+      // 南门：玩家向南撞门，Y 坐标实质触碰或穿过门线 py
+      if (playerPos.y >= py - touchDepth && playerPos.y <= py + 40 && Math.abs(playerPos.x - px) <= gateHalfWidth) {
+        isTriggered = true;
+      }
+    } else {
+      // 阵眼/圆形法阵：必须角色中心踩入阵眼核心 (半径 <= 24px)
+      const dist = Math.hypot(playerPos.x - px, playerPos.y - py);
+      if (dist <= 24) {
+        isTriggered = true;
+      }
+    }
+
+    if (isTriggered) {
+      const targetId = portal.targetZoneId || portal.targetCityId;
+      return { portal, dir, targetId, px, py };
+    }
+  }
+  return null;
 }
 
 /**

@@ -13,13 +13,13 @@ impl GameConfig {
     pub const DEFAULT_SPAWN_Y: f64 = 13500.0;
 
     // === 传送门与过图 ===
-    pub const PORTAL_RADIUS: f64 = 100.0;
-    pub const PORTAL_INTERACT_RADIUS: f64 = 50.0;
+    pub const PORTAL_RADIUS: f64 = 24.0;
+    pub const PORTAL_INTERACT_RADIUS: f64 = 36.0;
     pub const TELEPORT_COOLDOWN_SECS: u64 = 5;
     pub const INVULNERABLE_DURATION_SECS: u64 = 30;
     pub const INVULNERABLE_FATIGUE_SECS: u64 = 60;
-    pub const PORTAL_SAFE_INSET: f64 = 450.0;
-    pub const PORTAL_FALLBACK_INSET: f64 = 550.0;
+    pub const PORTAL_SAFE_INSET: f64 = 120.0;
+    pub const PORTAL_FALLBACK_INSET: f64 = 120.0;
 
     // === 采集系统 ===
     pub const GATHER_DISTANCE_MAX: f64 = 160.0;
