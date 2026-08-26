@@ -15,6 +15,9 @@ pub struct PortalDef {
     pub target_dir: String,
     pub name: String,
     pub color: Color,
+    // 🧱 核心整合：给图纸增加两个“动态偏移法宝”
+    pub spawn_offset_x: f64, // 落地时，X 轴要附加的偏移量（比如 +450.0 或 -450.0）
+    pub spawn_offset_y: f64, // 落地时，Y 轴要附加的偏移量（比如 +450.0 或 -450.0）
 }
 
 #[derive(Debug, Clone)]
@@ -460,14 +463,10 @@ impl ClientTopology {
         // 寻找目标区域中，能够通回“出发区域”的那个门
         let return_gate = target_zone.gates.iter().find(|g| g.target_zone_id == from_zone_id);
 
-        if let Some(gate) = return_gate {
-            // 根据门的朝向，进行 450px 的安全内推，绝对不落在大街中央
-            match gate.dir.as_str() {
-                "north" => return (gate.x, 1100.0 + 450.0), // 从北门进，向南偏移
-                "south" => return (gate.x, 25900.0 - 450.0), // 从南门进，向北偏移
-                "east"  => return (25900.0 - 450.0, gate.y), // 从东门进，向西偏移
-                "west"  => return (1100.0 + 450.0, gate.y),  // 从西门进，向东偏移
-                _       => return (gate.x, gate.y),
+            // 🛠️ 终极因果律整合：没有 if，没有 match，只有纯粹的、跨宇宙通用的物理公式！
+            if let Some(gate) = return_gate {
+                // 无论从哪个方向进、无论哪个地图，CPU 直接去抓这个门自己带的偏移量，啪的一下加减完事！
+                return (gate.x + gate.spawn_offset_x, gate.y + gate.spawn_offset_y);
             }
         }
 

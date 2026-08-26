@@ -13,8 +13,8 @@ impl GameConfig {
     pub const DEFAULT_SPAWN_Y: f64 = 13500.0;
 
     // === 传送门与过图 ===
-    pub const PORTAL_RADIUS: f64 = 320.0;
-    pub const PORTAL_INTERACT_RADIUS: f64 = 360.0;
+    pub const PORTAL_RADIUS: f64 = 100.0;
+    pub const PORTAL_INTERACT_RADIUS: f64 = 50.0;
     pub const TELEPORT_COOLDOWN_SECS: u64 = 5;
     pub const INVULNERABLE_DURATION_SECS: u64 = 30;
     pub const INVULNERABLE_FATIGUE_SECS: u64 = 60;

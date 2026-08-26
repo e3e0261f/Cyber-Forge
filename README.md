@@ -1,3 +1,28 @@
+┌──────────────┐
+                 │    Client    │
+                 │ Rust/Macroquad│
+                 │    WASM      │
+                 └──────┬───────┘
+                        │
+                HTTP / WebSocket
+                        │
+                 ┌──────▼───────┐
+                 │    Server    │
+                 │ Actix/Tokio  │
+                 └──────┬───────┘
+                        │
+       ┌────────────────┼────────────────┐
+       │                │                │
+       ▼                ▼                ▼
+ WorldState        MarketEngine    GatheringEngine
+       │
+       ├── PlayerState
+       ├── WorldTopology
+       ├── Commerce
+       └── Persistence / EventStream (Kafka/TiKV 规划中)
+
+
+
 # 🚀 Cyber Forge - 100% 纯 Rust / WASM 全栈架构 (rustCF2513)
 
 本目录为全新重构的 **100% 纯 Rust 游戏全栈工程**，采用 Cargo Workspace 统一多包管理。

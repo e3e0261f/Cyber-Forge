@@ -528,13 +528,14 @@ impl WorldTopology {
         // 寻找目标区域中，能够通回“出发区域”的那个门
         let return_gate = target_zone.gates.iter().find(|g| g.target_zone_id == from_zone_id);
 
+        // 🧙 徹底破除時空撕裂妖法：拋棄 1100 和 25900 的死數字！
+        // 落地點必須以傳送門自己真正的物理坑位（gate.x / gate.y）為起點進行動態推移！
         if let Some(gate) = return_gate {
-            // 根据门的朝向，进行 450px 的安全内推，绝对不落在大街中央
             match gate.dir.as_str() {
-                "north" => return (gate.x, 1100.0 + GameConfig::PORTAL_SAFE_INSET),
-                "south" => return (gate.x, 25900.0 - GameConfig::PORTAL_SAFE_INSET),
-                "east"  => return (25900.0 - GameConfig::PORTAL_SAFE_INSET, gate.y),
-                "west"  => return (1100.0 + GameConfig::PORTAL_SAFE_INSET, gate.y),
+                "north" => return (gate.x, gate.y + GameConfig::PORTAL_SAFE_INSET), // 从北门进，在门真实的 Y 上向南推 450
+                "south" => return (gate.x, gate.y - GameConfig::PORTAL_SAFE_INSET), // 从南门进，在门真实的 Y 上向北推 450
+                "east"  => return (gate.x - GameConfig::PORTAL_SAFE_INSET, gate.y), // 从东门进，在门真实的 X 上向西推 450
+                "west"  => return (gate.x + GameConfig::PORTAL_SAFE_INSET, gate.y), // 从西门进，在门真实的 X 上向东推 450
                 _       => return (gate.x, gate.y),
             }
         }
