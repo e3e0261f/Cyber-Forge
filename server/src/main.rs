@@ -1,4 +1,5 @@
 
+mod action_policy;
 mod auth;
 mod cold_archive;
 mod commerce;
@@ -11,117 +12,21 @@ mod persistence;
 mod storage;
 mod tikv_storage;
 mod world_topology;
+mod world_state;
 
 use actix_files as fs;
 use actix_web::{web, App, HttpServer};
-use cyber_forge_shared::*;
-use dashmap::DashMap;
-use gathering::GatheringEngine;
-use market::MarketEngine;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::{info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
-use world_topology::WorldTopology;
 
 use handlers::{action, login, state, ws};
 use std::path::PathBuf;
 
-/// 全局游戏世界中央状态机 (单一事实来源)
-pub struct WorldState {
-    /// 在线玩家状态表 (AccountID -> PlayerState) — Arc 共享给自动保存任务
-    pub players: Arc<DashMap<String, PlayerState>>,
-    /// 阿尔比恩式资源节点引擎 (Yield Pool)
-    pub gathering: Arc<GatheringEngine>,
-    /// 动态物价市场引擎 (25-45分钟刷新)
-    pub market: Arc<MarketEngine>,
-    /// 九州拓扑与商路图谱
-    pub topology: Arc<WorldTopology>,
-}
-
-impl WorldState {
-    pub fn new() -> Self {
-        let market = Arc::new(MarketEngine::new());
-        market.spawn_fluctuation_task();
-
-        let topology = Arc::new(WorldTopology::new());
-
-        let gathering = Arc::new(GatheringEngine::new(&topology));
-        gathering.spawn_respawn_task();
-
-        Self {
-            players: Arc::new(DashMap::new()),
-            gathering,
-            market,
-            topology,
-        }
-    }
-
-    /// 从存档恢复世界状态
-    pub fn restore_from_save(&mut self) {
-        if let Some(save_data) = persistence::load_world_state() {
-            for (account_id, player_state) in save_data.players {
-                self.players.insert(account_id, player_state);
-            }
-            // 🌟 恢复采集节点储量
-            if !save_data.gathering_nodes.is_empty() {
-                self.gathering.restore_from_save(save_data.gathering_nodes);
-            }
-            info!("🔄 世界状态已从存档恢复 (玩家数: {})", self.players.len());
-        }
-    }
-
-    /// 读取或创建玩家状态 (若已有历史坐标则保留，防止刷新被重置)
-    pub fn get_or_create_player(&self, account_id: &str) -> PlayerState {
-        let mut p = self.players
-            .entry(account_id.to_string())
-            .or_insert_with(|| PlayerState {
-                account_id: account_id.to_string(),
-                position: Position {
-                    x: GameConfig::DEFAULT_SPAWN_X,
-                    y: GameConfig::DEFAULT_SPAWN_Y,
-                    zone_id: "beijing".into(),
-                    last_updated: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_secs(),
-                },
-                copper: GameConfig::STARTER_COPPER,
-                coins: GameConfig::STARTER_COINS,
-                jade: GameConfig::STARTER_JADE,
-                level: GameConfig::STARTER_LEVEL,
-                backpack: Vec::new(),
-                max_backpack: GameConfig::DEFAULT_MAX_BACKPACK,
-                current_weight: 0.0,
-                max_weight: GameConfig::DEFAULT_MAX_WEIGHT,
-                merchant_ticket: None,
-                bank_items: Vec::new(),
-                teleport_cooldown_until: 0,
-                invulnerable_until: 0,
-                invulnerable_fatigue_until: 0,
-                block_height: 0,
-                block_hash: "0000000000000000genesis_hash".to_string(),
-                last_active_at: 0,
-            })
-            .clone();
-        p.recalculate_weight();
-        p
-    }
-
-    /// 🌟 真实在线玩家数: 最近 ONLINE_WINDOW_SECS 内有心跳的玩家。
-    ///    players 表含全部历史玩家且从不淘汰, 表长是"累计注册数"而非在线数 (旧日志误报根因)
-    pub fn online_count(&self) -> usize {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        self.players
-            .iter()
-            .filter(|e| e.value().last_active_at > 0 && now.saturating_sub(e.value().last_active_at) <= GameConfig::ONLINE_WINDOW_SECS)
-            .count()
-    }
-}
+use world_state::WorldState;
+use cyber_forge_shared::GameConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

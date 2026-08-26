@@ -18,6 +18,7 @@ import {
 import { audio } from '../audio.js';
 import { localHashChain } from '../security/hash-chain.js';
 import { RESOURCE_TOOL_MAP, normalizeGatherItemNames, deriveGatherFields } from '../world/world-topology.js';
+import { classifyClientAction, shouldSendToServer, shouldRecordLocalChain } from '../action-policy.js';
 
 // 🌟 采集工具等级持久化键 (防刷新回落: 工具等级只存于客户端 gameState, 不落服务端字段)
 export const TOOL_LEVELS_KEY = 'cyber_forge_tool_levels';
@@ -275,24 +276,50 @@ export class GameStore {
      * 中央动作分发派发器 (对标 Rust: store.dispatch(Action::BuyTradeGoods(...)))
      */
     async dispatchAction(actionKey, payload = {}) {
-        // 关键业务动作自动存入本地区块链单向哈希日志
+        const responsibility = classifyClientAction(actionKey);
+
+        // 高频本地动作不应误入网络动作通道。真正的移动由本地运动系统直接驱动。
+        if (responsibility === 'client_local') {
+            if (shouldRecordLocalChain(actionKey)) {
+                localHashChain.appendAction(actionKey, payload);
+            }
+            return { local_only: true, action: actionKey };
+        }
+
+        // 业务/审计动作进入本地 Hash Chain；同步类基础设施动作由专门流程处理。
         const internalKeys = ['sync_pos', 'audit_movement_report', 'sync_hash_chain', 'cloud_state_snapshot', 'audit_item_drop'];
-        if (actionKey && !internalKeys.includes(actionKey)) {
+        if (actionKey && !internalKeys.includes(actionKey) && shouldRecordLocalChain(actionKey)) {
             localHashChain.appendAction(actionKey, payload);
         }
 
-        const fullPayload = { 
-            key: actionKey, 
+        const fullPayload = {
+            key: actionKey,
             player_x: this.state.player_x,
             player_y: this.state.player_y,
             zone_id: this.state.current_zone_id,
-            ...payload 
+            responsibility,
+            ...payload
         };
-        const snap = await networkAdapter.invoke('action', fullPayload);
+        if (!shouldSendToServer(actionKey)) {
+            return { local_only: true, action: actionKey };
+        }
+
+        const snap = await networkAdapter.invokeServerAction(fullPayload);
         if (snap) {
             this.syncState(snap);
         }
         return snap;
+    }
+
+    /**
+     * 明确的本地动作入口。只用于不需要服务器参与的高频客户端行为。
+     * 当前移动系统通常直接更新 Store，因此这个入口主要作为架构边界和未来扩展点。
+     */
+    dispatchLocalAction(actionKey, payload = {}) {
+        if (classifyClientAction(actionKey) !== 'client_local') {
+            throw new Error(`[GameStore] ${actionKey} 不是客户端本地动作`);
+        }
+        return { local_only: true, action: actionKey, payload };
     }
 
     /**

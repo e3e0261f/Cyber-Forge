@@ -6,7 +6,7 @@
 import { clock, syncState, uiState, gameState, gameStore } from './state.js';
 import { triggerStrikeImpact, fx, triggerWarpEffect } from './world.js';
 import { camera } from './camera.js';
-import { WORLD_ZONES, MAP_SIZE, PLAYER_SPEED, PORTAL_RADIUS, RESOURCE_TOOL_MAP, canToolMine, minToolTierFor, formatT4LockRemain } from './world/world-topology.js';
+import { WORLD_ZONES, MAP_SIZE, PLAYER_SPEED, PORTAL_RADIUS, RESOURCE_TOOL_MAP, canToolMine, minToolTierFor, formatT4LockRemain, getPortalRebirthPos } from './world/world-topology.js';
 import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
 import { auditReporter } from './security/audit-reporter.js';
@@ -329,6 +329,67 @@ function checkClientCollision(x, y, radius = 24) {
     }
   }
   return false;
+}
+
+/**
+ * 🌟 贴墙式传送门判定：传送门视为墙上的豁口，而不是地面圆形触发区。
+ *
+ * 只有玩家的实际移动方向明显指向豁口外侧，并且玩家位于豁口的横向
+ * 通行范围内时才允许过门。沿墙平行移动不会触发传送。
+ */
+function getPortalWallDirection(portal, zone) {
+  if (portal.dir) return portal.dir;
+
+  const mapW = zone.width || MAP_SIZE;
+  const mapH = zone.height || MAP_SIZE;
+  const distances = {
+    north: Math.abs(portal.y),
+    south: Math.abs(mapH - portal.y),
+    west: Math.abs(portal.x),
+    east: Math.abs(mapW - portal.x),
+  };
+
+  return Object.entries(distances).sort((a, b) => a[1] - b[1])[0][0];
+}
+
+function canEnterPortalThroughWall(portal, zone, x, y, vx, vy) {
+  const speed = Math.hypot(vx, vy);
+  if (speed < 1) return false;
+
+  const dir = getPortalWallDirection(portal, zone);
+  let normalX = 0;
+  let normalY = 0;
+  let lateralDistance = Infinity;
+
+  switch (dir) {
+    case 'north':
+      normalY = -1;
+      lateralDistance = Math.abs(x - portal.x);
+      break;
+    case 'south':
+      normalY = 1;
+      lateralDistance = Math.abs(x - portal.x);
+      break;
+    case 'east':
+      normalX = 1;
+      lateralDistance = Math.abs(y - portal.y);
+      break;
+    case 'west':
+      normalX = -1;
+      lateralDistance = Math.abs(y - portal.y);
+      break;
+    default:
+      return false;
+  }
+
+  const portalRadius = Number.isFinite(portal.radius) ? portal.radius : PORTAL_RADIUS;
+  // 横向必须真正进入豁口，不能擦着门框边缘通过。
+  if (lateralDistance > portalRadius) return false;
+
+  // 移动方向必须至少 65% 指向墙外的豁口方向。
+  // 因此贴墙平行奔跑（点积接近 0）不会误触。
+  const outwardIntent = (vx * normalX + vy * normalY) / speed;
+  return outwardIntent >= 0.65;
 }
 
 /**
@@ -875,54 +936,72 @@ export function updatePlayerMovement(now = performance.now()) {
     gameStore.updatePlayerPosition(playerPos.x, playerPos.y, zone.id, { persist: true, syncServer: false });
   }
 
-  // 传送门即时感应
+  // 🌟 贴墙式 / 豁口传送：不再使用“圆形范围擦边即传送”。
+  // 只有玩家明确朝着墙上豁口的法线方向移动才会过门；沿墙平行奔跑不会触发。
   if (now - lastPortalTime > 1200) {
     for (const portal of (zone.portals || zone.gates || [])) {
-      const dist = Math.hypot(playerPos.x - portal.x, playerPos.y - portal.y);
-      if (dist <= (portal.radius || PORTAL_RADIUS)) {
-        const isSky = portal.targetZoneId === 'sky_city' || portal.targetCityId === 'sky_city';
-        if (isSky && !gameState.sky_city_unlocked) {
-          continue;
-        }
-        lastPortalTime = now;
-        triggerWarpEffect();
-        audio.playUI();
-        const targetId = portal.targetZoneId || portal.targetCityId;
-        const targetZone = WORLD_ZONES[targetId];
-        const targetSpawnX = targetZone?.spawnX || 13500;
-        const targetSpawnY = targetZone?.spawnY || 13500;
-
-        // 本地立即更新坐标与区域，平滑无缝过图
-        playerPos.x = targetSpawnX;
-        playerPos.y = targetSpawnY;
-        playerPos.vx = 0;
-        playerPos.vy = 0;
-        gameState.current_zone_id = targetId;
-        gameState.current_city_id = targetId;
-        gameStore.state.current_zone_id = targetId;
-        gameStore.state.current_city_id = targetId;
-        gameStore.state.player_x = targetSpawnX;
-        gameStore.state.player_y = targetSpawnY;
-        camera.snapTo(targetSpawnX, targetSpawnY);
-        gameStore.persistCoordinates(true);
-
-        gameStore.dispatchAction(`teleport_zone:${targetId}`).then(snap => {
-          if (snap) {
-            if (snap.player_x !== undefined) {
-              playerPos.x = snap.player_x;
-              playerPos.y = snap.player_y;
-            }
-            if (snap.current_zone_id) {
-              gameState.current_zone_id = snap.current_zone_id;
-              gameState.current_city_id = snap.current_zone_id;
-              gameStore.state.current_zone_id = snap.current_zone_id;
-              gameStore.state.current_city_id = snap.current_zone_id;
-            }
-            camera.snapTo(playerPos.x, playerPos.y);
-          }
-        });
-        break;
+      if (!canEnterPortalThroughWall(portal, zone, playerPos.x, playerPos.y, playerPos.vx, playerPos.vy)) {
+        continue;
       }
+
+      const isSky = portal.targetZoneId === 'sky_city' || portal.targetCityId === 'sky_city';
+      if (isSky && !gameState.sky_city_unlocked) {
+        continue;
+      }
+      lastPortalTime = now;
+      triggerWarpEffect();
+      audio.playUI();
+      const targetId = portal.targetZoneId || portal.targetCityId;
+      const targetZone = WORLD_ZONES[targetId];
+      if (!targetZone) {
+        console.error(`[Portal] 目标地图不存在: ${targetId}`);
+        lastPortalTime = now;
+        continue;
+      }
+
+      // 本地位置必须与服务端的点对点重生规则一致：从目标地图的“返回门”内侧进入。
+      // 绝不再使用 targetZone.spawnX/spawnY 作为普通传送落点，避免落到地图中央。
+      let targetSpawn;
+      try {
+        targetSpawn = getPortalRebirthPos(zone.id, targetId, portal.dir);
+      } catch (error) {
+        console.error('[Portal] 拓扑入口缺失，取消传送:', error);
+        lastPortalTime = now;
+        continue;
+      }
+      const targetSpawnX = targetSpawn.x;
+      const targetSpawnY = targetSpawn.y;
+
+      // 本地立即更新坐标与区域，平滑无缝过图
+      playerPos.x = targetSpawnX;
+      playerPos.y = targetSpawnY;
+      playerPos.vx = 0;
+      playerPos.vy = 0;
+      gameState.current_zone_id = targetId;
+      gameState.current_city_id = targetId;
+      gameStore.state.current_zone_id = targetId;
+      gameStore.state.current_city_id = targetId;
+      gameStore.state.player_x = targetSpawnX;
+      gameStore.state.player_y = targetSpawnY;
+      camera.snapTo(targetSpawnX, targetSpawnY);
+      gameStore.persistCoordinates(true);
+
+      gameStore.dispatchAction(`teleport_zone:${targetId}`).then(snap => {
+        if (snap) {
+          if (snap.player_x !== undefined) {
+            playerPos.x = snap.player_x;
+            playerPos.y = snap.player_y;
+          }
+          if (snap.current_zone_id) {
+            gameState.current_zone_id = snap.current_zone_id;
+            gameState.current_city_id = snap.current_zone_id;
+            gameStore.state.current_zone_id = snap.current_zone_id;
+            gameStore.state.current_city_id = snap.current_zone_id;
+          }
+          camera.snapTo(playerPos.x, playerPos.y);
+        }
+      });
+      break;
     }
   }
 
@@ -1270,52 +1349,6 @@ export function setupInteractions() {
           handleSpacePress();
           return;
         }
-      }
-    }
-
-    for (const portal of (zone.portals || zone.gates || [])) {
-      const pDist = Math.hypot(worldPos.x - portal.x, worldPos.y - portal.y);
-      if (pDist <= (portal.radius || PORTAL_RADIUS) + 30) {
-        const isSky = portal.targetZoneId === 'sky_city' || portal.targetCityId === 'sky_city';
-        if (isSky && !gameState.sky_city_unlocked) {
-          return;
-        }
-        triggerWarpEffect();
-        audio.playUI();
-        const targetId = portal.targetZoneId || portal.targetCityId;
-        const targetZone = WORLD_ZONES[targetId];
-        const targetSpawnX = targetZone?.spawnX || 13500;
-        const targetSpawnY = targetZone?.spawnY || 13500;
-
-        playerPos.x = targetSpawnX;
-        playerPos.y = targetSpawnY;
-        playerPos.vx = 0;
-        playerPos.vy = 0;
-        gameState.current_zone_id = targetId;
-        gameState.current_city_id = targetId;
-        gameStore.state.current_zone_id = targetId;
-        gameStore.state.current_city_id = targetId;
-        gameStore.state.player_x = targetSpawnX;
-        gameStore.state.player_y = targetSpawnY;
-        camera.snapTo(targetSpawnX, targetSpawnY);
-        gameStore.persistCoordinates(true);
-
-        gameStore.dispatchAction(`teleport_zone:${targetId}`).then(snap => {
-          if (snap) {
-            if (snap.player_x !== undefined) {
-              playerPos.x = snap.player_x;
-              playerPos.y = snap.player_y;
-            }
-            if (snap.current_zone_id) {
-              gameState.current_zone_id = snap.current_zone_id;
-              gameState.current_city_id = snap.current_zone_id;
-              gameStore.state.current_zone_id = snap.current_zone_id;
-              gameStore.state.current_city_id = snap.current_zone_id;
-            }
-            camera.snapTo(playerPos.x, playerPos.y);
-          }
-        });
-        return;
       }
     }
   });

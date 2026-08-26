@@ -117,6 +117,8 @@ impl WorldTopology {
                 spawn_y: 13500.0,
                 gates: vec![
                     PortalDef { dir: "north".into(), x: 8100.0, y: 500.0, target_zone_id: "wild_bj_hb_1".into(), target_dir: "south".into(), name: "北直门 ➔ 太行官道·幽燕关隘".into(), color: "#f97316".into() },
+                    PortalDef { dir: "south".into(), x: 10800.0, y: 26500.0, target_zone_id: "wild_bj_zj_1".into(), target_dir: "north".into(), name: "运河南门 ➔ 大运河津·张家湾津".into(), color: "#06b6d4".into() },
+                    PortalDef { dir: "north".into(), x: 13500.0, y: 500.0, target_zone_id: "sky_city".into(), target_dir: "south".into(), name: "太虚星门 ➔ 天空之城".into(), color: "#a855f7".into() },
                     PortalDef { dir: "east".into(), x: 26500.0, y: 17550.0, target_zone_id: "wild_bj_sh_1".into(), target_dir: "west".into(), name: "东华门 ➔ 京沪漕运·通州泊口".into(), color: "#f59e0b".into() },
                     PortalDef { dir: "south".into(), x: 18900.0, y: 26500.0, target_zone_id: "wild_bj_yn_1".into(), target_dir: "north".into(), name: "南薰门 ➔ 蜀道滇南·秦岭古栈".into(), color: "#10b981".into() },
                     PortalDef { dir: "west".into(), x: 500.0, y: 10800.0, target_zone_id: "wild_bj_qh_1".into(), target_dir: "east".into(), name: "西便门 ➔ 丝路陇右·居庸天堑".into(), color: "#a855f7".into() },
@@ -186,6 +188,7 @@ impl WorldTopology {
                 spawn_y: 13500.0,
                 gates: vec![
                     PortalDef { dir: "west".into(), x: 500.0, y: 18900.0, target_zone_id: "wild_bj_sh_6".into(), target_dir: "east".into(), name: "申西门 ➔ 京沪漕运·吴淞商港".into(), color: "#ef4444".into() },
+                    PortalDef { dir: "west".into(), x: 500.0, y: 13500.0, target_zone_id: "sky_city".into(), target_dir: "east".into(), name: "太虚西门 ➔ 天空之城".into(), color: "#a855f7".into() },
                     PortalDef { dir: "north".into(), x: 12150.0, y: 500.0, target_zone_id: "wild_hb_sh_6".into(), target_dir: "south".into(), name: "长江门 ➔ 渤海通途·崇明外泽".into(), color: "#f97316".into() },
                     PortalDef { dir: "south".into(), x: 17550.0, y: 26500.0, target_zone_id: "wild_sh_zj_1".into(), target_dir: "north".into(), name: "沪杭门 ➔ 钱塘水陆·松江古渡".into(), color: "#06b6d4".into() },
                 ],
@@ -221,7 +224,7 @@ impl WorldTopology {
                 gates: vec![
                     PortalDef { dir: "north".into(), x: 10800.0, y: 500.0, target_zone_id: "wild_sh_zj_6".into(), target_dir: "south".into(), name: "武林门 ➔ 钱塘水陆·诸暨剑潭".into(), color: "#f59e0b".into() },
                     PortalDef { dir: "west".into(), x: 500.0, y: 16200.0, target_zone_id: "wild_zj_yn_1".into(), target_dir: "east".into(), name: "钱清门 ➔ 百越灵岭·仙霞古道".into(), color: "#10b981".into() },
-                    PortalDef { dir: "northwest".into(), x: 8100.0, y: 500.0, target_zone_id: "wild_bj_zj_6".into(), target_dir: "south".into(), name: "运河门 ➔ 大运河津·拱宸古桥".into(), color: "#ef4444".into() },
+                    PortalDef { dir: "north".into(), x: 18900.0, y: 500.0, target_zone_id: "wild_bj_zj_6".into(), target_dir: "south".into(), name: "运河门 ➔ 大运河津·拱宸古桥".into(), color: "#ef4444".into() },
                 ],
                 resources: vec![
                     ResourceDef { id: "zj_res_1".into(), name: "西子玄水灵脉".into(), tier: 5, res_type: "essence".into(), x: 8000.0, y: 18000.0, yield_item: "西子玄水".into(), respawn_secs: 25 },
@@ -255,7 +258,7 @@ impl WorldTopology {
                 gates: vec![
                     PortalDef { dir: "north".into(), x: 16200.0, y: 500.0, target_zone_id: "wild_bj_yn_6".into(), target_dir: "south".into(), name: "金马门 ➔ 蜀道滇南·苍山古林".into(), color: "#ef4444".into() },
                     PortalDef { dir: "east".into(), x: 26500.0, y: 12150.0, target_zone_id: "wild_zj_yn_6".into(), target_dir: "west".into(), name: "碧鸡门 ➔ 百越灵岭·罗霄绝顶".into(), color: "#06b6d4".into() },
-                    PortalDef { dir: "northwest".into(), x: 500.0, y: 9450.0, target_zone_id: "wild_yn_qh_1".into(), target_dir: "southeast".into(), name: "苍山门 ➔ 茶马雪山·玉龙雪峰".into(), color: "#eab308".into() },
+                    PortalDef { dir: "north".into(), x: 9450.0, y: 500.0, target_zone_id: "wild_yn_qh_1".into(), target_dir: "south".into(), name: "苍山门 ➔ 茶马雪山·玉龙雪峰".into(), color: "#eab308".into() },
                 ],
                 resources: vec![
                     ResourceDef { id: "yn_res_1".into(), name: "千年青皇古木".into(), tier: 5, res_type: "wood".into(), x: 8500.0, y: 19000.0, yield_item: "千年青皇木".into(), respawn_secs: 25 },
@@ -288,6 +291,7 @@ impl WorldTopology {
                 spawn_y: 13500.0,
                 gates: vec![
                     PortalDef { dir: "east".into(), x: 26500.0, y: 16200.0, target_zone_id: "wild_bj_qh_6".into(), target_dir: "west".into(), name: "湟水门 ➔ 丝路陇右·倒淌河畔".into(), color: "#ef4444".into() },
+                    PortalDef { dir: "east".into(), x: 26500.0, y: 13500.0, target_zone_id: "sky_city".into(), target_dir: "west".into(), name: "太虚东门 ➔ 天空之城".into(), color: "#a855f7".into() },
                     PortalDef { dir: "south".into(), x: 13500.0, y: 26500.0, target_zone_id: "wild_yn_qh_6".into(), target_dir: "north".into(), name: "唐蕃门 ➔ 茶马雪山·巴颜喀拉".into(), color: "#10b981".into() },
                     PortalDef { dir: "north".into(), x: 8100.0, y: 500.0, target_zone_id: "wild_qh_hb_1".into(), target_dir: "south".into(), name: "祁连门 ➔ 黄土陇东·祁连雪积".into(), color: "#f97316".into() },
                 ],
@@ -442,19 +446,20 @@ impl WorldTopology {
 
             // 出向门
             if i == count {
-                let (gx, gy) = match end_dir {
-                    "north" => (9450.0, 500.0),
-                    "south" => (9450.0, 26500.0),
-                    "east" => (26500.0, 14850.0),
-                    "west" => (500.0, 12150.0),
-                    _ => (13500.0, 500.0),
+                // end_dir 表示“终点主城一侧的门方向”；荒野终点门必须位于相反边界。
+                let (gx, gy, gate_dir, target_dir) = match end_dir {
+                    "north" => (9450.0, 26500.0, "south", "north"),
+                    "south" => (9450.0, 500.0, "north", "south"),
+                    "east" => (500.0, 14850.0, "west", "east"),
+                    "west" => (26500.0, 12150.0, "east", "west"),
+                    _ => (13500.0, 26500.0, "south", "north"),
                 };
                 gates.push(PortalDef {
-                    dir: match end_dir { "north" => "north", "south" => "south", "east" => "east", "west" => "west", _ => "north" }.into(),
+                    dir: gate_dir.into(),
                     x: gx,
                     y: gy,
                     target_zone_id: end_city.into(),
-                    target_dir: match end_dir { "north" => "south", "south" => "north", "east" => "west", "west" => "east", _ => "south" }.into(),
+                    target_dir: target_dir.into(),
                     name: format!("抵关 ➔ {}", end_city),
                     color: "#00ffc8".into(),
                 });
@@ -534,16 +539,12 @@ impl WorldTopology {
             }
         }
 
-        // 如果找不到对向门，强制取目标区域的第一个门边缘，绝不回退到中央！
-        let fallback_gate = target_zone.gates.first()
-            .expect("致命拓扑错误：目标区域没有任何传送门定义！");
-        
-        match fallback_gate.dir.as_str() {
-            "north" => (fallback_gate.x, GameConfig::PORTAL_FALLBACK_INSET + 100.0),
-            "south" => (fallback_gate.x, 27000.0 - GameConfig::PORTAL_FALLBACK_INSET),
-            "east"  => (27000.0 - GameConfig::PORTAL_FALLBACK_INSET, fallback_gate.y),
-            _       => (GameConfig::PORTAL_FALLBACK_INSET + 100.0, fallback_gate.y),
-        }
+        // 正常世界传送必须有明确的对向入口；绝不使用第一个门或地图中心猜测。
+        // 拓扑损坏应立即暴露，而不是把玩家悄悄送到错误位置。
+        panic!(
+            "致命拓扑错误：{} -> {} 没有对应的入口门，拒绝使用猜测坐标传送",
+            from_zone_id, target_zone_id
+        )
     }
 
     /// 基于 Dijkstra 的最短路径规划

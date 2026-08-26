@@ -25,7 +25,15 @@ export class NetworkAdapter {
     }
 
     /**
-     * 发送 RPC / REST 请求 (对标 Rust: async fn invoke<T>(&self, name: &str, args: Value) -> Result<T, Error>)
+     * 服务端 RPC / REST 请求。
+     * 只有经过责任分类后确实需要服务端的动作才应进入这里。
+     */
+    async invokeServerAction(args = {}) {
+        return this.invoke('action', args);
+    }
+
+    /**
+     * 通用网络调用入口。高频本地移动不得通过这里发送。
      */
     async invoke(name, args = {}) {
         try {

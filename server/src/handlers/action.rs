@@ -4,6 +4,7 @@ use tracing::{info, warn};
 use std::sync::Arc;
 
 use crate::WorldState;
+use crate::action_policy::{classify, ActionKind};
 use crate::auth::extract_account_id;
 use crate::commerce::CommerceEngine;
 use crate::errors::ApiError;
@@ -68,23 +69,25 @@ pub async fn api_action_handler(
     }
 
     // 分发到具体的动作处理器
-    let result = match action_key.as_str() {
-        key if key.starts_with("teleport_zone:") => handle_teleport(&mut player, key, &world, now_secs),
-        "sync_pos" => handle_sync_pos(&mut player, custom_x, custom_y, now_secs),
-        "strike_mine" | "gather_zone_resource" => handle_gather(&mut player, &body, &world, now_secs),
-        key if key.starts_with("drop_item") => handle_drop_item(&mut player, key, &body),
-        "audit_movement_report" => handle_movement_audit(&mut player, &body, &world),
-        "audit_item_drop" => handle_audit_item_drop(&account_id),
-        "audit_item_gain" => handle_audit_item_gain(&account_id, &body),
-        "sync_hash_chain" => handle_hash_chain_sync(&mut player, &body, &world),
-        "cloud_state_snapshot" => handle_cloud_snapshot(&mut player, &body, &world),
-        "buy_trade_good" => handle_buy_trade_good(&mut player, &body, &world),
-        "sell_trade_good" => handle_sell_trade_good(&mut player, &body),
-        "settle_merchant_ticket" => handle_settle_ticket(&mut player),
-        "issue_merchant_ticket" => handle_issue_ticket(&mut player, &body),
-        "bank_deposit" => handle_bank_deposit(&mut player, &body),
-        "bank_withdraw" => handle_bank_withdraw(&mut player, &body),
-        _ => Ok(None),
+    // 协议分类与业务执行分离：这里不再让 HTTP handler 自己解析 action key。
+    // 这一步是架构收敛的第一层，后续可以在 ActionKind 层明确哪些动作应留在客户端。
+    let result = match classify(&action_key) {
+        ActionKind::Teleport(key) => handle_teleport(&mut player, key, &world, now_secs),
+        ActionKind::SyncPosition => handle_sync_pos(&mut player, custom_x, custom_y, now_secs),
+        ActionKind::Gather => handle_gather(&mut player, &body, &world, now_secs),
+        ActionKind::DropItem(key) => handle_drop_item(&mut player, key, &body),
+        ActionKind::MovementAudit => handle_movement_audit(&mut player, &body, &world),
+        ActionKind::AuditItemDrop => handle_audit_item_drop(&account_id),
+        ActionKind::AuditItemGain => handle_audit_item_gain(&account_id, &body),
+        ActionKind::HashChainSync => handle_hash_chain_sync(&mut player, &body, &world),
+        ActionKind::CloudStateSnapshot => handle_cloud_snapshot(&mut player, &body, &world),
+        ActionKind::BuyTradeGood => handle_buy_trade_good(&mut player, &body, &world),
+        ActionKind::SellTradeGood => handle_sell_trade_good(&mut player, &body),
+        ActionKind::SettleMerchantTicket => handle_settle_ticket(&mut player),
+        ActionKind::IssueMerchantTicket => handle_issue_ticket(&mut player, &body),
+        ActionKind::BankDeposit => handle_bank_deposit(&mut player, &body),
+        ActionKind::BankWithdraw => handle_bank_withdraw(&mut player, &body),
+        ActionKind::Unknown => Ok(None),
     };
 
     // 处理结果
