@@ -299,6 +299,17 @@ export class AuditReporter {
     }
 
     /**
+     * 快照保存方法别名 (兼容 saveCloudStateSnapshot 与 saveStateSnapshot 调用)
+     */
+    async saveCloudStateSnapshot(triggerReason = 'state_changed') {
+        return this.uploadCloudSnapshot(triggerReason);
+    }
+
+    async saveStateSnapshot(triggerReason = 'state_changed') {
+        return this.uploadCloudSnapshot(triggerReason);
+    }
+
+    /**
      * 维度三：区块链日志异步对账与强制回滚
      */
     async syncPendingHashChain(explicitServerHeight = undefined) {

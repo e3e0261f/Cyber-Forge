@@ -1188,7 +1188,7 @@ export function setupInteractions() {
             gameStore.setToast(`✨ 成功使用并存入【${currName}】+${consumeCount}！(当前总计: ${gameState[key]})`);
             gameStore.addLog(`🪙 物品使用: 消耗 ${currName} x${consumeCount}，存入账户 (当前余额: ${gameState[key]})`);
             auditReporter.reportItemDrop(item, consumeCount, 'use_currency');
-            auditReporter.saveCloudStateSnapshot();
+            auditReporter.uploadCloudSnapshot('use_currency');
             gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: consumeCount, type: 'currency', currency_key: key });
             return;
           }
@@ -1204,7 +1204,7 @@ export function setupInteractions() {
             gameStore.setToast(`🧪 成功吞服【${item.name}】！气血+${hpGain}, 真气+${mpGain}, 修为+${expGain}！`);
             gameStore.addLog(`🧪 吞服丹药: ${item.name} (气血+${hpGain}, 真气+${mpGain}, 修为+${expGain})`);
             auditReporter.reportItemDrop(item, 1, 'use_consumable');
-            auditReporter.saveCloudStateSnapshot();
+            auditReporter.uploadCloudSnapshot('use_consumable');
             gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'consumable' });
             return;
           }
@@ -1221,7 +1221,7 @@ export function setupInteractions() {
             gameStore.setToast(`📦 成功开启【${item.name}】！获得铜钱+${copperReward}, 金币+${coinsReward}！`);
             gameStore.addLog(`📦 宝物使用: ${item.name} (获得铜钱+${copperReward}, 金币+${coinsReward})`);
             auditReporter.reportItemDrop(item, 1, 'use_chest');
-            auditReporter.saveCloudStateSnapshot();
+            auditReporter.uploadCloudSnapshot('use_chest');
             gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'chest' });
             return;
           }
@@ -1233,7 +1233,7 @@ export function setupInteractions() {
             gameStore.setToast(`📖 研读领悟【${item.name}】！心领神会，修为+${expGain}！`);
             gameStore.addLog(`📖 研读领悟: ${item.name} (修为+${expGain})`);
             auditReporter.reportItemDrop(item, 1, 'use_book');
-            auditReporter.saveCloudStateSnapshot();
+            auditReporter.uploadCloudSnapshot('use_book');
             gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'book' });
             return;
           }
@@ -1243,7 +1243,7 @@ export function setupInteractions() {
           gameStore.setToast(`✨ 已使用【${item.name}】！`);
           gameStore.addLog(`✨ 物品使用: ${item.name}`);
           auditReporter.reportItemDrop(item, 1, 'use_item');
-          auditReporter.saveCloudStateSnapshot();
+          auditReporter.uploadCloudSnapshot('use_item');
           gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'general' });
           return;
         }

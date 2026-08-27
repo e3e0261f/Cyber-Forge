@@ -238,3 +238,13 @@
   - 在 server/static/js/debug-view.js 及 Cyber-Forge/server/static/js/debug-view.js 顶部补全 import { audio } from './audio.js'; 引用。
   - 同步更新原版工程与 Web 容器，lint_applet 与 compile_applet 验证无误通过。
 ================================================================================
+
+[错误修复] 修复物品使用与存入时 TypeError: auditReporter.saveCloudStateSnapshot is not a function 异常
+- 异常现象:
+  - 玩家在背包中右键点击货币或其他可用物品（如【金币】、【铜钱】）选择【✨ 存入金币】时，控制台抛出 Uncaught (in promise) TypeError: auditReporter.saveCloudStateSnapshot is not a function at HTMLCanvasElement.<anonymous> (input.js:1191:27)，导致存入中断。
+- 修复动作:
+  - 核心原因: AuditReporter 类中的全量快照上报方法名为 uploadCloudSnapshot(triggerReason)，此前在 input.js 内部误写为 saveCloudStateSnapshot()。
+  - 在 server/static/js/security/audit-reporter.js 及 Cyber-Forge/server/static/js/security/audit-reporter.js 中为 AuditReporter 增加 saveCloudStateSnapshot 与 saveStateSnapshot 强兼容别名方法，直接代理调用 uploadCloudSnapshot。
+  - 在 input.js 中规范统一调用 uploadCloudSnapshot('use_currency' | 'use_consumable' | 'use_chest' | 'use_book' | 'use_item')。
+  - 双向同步至 Cyber-Forge 原版工程，lint_applet 与 compile_applet 均编译通过。
+================================================================================
