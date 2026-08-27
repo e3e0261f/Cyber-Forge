@@ -178,21 +178,9 @@ export class LocalHashChain {
         let expectedHeight = chain[0].height;
         let expectedPrevHash = chain[0].prev_hash;
 
-        // 新版账本会记录“服务器确认基线”。有基线时，第一块必须严格接在基线上。
-        // 旧版账本没有该索引，因此兼容读取，不破坏已有玩家数据。
-        try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-                const baseHeightRaw = localStorage.getItem(HEAD_KEYS.BASE_HEIGHT);
-                const baseHash = localStorage.getItem(HEAD_KEYS.BASE_HASH);
-                if (baseHeightRaw !== null && baseHash) {
-                    const baseHeight = Number.parseInt(baseHeightRaw, 10);
-                    if (Number.isSafeInteger(baseHeight)) {
-                        if (expectedHeight !== baseHeight + 1 || expectedPrevHash !== baseHash) return false;
-                    }
-                }
-            }
-        } catch (_) {}
-
+        // 注意：这里验证的是“录像带本身”的内部完整性。
+        // Server baseline 属于另一层验证，不应该混入本地 Hash Chain Integrity，
+        // 否则旧基线/多端同步元数据变化会把一条内部完整的录像误判为损坏。
         for (let i = 0; i < chain.length; i++) {
             const b = chain[i];
             if (!b || !Number.isSafeInteger(b.height) || b.height !== expectedHeight) return false;
@@ -208,6 +196,17 @@ export class LocalHashChain {
             expectedPrevHash = b.block_hash;
         }
         return true;
+    }
+
+    /**
+     * 单独验证本地录像的第一块是否接在指定服务器基线之后。
+     * 这是“与服务器对齐”的验证，不属于本地录像带自身的完整性验证。
+     */
+    verifyAgainstBaseline(baseHeight, baseHash, chain = this.blocks) {
+        if (!Array.isArray(chain) || chain.length === 0) return true;
+        if (!Number.isSafeInteger(Number(baseHeight)) || typeof baseHash !== 'string') return false;
+        const first = chain[0];
+        return first.height === Number(baseHeight) + 1 && first.prev_hash === baseHash;
     }
 
     /**

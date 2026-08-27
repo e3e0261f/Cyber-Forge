@@ -16,6 +16,7 @@ import { storageAdapter } from './adapters/storage-adapter.js';
 import { networkAdapter } from './adapters/network-adapter.js';
 import { auditReporter } from './security/audit-reporter.js';
 import { localHashChain, LEDGER_VERSION, MAX_LEDGER_SEGMENT_BYTES } from './security/hash-chain.js';
+import { replayEngine } from './security/replay-engine.js';
 import { audio } from './audio.js';
 import { isDevMode } from './config.js';
 
@@ -64,7 +65,7 @@ if (isDevMode) loadDebugSettings();
 
 // ==================== 🌟 调试面板标签页系统 ====================
 export const debugTabState = {
-  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=玩家信息, 3=玩家账本
+  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=玩家信息, 3=玩家账本, 4=录像回放
   itemScrollY: 0,   // 物品库滚动偏移
   playersScrollY: 0,// 玩家页滚动偏移
   _hitAreas: [],    // 当前帧物品点击区域缓存
@@ -74,6 +75,8 @@ export const debugTabState = {
   _refreshBtnArea: null,
   _ledgerVerifyArea: null,
   _ledgerScrollY: 0,
+  _replay: null,
+  _replayPlayTimer: null,
 };
 
 /** 🌟 拉取在线/离线玩家报表 (5 秒缓存; 切页自动拉一次, 刷新按钮强制重拉) */
@@ -319,9 +322,9 @@ export function drawDebugModal(ctx, boundsOrW, hOrTime, optTime) {
   // --- 🌟 标签页按钮 (4 tabs) ---
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 4;
+  const TAB_COUNT = 5;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
-  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家', '⛓️ 账本'];
+  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家', '⛓️ 账本', '▶️ 回放'];
   for (let i = 0; i < TAB_COUNT; i++) {
     const tx = mx + 16 + i * (tabW + 6);
     const isActive = debugTabState.activeTab === i;
@@ -753,6 +756,57 @@ function _drawDebugLedgerTab(ctx, mx, my, mw, mh) {
   }
 }
 
+
+function _drawDebugReplayTab(ctx, mx, my, mw, mh) {
+  if (!debugTabState._replay || debugTabState._replay.blocks.length !== localHashChain.blocks.length) {
+    debugTabState._replay = new (replayEngine.constructor)(localHashChain.blocks);
+  }
+  const replay = debugTabState._replay;
+  const blocks = replay.blocks;
+  const current = replay.currentBlock();
+  const st = replay.state;
+
+  let cy = my + 64;
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(mx + 16, cy, mw - 32, 112, 6); ctx.fill(); ctx.stroke();
+
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText('PLAYER LEDGER REPLAY', mx + 28, cy + 20);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(`进度 ${replay.cursor}/${blocks.length}`, mx + 28, cy + 40);
+  ctx.fillText(`Block #${st.block_height || '—'}  Action ${st.last_action || '—'}`, mx + 28, cy + 58);
+  ctx.fillText(`位置 ${st.player_x ?? '—'}, ${st.player_y ?? '—'}  Zone ${st.zone_id || '—'}`, mx + 28, cy + 76);
+  ctx.fillText(`库存事件物品 ${Object.keys(st.inventory).length}  ·  锻造敲击 ${st.strikes}`, mx + 28, cy + 94);
+
+  const bw = 62, bh = 24, gap = 6;
+  const by = cy + 122;
+  const labels = [
+    ['⏮ 起点', 'start'],
+    ['⏭ 单步', 'step'],
+    ['▶ 全部', 'all'],
+  ];
+  const actions = {};
+  for (let i = 0; i < labels.length; i++) {
+    const bx = mx + 16 + i * (bw + gap);
+    drawDebugBtn(ctx, bx, by, bw, bh, labels[i][0], '#38bdf8', false);
+    actions[labels[i][1]] = { x: bx, y: by, w: bw, h: bh };
+  }
+
+  const barX = mx + 16, barY = by + 36, barW = mw - 32, barH = 8;
+  ctx.fillStyle = 'rgba(71, 85, 105, 0.55)'; ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = '#38bdf8'; ctx.fillRect(barX, barY, barW * replay.progress, barH);
+
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('第二阶段第一版：只在独立审计状态中回放，不修改正在运行的游戏状态。', mx + 16, barY + 22);
+  ctx.fillText(current ? `当前录像：#${current.height} · ${current.action_type}` : '当前录像：尚未开始', mx + 16, barY + 38);
+
+  debugTabState._replayHitAreas = actions;
+}
+
 function drawDebugBtn(ctx, bx, by, bw, bh, text, color, active) {
   ctx.fillStyle = active ? `${color}33` : 'rgba(30, 41, 59, 0.7)';
   ctx.strokeStyle = active ? color : '#475569';
@@ -770,12 +824,12 @@ function drawDebugBtn(ctx, bx, by, bw, bh, text, color, active) {
 export function handleDebugClick(clickX, clickY, bounds, w, h) {
   const { mx, my, mw, mh } = bounds;
 
-  // 🌟 标签页切换 (最优先检测, 4 tabs)
+  // 🌟 标签页切换 (最优先检测, 5 tabs)
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 4;
+  const TAB_COUNT = 5;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
-  const tabToasts = ['🔭 已切换到场景监视器', '📦 已切换到物品库', '👥 已切换到玩家信息', '⛓️ 已切换到玩家行为账本'];
+  const tabToasts = ['🔭 已切换到场景监视器', '📦 已切换到物品库', '👥 已切换到玩家信息', '⛓️ 已切换到玩家行为账本', '▶️ 已切换到录像回放'];
   for (let i = 0; i < TAB_COUNT; i++) {
     const tx = mx + 16 + i * (tabW + 6);
     if (clickX >= tx && clickX <= tx + tabW && clickY >= tabY && clickY <= tabY + tabH) {
@@ -786,6 +840,28 @@ export function handleDebugClick(clickX, clickY, bounds, w, h) {
       debugState.setToast(tabToasts[i]);
       return true;
     }
+  }
+
+  // 🌟 Tab 4: 录像回放控制
+  if (debugTabState.activeTab === 4) {
+    const replay = debugTabState._replay || (debugTabState._replay = new (replayEngine.constructor)(localHashChain.blocks));
+    const a = debugTabState._replayHitAreas || {};
+    if (a.start && clickX >= a.start.x && clickX <= a.start.x + a.start.w && clickY >= a.start.y && clickY <= a.start.y + a.start.h) {
+      replay.reset(localHashChain.blocks);
+      debugState.setToast('⏮️ 已回到录像起点');
+      return true;
+    }
+    if (a.step && clickX >= a.step.x && clickX <= a.step.x + a.step.w && clickY >= a.step.y && clickY <= a.step.y + a.step.h) {
+      replay.step(1);
+      debugState.setToast(`⏭️ 已回放至 #${replay.state.block_height || 0}`);
+      return true;
+    }
+    if (a.all && clickX >= a.all.x && clickX <= a.all.x + a.all.w && clickY >= a.all.y && clickY <= a.all.y + a.all.h) {
+      replay.playAll();
+      debugState.setToast(`▶️ 已完成回放，共 ${replay.blocks.length} 个区块`);
+      return true;
+    }
+    return true;
   }
 
   // 🌟 Tab 1: 物品库点击处理
