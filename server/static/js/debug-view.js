@@ -15,6 +15,7 @@ import { getModalBounds } from './input.js';
 import { storageAdapter } from './adapters/storage-adapter.js';
 import { networkAdapter } from './adapters/network-adapter.js';
 import { auditReporter } from './security/audit-reporter.js';
+import { localHashChain, LEDGER_VERSION, MAX_LEDGER_SEGMENT_BYTES } from './security/hash-chain.js';
 import { audio } from './audio.js';
 import { isDevMode } from './config.js';
 
@@ -63,7 +64,7 @@ if (isDevMode) loadDebugSettings();
 
 // ==================== 🌟 调试面板标签页系统 ====================
 export const debugTabState = {
-  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=玩家信息 (在线/离线)
+  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=玩家信息, 3=玩家账本
   itemScrollY: 0,   // 物品库滚动偏移
   playersScrollY: 0,// 玩家页滚动偏移
   _hitAreas: [],    // 当前帧物品点击区域缓存
@@ -71,6 +72,8 @@ export const debugTabState = {
   _playersFetchedAt: 0,
   _playersLoading: false,
   _refreshBtnArea: null,
+  _ledgerVerifyArea: null,
+  _ledgerScrollY: 0,
 };
 
 /** 🌟 拉取在线/离线玩家报表 (5 秒缓存; 切页自动拉一次, 刷新按钮强制重拉) */
@@ -310,15 +313,15 @@ export function drawDebugModal(ctx, boundsOrW, hOrTime, optTime) {
   const { mx, my, mw, mh } = bounds;
   const time = typeof hOrTime === 'number' && hOrTime < 1000 ? hOrTime : (optTime || performance.now() * 0.003);
 
-  const tabTitles = ['🛠️ 天道法则调试台 · 场景监视器', '📦 天道物品库 · 点击生成到背包', '👥 玩家信息 · 真实在线/离线'];
+  const tabTitles = ['🛠️ 天道法则调试台 · 场景监视器', '📦 天道物品库 · 点击生成到背包', '👥 玩家信息 · 真实在线/离线', '⛓️ 玩家行为账本 · 本地录像机'];
   drawHoloModalFrame(ctx, mx, my, mw, mh, '#ec4899', tabTitles[debugTabState.activeTab], time);
 
-  // --- 🌟 标签页按钮 (3 tabs) ---
+  // --- 🌟 标签页按钮 (4 tabs) ---
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 3;
+  const TAB_COUNT = 4;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
-  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家'];
+  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家', '⛓️ 账本'];
   for (let i = 0; i < TAB_COUNT; i++) {
     const tx = mx + 16 + i * (tabW + 6);
     const isActive = debugTabState.activeTab === i;
@@ -339,8 +342,10 @@ export function drawDebugModal(ctx, boundsOrW, hOrTime, optTime) {
     _drawDebugSceneTab(ctx, mx, my, mw, mh, time);
   } else if (debugTabState.activeTab === 1) {
     _drawDebugItemTab(ctx, mx, my, mw, mh, time);
-  } else {
+  } else if (debugTabState.activeTab === 2) {
     _drawDebugPlayersTab(ctx, mx, my, mw, mh);
+  } else {
+    _drawDebugLedgerTab(ctx, mx, my, mw, mh);
   }
 }
 
@@ -684,6 +689,70 @@ function _drawDebugPlayersTab(ctx, mx, my, mw, mh) {
   ctx.fillText('💡 在线判定 = 最近心跳在服务端窗口内 (客户端每秒轮询 /api/tick 即保活); 账号已脱敏仅显首4末2', mx + 20, my + mh - 12);
 }
 
+function _formatLedgerBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function _drawDebugLedgerTab(ctx, mx, my, mw, mh) {
+  const head = localHashChain.getHead();
+  const blocks = localHashChain.getRecentBlocks(18);
+  const integrityOk = localHashChain.verifyChainIntegrity(localHashChain.blocks);
+  const sizeRatio = Math.min(1, head.ledger_bytes / MAX_LEDGER_SEGMENT_BYTES);
+  let cy = my + 64;
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+  ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(mx + 16, cy, mw - 32, 86, 6); ctx.fill(); ctx.stroke();
+
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText(`LEDGER v${LEDGER_VERSION}`, mx + 28, cy + 20);
+  ctx.fillStyle = integrityOk ? '#34d399' : '#f87171';
+  ctx.fillText(integrityOk ? '● HASH CHAIN OK' : '● HASH CHAIN ERROR', mx + 150, cy + 20);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(`高度 #${head.height}   区块 ${head.block_count}   ${_formatLedgerBytes(head.ledger_bytes)}`, mx + 28, cy + 40);
+  ctx.fillText(`Head ${head.hash}`, mx + 28, cy + 59);
+
+  const barX = mx + 28, barY = cy + 68, barW = mw - 56, barH = 8;
+  ctx.fillStyle = 'rgba(71, 85, 105, 0.55)'; ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = '#a855f7'; ctx.fillRect(barX, barY, barW * sizeRatio, barH);
+  ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif';
+  ctx.fillText(`1 MiB 分段目标 · ${Math.round(sizeRatio * 100)}%`, barX, barY - 3);
+
+  cy += 98;
+  const verifyW = 86, verifyH = 24;
+  const verifyX = mx + mw - verifyW - 16;
+  const verifyY = cy;
+  ctx.fillStyle = integrityOk ? 'rgba(52, 211, 153, 0.14)' : 'rgba(248, 113, 113, 0.14)';
+  ctx.strokeStyle = integrityOk ? '#34d399' : '#f87171';
+  ctx.beginPath(); ctx.roundRect(verifyX, verifyY, verifyW, verifyH, 4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = integrityOk ? '#34d399' : '#f87171';
+  ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('重新校验', verifyX + verifyW / 2, verifyY + 16); ctx.textAlign = 'left';
+  debugTabState._ledgerVerifyArea = { x: verifyX, y: verifyY, w: verifyW, h: verifyH };
+
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif';
+  ctx.fillText('最近录像（新动作在上）', mx + 20, cy + 42);
+  cy += 50;
+  const rowH = 20;
+  const maxRows = Math.max(1, Math.floor((my + mh - 18 - cy) / rowH));
+  for (let i = 0; i < Math.min(blocks.length, maxRows); i++) {
+    const b = blocks[i];
+    const y = cy + i * rowH;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(30, 41, 59, 0.42)' : 'rgba(15, 23, 42, 0.32)';
+    ctx.fillRect(mx + 16, y - 13, mw - 32, rowH);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#a78bfa'; ctx.fillText(`#${b.height}`, mx + 22, y);
+    ctx.fillStyle = '#e2e8f0'; ctx.fillText(String(b.action_type).slice(0, 20), mx + 72, y);
+    ctx.fillStyle = '#64748b'; ctx.fillText(b.synced ? '✓' : '·', mx + mw - 54, y);
+    ctx.fillStyle = '#64748b'; ctx.fillText(String(b.block_hash).slice(0, 8), mx + mw - 128, y);
+  }
+}
+
 function drawDebugBtn(ctx, bx, by, bw, bh, text, color, active) {
   ctx.fillStyle = active ? `${color}33` : 'rgba(30, 41, 59, 0.7)';
   ctx.strokeStyle = active ? color : '#475569';
@@ -701,12 +770,12 @@ function drawDebugBtn(ctx, bx, by, bw, bh, text, color, active) {
 export function handleDebugClick(clickX, clickY, bounds, w, h) {
   const { mx, my, mw, mh } = bounds;
 
-  // 🌟 标签页切换 (最优先检测, 3 tabs)
+  // 🌟 标签页切换 (最优先检测, 4 tabs)
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 3;
+  const TAB_COUNT = 4;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
-  const tabToasts = ['🔭 已切换到场景监视器', '📦 已切换到物品库', '👥 已切换到玩家信息'];
+  const tabToasts = ['🔭 已切换到场景监视器', '📦 已切换到物品库', '👥 已切换到玩家信息', '⛓️ 已切换到玩家行为账本'];
   for (let i = 0; i < TAB_COUNT; i++) {
     const tx = mx + 16 + i * (tabW + 6);
     if (clickX >= tx && clickX <= tx + tabW && clickY >= tabY && clickY <= tabY + tabH) {
@@ -741,6 +810,17 @@ export function handleDebugClick(clickX, clickY, bounds, w, h) {
       }
     }
     return false;
+  }
+
+  // 🌟 Tab 3: 玩家行为账本（第一阶段只读观察 + 手动完整校验）
+  if (debugTabState.activeTab === 3) {
+    const area = debugTabState._ledgerVerifyArea;
+    if (area && clickX >= area.x && clickX <= area.x + area.w && clickY >= area.y && clickY <= area.y + area.h) {
+      const ok = localHashChain.verifyChainIntegrity(localHashChain.blocks);
+      debugState.setToast(ok ? '✅ 本地行为账本校验通过' : '🚨 本地行为账本校验失败');
+      return true;
+    }
+    return true;
   }
 
   // 🌟 Tab 2: 玩家信息页点击 (仅刷新按钮可交互, 列表只读)
@@ -1008,6 +1088,7 @@ export function handleDebugWheel(deltaY) {
     debugTabState.playersScrollY = Math.max(0, Math.min(maxScroll, (debugTabState.playersScrollY || 0) + deltaY * 0.5));
     return true;
   }
+  if (debugTabState.activeTab === 3) return true;
   if (debugTabState.activeTab !== 1) return false;
   const catalog = getItemCatalog();
   const filtered = _activeCategory === 'all' ? catalog : catalog.filter(it => it.category === _activeCategory);

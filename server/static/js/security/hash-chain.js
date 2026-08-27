@@ -13,6 +13,8 @@
 import { blockchainStorage, HEAD_KEYS } from '../adapters/blockchain-storage.js';
 
 export const GENESIS_HASH = '0000000000000000genesis_hash';
+export const LEDGER_VERSION = 2;
+export const MAX_LEDGER_SEGMENT_BYTES = 1024 * 1024; // 第一阶段工程目标：约 1 MiB，不作为硬协议限制
 
 const utf8Encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 
@@ -59,6 +61,7 @@ export function createBlock(height, prevHash, actionType, payloadObj, timestamp 
     const blockHash = calculateBlockHash(rawContent);
 
     return {
+        ledger_version: LEDGER_VERSION,
         height,
         prev_hash: prevHash,
         action_type: actionType,
@@ -79,10 +82,13 @@ export class LocalHashChain {
         this.currentHash = GENESIS_HASH;
         this.isLoaded = false;
         
-        // 🌟 动作交易缓冲池 (Mempool): 避免单动作生成单块的高冗余开销，支持批量多动作扩容
-        this.pendingActions = [];
-        this.maxBlockCapacity = 100; // 🌟 每个区块容纳上限 100 个动作 (参考比特币区块容量)
+        // 第一阶段：每一个玩家动作直接成为一个 Ledger Block。
+        // 这里不再把多个动作揉成 batch block，因为账本首先要承担“录像机”的职责：
+        // 一笔动作 = 一条可回放、可审计的历史记录。
+        this.pendingActions = []; // 兼容旧 UI / API；第一阶段不再用于延迟封块
+        this.maxBlockCapacity = 100; // 仅保留为兼容字段，不再决定封块行为
         this._autoSealTimer = null;
+        this.lastPersistError = null;
 
         // 快速同步读取 LocalStorage 中的 Head 索引
         this._readFastHead();
@@ -167,20 +173,75 @@ export class LocalHashChain {
      * 校验整条链的哈希指针与连续性
      */
     verifyChainIntegrity(chain = this.blocks) {
-        if (!chain || chain.length === 0) return true;
+        if (!Array.isArray(chain) || chain.length === 0) return true;
+
+        let expectedHeight = chain[0].height;
         let expectedPrevHash = chain[0].prev_hash;
+
+        // 新版账本会记录“服务器确认基线”。有基线时，第一块必须严格接在基线上。
+        // 旧版账本没有该索引，因此兼容读取，不破坏已有玩家数据。
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const baseHeightRaw = localStorage.getItem(HEAD_KEYS.BASE_HEIGHT);
+                const baseHash = localStorage.getItem(HEAD_KEYS.BASE_HASH);
+                if (baseHeightRaw !== null && baseHash) {
+                    const baseHeight = Number.parseInt(baseHeightRaw, 10);
+                    if (Number.isSafeInteger(baseHeight)) {
+                        if (expectedHeight !== baseHeight + 1 || expectedPrevHash !== baseHash) return false;
+                    }
+                }
+            }
+        } catch (_) {}
 
         for (let i = 0; i < chain.length; i++) {
             const b = chain[i];
-            if (b.prev_hash !== expectedPrevHash) return false;
+            if (!b || !Number.isSafeInteger(b.height) || b.height !== expectedHeight) return false;
+            if (typeof b.prev_hash !== 'string' || b.prev_hash !== expectedPrevHash) return false;
+            if (typeof b.action_type !== 'string' || typeof b.payload_json !== 'string') return false;
+            if (!Number.isSafeInteger(b.timestamp) || b.timestamp < 0) return false;
 
             const rawContent = `${b.height}:${b.prev_hash}:${b.action_type}:${b.payload_json}:${b.timestamp}`;
             const computed = calculateBlockHash(rawContent);
             if (computed !== b.block_hash) return false;
 
+            expectedHeight += 1;
             expectedPrevHash = b.block_hash;
         }
         return true;
+    }
+
+    /**
+     * 当前账本头信息：用于调试、同步与故障诊断。
+     */
+    getHead() {
+        return {
+            height: this.currentHeight,
+            hash: this.currentHash,
+            block_count: this.blocks.length,
+            pending_actions: this.pendingActions.length,
+            ledger_bytes: this.getApproximateSizeBytes(),
+            ledger_version: LEDGER_VERSION,
+        };
+    }
+
+    /** 返回最近 N 个区块，默认 20 个。 */
+    getRecentBlocks(limit = 20) {
+        const n = Math.max(0, Math.floor(limit));
+        return n === 0 ? [] : this.blocks.slice(-n).reverse();
+    }
+
+    /** 估算当前账本 JSON 大小，用于 1 MiB 分段目标的观测。 */
+    getApproximateSizeBytes() {
+        try {
+            return new TextEncoder().encode(JSON.stringify(this.blocks)).byteLength;
+        } catch (_) {
+            return JSON.stringify(this.blocks).length;
+        }
+    }
+
+    /** 当前账本是否接近第一阶段的 1 MiB 工程目标。 */
+    isNearSegmentLimit(ratio = 0.9) {
+        return this.getApproximateSizeBytes() >= MAX_LEDGER_SEGMENT_BYTES * ratio;
     }
 
     /**
@@ -189,89 +250,46 @@ export class LocalHashChain {
      * @param {Object} payload 
      */
     appendAction(actionType, payload) {
-        this.pendingActions.push({
-            action_type: actionType,
-            payload: payload || {},
-            timestamp: Date.now()
-        });
-
-        // 1. 若缓冲池达到容量上限，立即铸造并封包新区块
-        if (this.pendingActions.length >= this.maxBlockCapacity) {
-            return this.sealPendingBlock();
-        }
-
-        // 2. 否则启动/刷新 60 秒自动封包定时器 (避免区块高度增长过快)
-        if (!this._autoSealTimer) {
-            this._autoSealTimer = setTimeout(() => {
-                this._autoSealTimer = null;
-                // 只有存在待封包动作时才封包
-                if (this.pendingActions.length > 0) {
-                    this.sealPendingBlock();
-                }
-            }, 60000);  // 60 秒
-        }
-
-        return null;
-    }
-
-    /**
-     * 将当前交易缓冲池中的所有未封包动作打包封铸为 1 个新区块 (Seal Block)
-     */
-    sealPendingBlock() {
-        if (this._autoSealTimer) {
-            clearTimeout(this._autoSealTimer);
-            this._autoSealTimer = null;
-        }
-
-        if (!this.pendingActions || this.pendingActions.length === 0) {
-            return null;
-        }
-
-        const actionsToSeal = this.pendingActions.splice(0, this.pendingActions.length);
+        const normalizedActionType = String(actionType || 'unknown_action');
+        const payloadJson = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
+        const timestamp = Date.now();
         const nextHeight = this.currentHeight + 1;
-        const now = Date.now();
-
-        let actionType = 'batch_actions';
-        let payloadJson = '';
-
-        if (actionsToSeal.length === 1) {
-            actionType = actionsToSeal[0].action_type;
-            payloadJson = typeof actionsToSeal[0].payload === 'string' 
-                ? actionsToSeal[0].payload 
-                : JSON.stringify(actionsToSeal[0].payload);
-        } else {
-            actionType = 'batch_actions';
-            payloadJson = JSON.stringify({
-                count: actionsToSeal.length,
-                actions: actionsToSeal
-            });
-        }
-
-        const rawContent = `${nextHeight}:${this.currentHash}:${actionType}:${payloadJson}:${now}`;
-        const blockHash = calculateBlockHash(rawContent);
-
+        const rawContent = `${nextHeight}:${this.currentHash}:${normalizedActionType}:${payloadJson}:${timestamp}`;
         const block = {
+            ledger_version: LEDGER_VERSION,
             height: nextHeight,
             prev_hash: this.currentHash,
-            action_type: actionType,
+            action_type: normalizedActionType,
             payload_json: payloadJson,
-            timestamp: now,
-            block_hash: blockHash,
-            synced: false
+            timestamp,
+            block_hash: calculateBlockHash(rawContent),
+            synced: false,
         };
 
-        // 1. 内存追加
+        // 先进入内存链，保证游戏逻辑与录像记录保持同一动作顺序。
         this.blocks.push(block);
         this.currentHeight = block.height;
         this.currentHash = block.block_hash;
 
-        // 2. 异步持久化至 IndexedDB
-        blockchainStorage.saveBlock(block).catch(err => {
+        // 每笔动作立即落 IndexedDB；不再等待“攒够 100 笔”才落盘。
+        blockchainStorage.saveBlock(block).then(ok => {
+            if (!ok) {
+                this.lastPersistError = `Block #${block.height} 持久化失败`;
+                console.warn(`[HashChain] ${this.lastPersistError}`);
+            }
+        }).catch(err => {
+            this.lastPersistError = `Block #${block.height} 持久化异常`;
             console.warn('[HashChain] 异步写入 IndexedDB 失败:', err);
         });
 
-        console.log(`⛓️ [HashChain] 已封装并铸造大容量区块 #${block.height} (包含 ${actionsToSeal.length} 笔动作, Hash: ${block.block_hash.slice(0, 8)}...)`);
         return block;
+    }
+
+    /**
+     * 兼容旧调用：第一阶段已经是一动作一块，因此无需再次封包。
+     */
+    sealPendingBlock() {
+        return null;
     }
 
     /**

@@ -15,6 +15,8 @@ export const HEAD_KEYS = {
     BLOCK_HEIGHT: 'cyber_forge_head_height',
     BLOCK_HASH: 'cyber_forge_head_hash',
     LAST_SNAPSHOT_TIME: 'cyber_forge_last_snapshot_time',
+    BASE_HEIGHT: 'cyber_forge_ledger_base_height',
+    BASE_HASH: 'cyber_forge_ledger_base_hash',
 };
 
 export class BlockchainStorageAdapter {
@@ -87,6 +89,10 @@ export class BlockchainStorageAdapter {
             if (typeof window !== 'undefined' && window.localStorage) {
                 localStorage.setItem(HEAD_KEYS.BLOCK_HEIGHT, String(block.height));
                 localStorage.setItem(HEAD_KEYS.BLOCK_HASH, String(block.block_hash));
+                if (localStorage.getItem(HEAD_KEYS.BASE_HASH) === null) {
+                    localStorage.setItem(HEAD_KEYS.BASE_HEIGHT, String(Math.max(0, block.height - 1)));
+                    localStorage.setItem(HEAD_KEYS.BASE_HASH, String(block.prev_hash));
+                }
             }
         } catch (e) {
             console.warn('[BlockchainStorage] 写入 Head 快速索引失败:', e);
@@ -126,6 +132,10 @@ export class BlockchainStorageAdapter {
                 if (typeof window !== 'undefined' && window.localStorage) {
                     localStorage.setItem(HEAD_KEYS.BLOCK_HEIGHT, String(top.height));
                     localStorage.setItem(HEAD_KEYS.BLOCK_HASH, String(top.block_hash));
+                    if (localStorage.getItem(HEAD_KEYS.BASE_HASH) === null) {
+                        localStorage.setItem(HEAD_KEYS.BASE_HEIGHT, String(Math.max(0, top.height - blocks.length)));
+                        localStorage.setItem(HEAD_KEYS.BASE_HASH, String(blocks[0]?.prev_hash || '0000000000000000genesis_hash'));
+                    }
                 }
             } catch (e) {
                 console.warn('[BlockchainStorage] 批量写入 Head 快速索引失败:', e);
@@ -274,6 +284,8 @@ export class BlockchainStorageAdapter {
             if (typeof window !== 'undefined' && window.localStorage) {
                 localStorage.setItem(HEAD_KEYS.BLOCK_HEIGHT, String(genesisHeight));
                 localStorage.setItem(HEAD_KEYS.BLOCK_HASH, String(genesisHash));
+                localStorage.setItem(HEAD_KEYS.BASE_HEIGHT, String(genesisHeight));
+                localStorage.setItem(HEAD_KEYS.BASE_HASH, String(genesisHash));
             }
         } catch (e) {
             console.warn('[BlockchainStorage] 重置快速索引失败:', e);
