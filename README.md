@@ -1,9 +1,3 @@
-这是一份为你量身定制的 `README.md` 模板。它不仅总结了你项目的核心愿景（游戏报告），还将那些技术债和架构建议转化为了专业、清晰的工程化 `TODO` 列表。
-
-你可以直接将以下内容复制并覆盖到你 GitHub 项目的 `README.md` 中：
-
-***
-
 # ⚙️ Cyber Forge
 
 ![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)
@@ -14,22 +8,24 @@
 
 本项目旨在探索用纯 Rust 技术栈（WASM 前端 + Tokio/Actix 后端）构建一个具备真实动态经济、物理拓扑和持续演进的世界模型。
 
+---
+
 ## 📜 游戏系统报告 (Game Systems Overview)
 
 目前项目已经脱离了简单的功能堆砌，初步建立了一个具备高度逻辑自洽的“世界模拟器”：
 
-*   🌍 **单一事实来源的世界状态 (`WorldState`)**
-    放弃了传统的“请求-改库-返回”模型，整个游戏世界作为一个持续运行的状态机在内存中演进。资源刷新、市场波动等行为由独立后台 Task 自动推进。
-*   ⚖️ **真实的动态市场经济 (`MarketEngine`)**
-    物价不再是固定常量。基于区域、供需关系和随机波动，系统生成实时的买入/卖出价（支持 60%~220% 动态浮动），并衍生出跨区域贸易玩法。
-*   📜 **基于信用体系的商票系统 (`Commerce`)**
-    不同于普通的“买卖得金币”，游戏引入了“信用额度 → 货物采购 → 运输 → 销售 → 回款结算”的商业票据流转机制，记录未结算负债与累计现金流，打造真正的贸易体验。
-*   🌲 **世界所属的资源节点 (`GatheringEngine`)**
-    资源产出不再绑定于玩家行为，而是归属于“世界”。玩家采集消耗的是节点的 `current_yield`，由世界引擎定期执行 Respawn 恢复。
-*   🗺️ **复杂的区域拓扑与寻路 (`WorldTopology`)**
-    地图不再是一张图片，而是由 7 大主城、60 个野外据点、传送门构成的复杂图数据结构。依托 Dijkstra 算法计算真实旅行成本，影响商路与玩家移动。
-*   🔗 **前后端强类型契约 (`Shared Crate`)**
-    客户端与服务端共享同一套 Rust 数据结构（Positions, PlayerStates, Items 等），杜绝了 API 字段不匹配的问题，将协议契约交由编译器保障。
+* 🌍 **单一事实来源的世界状态 (`WorldState`)**  
+  放弃了传统的“请求-改库-返回”模型，整个游戏世界作为一个持续运行的状态机在内存中演进。资源刷新、市场波动等行为由独立后台 Task 自动推进。
+* ⚖️ **真实的动态市场经济 (`MarketEngine`)**  
+  物价不再是固定常量。基于区域、供需关系和随机波动，系统生成实时的买入/卖出价（支持 60%~220% 动态浮动），并衍生出跨区域贸易玩法。
+* 📜 **基于信用体系的商票系统 (`Commerce`)**  
+  不同于普通的“买卖得金币”，游戏引入了“信用额度 → 货物采购 → 运输 → 销售 → 回款结算”的商业票据流转机制，记录未结算负债与累计现金流，打造真正的贸易体验。
+* 🌲 **世界所属的资源节点 (`GatheringEngine`)**  
+  资源产出不再绑定于玩家行为，而是归属于“世界”。玩家采集消耗的是节点的 `current_yield`，由世界引擎定期执行 Respawn 恢复。
+* 🗺️ **复杂的区域拓扑与寻路 (`WorldTopology`)**  
+  地图不再是一张图片，而是由 7 大主城、60 个野外据点、传送门构成的复杂图数据结构。依托 Dijkstra 算法计算真实旅行成本，影响商路与玩家移动。
+* 🔗 **前后端强类型契约 (`Shared Crate`)**  
+  客户端与服务端共享同一套 Rust 数据结构（Positions, PlayerStates, Items 等），杜绝了 API 字段不匹配的问题，将协议契约交由编译器保障。
 
 ---
 
@@ -62,9 +58,20 @@
 
 ---
 
-## 🛠️ 路线图与 TODO (Roadmap & Action Items)
+## 📋 玩法任务与交付记录 (Task Checklist & Changelog)
 
-当前项目正处于**“架构收敛与工程成熟度提升”**阶段。接下来的核心目标不是盲目堆砌新系统或分布式组件，而是打磨现有世界模型的稳定性、一致性和安全性。
+> 💡 **所有已交付功能的详细设计、影响范围与测试记录已归档至日志目录：**  
+> 🔗 **[📄 查看已交付任务归档 (LOG/DONE.md)](./LOG/DONE.md)**  
+> 🔗 **[📂 浏览开发流转与排查日志 (LOG/)](./LOG/)**
+
+### 📌 最新待办业务功能 (Active Gameplay Tasks)
+- [ ] *（在此处持续添加新的玩法、数值与系统需求）*
+
+---
+
+## 🛠️ 路线图与工程 TODO (Roadmap & Technical Debt)
+
+当前项目正处于**“架构收敛与工程成熟度提升”**阶段。接下来的核心目标是打磨现有世界模型的稳定性、一致性和安全性。
 
 ### 🔴 高优先级：核心稳定性重构 (High Priority)
 - [ ] **经济系统高精度重构：** 消除核心经济和价格计算中的 `f64` 浮点数，统一使用 `u64` 表示货币，使用整数（如万分比）表示价格倍率，防止精度丢失与经济漏洞。
@@ -86,26 +93,18 @@
 
 ---
 
-## 🤝 参与贡献 (Contributing)
-
-Cyber Forge 欢迎任何关于系统设计、Rust 性能优化或测试用例的讨论与 PR。
-如果你对大型 MMO 的状态同步、动态经济模型感兴趣，欢迎与我交流！
-
-**"We are not just adding features, we are simulating a world."**
-
-
 ## 🛠️ 构建与运行指令
 
 ### 1. 服务端 (Tokio Server)
 ```bash
-cd rustCF2513/server
+cd Cyber-Forge/server
 cargo run --release
 ```
 默认在 `0.0.0.0:3000` 启动高性能 WebSocket 游戏世界状态机服务。
 
 ### 2. 客户端 WASM 编译 (Macroquad Client)
 ```bash
-cd rustCF2513/client
+cd Cyber-Forge/client
 # 添加 WASM 目标架构
 rustup target add wasm32-unknown-unknown
 
@@ -113,4 +112,12 @@ rustup target add wasm32-unknown-unknown
 cargo build --target wasm32-unknown-unknown --release
 ```
 编译产物可直接嵌入 HTML Canvas，享受无 GC、60/120 FPS 纯 Rust 渲染体验。
-# rustCF2513
+
+---
+
+## 🤝 参与贡献 (Contributing)
+
+Cyber Forge 欢迎任何关于系统设计、Rust 性能优化或测试用例的讨论与 PR。
+如果你对大型 MMO 的状态同步、动态经济模型感兴趣，欢迎与我交流！
+
+**"We are not just adding features, we are simulating a world."**

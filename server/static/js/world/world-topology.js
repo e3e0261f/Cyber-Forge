@@ -26,6 +26,61 @@ export const GATE_BOUNDARY_MIN = 6750; // 25% of 27000
 export const GATE_BOUNDARY_MAX = 20250; // 75% of 27000
 export const SAFE_PORTAL_OFFSET = 120; // 跨图重生安全内推像素 (防止立即二次触发传送)
 
+/**
+ * 🌟 统一四边墙线页边距 (Wall Margin / Inset)
+ * 可直接修改此参数或调用 setWallMargin(val)，全局地表、城墙与传送门将全部自适应单参数绑定
+ */
+export let WORLD_WALL_MARGIN = 80;
+
+/**
+ * 获取当前全局四边统一墙线页边距
+ */
+export function getWallMargin() {
+  return WORLD_WALL_MARGIN;
+}
+
+/**
+ * 动态调整四边统一墙线页边距，并自动重绑世界所有传送门至新墙线上
+ * @param {number} margin - 新的四边页边距 (px)
+ */
+export function setWallMargin(margin) {
+  WORLD_WALL_MARGIN = Math.max(0, Number(margin) || 0);
+  syncGateCoordinatesWithWallMargin(WORLD_WALL_MARGIN);
+  return WORLD_WALL_MARGIN;
+}
+
+/**
+ * 传送门自动绑定到墙线上 (将某个区域内所有传送门严格吸附并对齐至指定页边距的墙线位置)
+ */
+export function bindPortalsToWall(zone, margin = getWallMargin()) {
+  if (!zone) return zone;
+  const mapW = zone.width || MAP_SIZE;
+  const mapH = zone.height || MAP_SIZE;
+  const gates = zone.gates || zone.portals || [];
+  for (const gate of gates) {
+    const dir = gate.dir || '';
+    if (dir === 'north' || dir === 'northwest' || dir === 'northeast') {
+      gate.y = margin;
+    } else if (dir === 'south' || dir === 'southwest' || dir === 'southeast') {
+      gate.y = mapH - margin;
+    } else if (dir === 'west') {
+      gate.x = margin;
+    } else if (dir === 'east') {
+      gate.x = mapW - margin;
+    }
+  }
+  return zone;
+}
+
+/**
+ * 全局同步：将所有区域的传送门坐标与当前统一墙线页边距对齐
+ */
+export function syncGateCoordinatesWithWallMargin(margin = getWallMargin()) {
+  for (const zone of Object.values(WORLD_ZONES)) {
+    bindPortalsToWall(zone, margin);
+  }
+}
+
 export const BIOME_THEMES = {
   capital: { primary: '#ef4444', bg: '#160808', tile1: '#1c0a0a', tile2: '#240e0e', glow: '#f87171' },
   forge: { primary: '#f97316', bg: '#1a0c06', tile1: '#241008', tile2: '#2e140a', glow: '#fb923c' },
@@ -849,6 +904,9 @@ for (const [key, zone] of Object.entries(WORLD_ZONES)) {
 // 🌟 初始投放当前纪元的 4 级采集物 (后续由 checkT4Refresh 在纪元切换时自动换批)
 applyT4Resources();
 
+// 🌟 传送门坐标全量对齐至统一四边墙线页边距
+syncGateCoordinatesWithWallMargin();
+
 /**
  * 点对点跨图重生计算函数 (Edge-to-Edge Portal Rebirth - 函数版，基于 PORTAL_SAFE_INSET = 50)
  */
@@ -931,33 +989,23 @@ export function checkPortalTrigger(playerPos, zone, mapW = MAP_SIZE, mapH = MAP_
     const dir = portal.dir || (px <= 1500 ? 'west' : px >= mw - 1500 ? 'east' : py <= 1500 ? 'north' : py >= mh - 1500 ? 'south' : 'center');
 
     let isTriggered = false;
-    const gateHalfWidth = 30; // 门洞通过跨度 (左右/上下各 30px)
-    const touchDepth = 6;      // 实质接触门线的深度容差 (6px)
+    const gateHalfWidth = 60; // 门洞通过跨度 (左右/上下各 60px，与 120px 2.5D 空间裂隙完全吻合)
+    const touchDepth = 40;     // 实质触碰门线判定深度 (±40px，与 2.5D 地面椭圆光渊相吻合)
 
-    if (dir === 'west') {
-      // 西门：玩家向西撞门，X 坐标实质触碰或穿过门线 px
-      if (playerPos.x <= px + touchDepth && playerPos.x >= px - 40 && Math.abs(playerPos.y - py) <= gateHalfWidth) {
+    if (dir === 'west' || dir === 'east') {
+      // 东西门：玩家走到门洞 UI 处 (X 轴距离门线 <= 40px, Y 轴在门洞跨度内 <= 60px)
+      if (Math.abs(playerPos.x - px) <= touchDepth && Math.abs(playerPos.y - py) <= gateHalfWidth) {
         isTriggered = true;
       }
-    } else if (dir === 'east') {
-      // 东门：玩家向东撞门，X 坐标实质触碰或穿过门线 px
-      if (playerPos.x >= px - touchDepth && playerPos.x <= px + 40 && Math.abs(playerPos.y - py) <= gateHalfWidth) {
-        isTriggered = true;
-      }
-    } else if (dir === 'north') {
-      // 北门：玩家向北撞门，Y 坐标实质触碰或穿过门线 py
-      if (playerPos.y <= py + touchDepth && playerPos.y >= py - 40 && Math.abs(playerPos.x - px) <= gateHalfWidth) {
-        isTriggered = true;
-      }
-    } else if (dir === 'south') {
-      // 南门：玩家向南撞门，Y 坐标实质触碰或穿过门线 py
-      if (playerPos.y >= py - touchDepth && playerPos.y <= py + 40 && Math.abs(playerPos.x - px) <= gateHalfWidth) {
+    } else if (dir === 'north' || dir === 'south') {
+      // 南北门：玩家走到门洞 UI 处 (Y 轴距离门线 <= 40px, X 轴在门洞跨度内 <= 60px)
+      if (Math.abs(playerPos.y - py) <= touchDepth && Math.abs(playerPos.x - px) <= gateHalfWidth) {
         isTriggered = true;
       }
     } else {
-      // 阵眼/圆形法阵：必须角色中心踩入阵眼核心 (半径 <= 24px)
+      // 阵眼/圆形法阵：角色模型踩入 2.5D 阵眼核心 (半径 <= 40px)
       const dist = Math.hypot(playerPos.x - px, playerPos.y - py);
-      if (dist <= 24) {
+      if (dist <= 40) {
         isTriggered = true;
       }
     }

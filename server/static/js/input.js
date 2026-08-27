@@ -22,7 +22,9 @@ import {
   minToolTierFor, 
   formatT4LockRemain, 
   getPortalRebirthPos,
-  checkPortalTrigger
+  checkPortalTrigger,
+  getWallMargin,
+  WORLD_WALL_MARGIN
 } from './world/world-topology.js';
 import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
@@ -337,10 +339,33 @@ function checkClientCollision(x, y, radius = 24) {
   const zone = getCurrentZone();
   const mapW = zone.width || MAP_SIZE;
   const mapH = zone.height || MAP_SIZE;
+  const wallMargin = getWallMargin();
+  const gatePassHalfW = 60;
+  const portals = zone.portals || zone.gates || [];
 
-  if (x - radius < 200 || x + radius > mapW - 200 || y - radius < 200 || y + radius > mapH - 200) {
-    return true;
+  // 1. 边界城墙碰撞检测 (在门洞开口处允许通行并接触传送门)
+  // 西城墙 (x <= wallMargin)
+  if (x - radius < wallMargin) {
+    const isAtGate = portals.some(p => (p.dir === 'west' || Math.abs(p.x - wallMargin) < 200) && Math.abs(y - p.y) <= gatePassHalfW);
+    if (!isAtGate || x < wallMargin - 40) return true;
   }
+  // 东城墙 (x >= mapW - wallMargin)
+  if (x + radius > mapW - wallMargin) {
+    const isAtGate = portals.some(p => (p.dir === 'east' || Math.abs(p.x - (mapW - wallMargin)) < 200) && Math.abs(y - p.y) <= gatePassHalfW);
+    if (!isAtGate || x > mapW - wallMargin + 40) return true;
+  }
+  // 北城墙 (y <= wallMargin)
+  if (y - radius < wallMargin) {
+    const isAtGate = portals.some(p => (p.dir === 'north' || Math.abs(p.y - wallMargin) < 200) && Math.abs(x - p.x) <= gatePassHalfW);
+    if (!isAtGate || y < wallMargin - 40) return true;
+  }
+  // 南城墙 (y >= mapH - wallMargin)
+  if (y + radius > mapH - wallMargin) {
+    const isAtGate = portals.some(p => (p.dir === 'south' || Math.abs(p.y - (mapH - wallMargin)) < 200) && Math.abs(x - p.x) <= gatePassHalfW);
+    if (!isAtGate || y > mapH - wallMargin + 40) return true;
+  }
+
+  // 2. 障碍物碰撞检测
   for (const obs of zone.obstacles || []) {
     if (
       x + radius > obs.minX &&
@@ -906,11 +931,12 @@ export function updatePlayerMovement(now = performance.now()) {
   const nextX = playerPos.x + playerPos.vx * dt;
   const nextY = playerPos.y + playerPos.vy * dt;
 
+  const wallMargin = getWallMargin();
   if (!checkClientCollision(nextX, playerPos.y)) {
-    playerPos.x = Math.max(200, Math.min(nextX, mapW - 200));
+    playerPos.x = Math.max(wallMargin - 40, Math.min(nextX, mapW - (wallMargin - 40)));
   }
   if (!checkClientCollision(playerPos.x, nextY)) {
-    playerPos.y = Math.max(200, Math.min(nextY, mapH - 200));
+    playerPos.y = Math.max(wallMargin - 40, Math.min(nextY, mapH - (wallMargin - 40)));
   }
 
   // 纯本地内存同步，0 网络延迟，0 主线程阻塞

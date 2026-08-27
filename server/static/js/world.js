@@ -9,7 +9,7 @@ import { uiState, gameState, clock } from './state.js';
 import { playerPos, getNearbyInteractable, gatheringState, kneelingState, monsterCorpseState } from './input.js';
 import { camera } from './camera.js';
 import { settingsState } from './settings-view.js';
-import { WORLD_ZONES, SUB_LEVEL_COLORS, RESOURCE_TOOL_MAP, canToolMine, minToolTierFor, checkT4Refresh, formatT4LockRemain } from './world/world-topology.js';
+import { WORLD_ZONES, SUB_LEVEL_COLORS, RESOURCE_TOOL_MAP, canToolMine, minToolTierFor, checkT4Refresh, formatT4LockRemain, getWallMargin, WORLD_WALL_MARGIN } from './world/world-topology.js';
 import { ANVIL_CONFIG, setHammerTarget } from './world/workshop.js';
 
 export { fx, initMotes };
@@ -436,22 +436,26 @@ function drawGatheringBarOverlay(ctx, w, h, now, time) {
 function drawCityTilemap(ctx, zone, now, time) {
   const mapW = zone.width || 27000;
   const mapH = zone.height || 27000;
+  const wallMargin = getWallMargin();
 
-  ctx.fillStyle = '#020408';
+  // 1. 地图边界外虚空雾障 (涵盖全图及外围)
+  ctx.fillStyle = '#01040a';
   ctx.fillRect(-2000, -2000, mapW + 4000, mapH + 4000);
 
+  // 2. 主城/野外可活动地表 (严格限定在城墙内)
   ctx.fillStyle = zone.bgColor || '#040b14';
-  ctx.fillRect(0, 0, mapW, mapH);
+  ctx.fillRect(wallMargin, wallMargin, mapW - wallMargin * 2, mapH - wallMargin * 2);
 
+  // 3. 地表网格贴图 (仅在城墙内与视野交集内渲染)
   const tileSize = 200;
   const camZoom = (Number.isFinite(camera.zoom) && camera.zoom > 0) ? camera.zoom : 1.0;
   const camX = Number.isFinite(camera.x) ? camera.x : 13500;
   const camY = Number.isFinite(camera.y) ? camera.y : 13500;
 
-  const viewLeft = Math.max(0, camX - (window.innerWidth * 0.6) / camZoom);
-  const viewRight = Math.min(mapW, camX + (window.innerWidth * 0.6) / camZoom);
-  const viewTop = Math.max(0, camY - (window.innerHeight * 0.6) / camZoom);
-  const viewBottom = Math.min(mapH, camY + (window.innerHeight * 0.6) / camZoom);
+  const viewLeft = Math.max(wallMargin, camX - (window.innerWidth * 0.6) / camZoom);
+  const viewRight = Math.min(mapW - wallMargin, camX + (window.innerWidth * 0.6) / camZoom);
+  const viewTop = Math.max(wallMargin, camY - (window.innerHeight * 0.6) / camZoom);
+  const viewBottom = Math.min(mapH - wallMargin, camY + (window.innerHeight * 0.6) / camZoom);
 
   const startCol = Math.floor(viewLeft / tileSize);
   const endCol = Math.ceil(viewRight / tileSize);
@@ -463,6 +467,7 @@ function drawCityTilemap(ctx, zone, now, time) {
     for (let c = startCol; c < endCol; c++) {
       const x = c * tileSize;
       const y = r * tileSize;
+      if (x < wallMargin || x + tileSize > mapW - wallMargin || y < wallMargin || y + tileSize > mapH - wallMargin) continue;
       const isAlt = (r + c) % 2 === 0;
 
       ctx.fillStyle = isAlt ? 'rgba(255, 255, 255, 0.015)' : 'rgba(0, 0, 0, 0.08)';
@@ -475,12 +480,87 @@ function drawCityTilemap(ctx, zone, now, time) {
   }
   ctx.restore();
 
+  // 4. 🌟 2.5D 精确贴墙边界城墙体系 (与传送门坐标 500px 严格重合，并在门洞处精确开辟 120px 豁口)
+  const portals = zone.portals || zone.gates || [];
+  const gateHalfW = 60;
+  const color = zone.color || '#00ffc8';
+
+  // 提取各方向传送门
+  const northGates = portals.filter(p => p.dir === 'north' || (Math.abs((p.y || 0) - wallMargin) < 200 && p.dir !== 'west' && p.dir !== 'east')).sort((a, b) => a.x - b.x);
+  const southGates = portals.filter(p => p.dir === 'south' || (Math.abs((p.y || 0) - (mapH - wallMargin)) < 200 && p.dir !== 'west' && p.dir !== 'east')).sort((a, b) => a.x - b.x);
+  const westGates = portals.filter(p => p.dir === 'west' || (Math.abs((p.x || 0) - wallMargin) < 200 && p.dir !== 'north' && p.dir !== 'south')).sort((a, b) => a.y - b.y);
+  const eastGates = portals.filter(p => p.dir === 'east' || (Math.abs((p.x || 0) - (mapW - wallMargin)) < 200 && p.dir !== 'north' && p.dir !== 'south')).sort((a, b) => a.y - b.y);
+
   ctx.save();
-  ctx.strokeStyle = zone.color || '#00ffc8';
-  ctx.lineWidth = 12;
-  ctx.shadowColor = zone.color || '#00ffc8';
-  ctx.shadowBlur = 24;
-  ctx.strokeRect(40, 40, mapW - 80, mapH - 80);
+  ctx.lineCap = 'round';
+
+  // 绘制单段墙体 (带深色基座 + 灵脉霓虹流光边)
+  const drawWallSegment = (x1, y1, x2, y2) => {
+    if (Math.hypot(x2 - x1, y2 - y1) < 10) return;
+    // 墙基暗影
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 16;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // 墙体石构
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // 灵脉霓虹发光外缘
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.5;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  };
+
+  // 4.1 北城墙 (y = wallMargin)
+  let currX = wallMargin;
+  for (const g of northGates) {
+    const gx = g.x;
+    drawWallSegment(currX, wallMargin, Math.max(currX, gx - gateHalfW), wallMargin);
+    currX = Math.max(currX, gx + gateHalfW);
+  }
+  drawWallSegment(currX, wallMargin, mapW - wallMargin, wallMargin);
+
+  // 4.2 南城墙 (y = mapH - wallMargin)
+  currX = wallMargin;
+  for (const g of southGates) {
+    const gx = g.x;
+    drawWallSegment(currX, mapH - wallMargin, Math.max(currX, gx - gateHalfW), mapH - wallMargin);
+    currX = Math.max(currX, gx + gateHalfW);
+  }
+  drawWallSegment(currX, mapH - wallMargin, mapW - wallMargin, mapH - wallMargin);
+
+  // 4.3 西城墙 (x = wallMargin)
+  let currY = wallMargin;
+  for (const g of westGates) {
+    const gy = g.y;
+    drawWallSegment(wallMargin, currY, wallMargin, Math.max(currY, gy - gateHalfW));
+    currY = Math.max(currY, gy + gateHalfW);
+  }
+  drawWallSegment(wallMargin, currY, wallMargin, mapH - wallMargin);
+
+  // 4.4 东城墙 (x = mapW - wallMargin)
+  currY = wallMargin;
+  for (const g of eastGates) {
+    const gy = g.y;
+    drawWallSegment(mapW - wallMargin, currY, mapW - wallMargin, Math.max(currY, gy - gateHalfW));
+    currY = Math.max(currY, gy + gateHalfW);
+  }
+  drawWallSegment(mapW - wallMargin, currY, mapW - wallMargin, mapH - wallMargin);
+
   ctx.restore();
 }
 
@@ -573,164 +653,332 @@ function drawCityPortals(ctx, zone, now, time) {
     const validTime = Number.isFinite(time) ? time : 0;
     const dir = portal.dir || (px <= 1500 ? 'west' : px >= mapW - 1500 ? 'east' : py <= 1500 ? 'north' : py >= mapH - 1500 ? 'south' : 'center');
 
+    const pulse = Math.sin(validTime * 2.8) * 0.15 + 0.85;
+    const label = portal.name || (dir === 'center' ? '虚空法阵' : '城门关隘');
+
     if (dir === 'west' || dir === 'east') {
-      // 🌟 东西向墙体豁口城门 (贴墙嵌入式，深度 60px，跨度 100px)
-      const gateX = dir === 'west' ? 180 : mapW - 180;
-      const wallEdgeX = dir === 'west' ? 40 : mapW - 40;
-      const gateH = 100;
-      const wave = Math.sin(validTime * 2.5 + py * 0.01) * 4;
+      // 🌟 东西垂直墙面：2.5D 依附式虚空空间裂隙与流光帘幕 (无生硬方块，纯流光空间透视)
+      const gateH = 120;
+      const isWest = dir === 'west';
+      const groundOffsetX = isWest ? 14 : -14;
 
-      // 1. 墙体豁口凹槽与空间裂隙
-      const grad = ctx.createLinearGradient(dir === 'west' ? wallEdgeX : gateX - 30, py, dir === 'west' ? gateX + 40 : wallEdgeX, py);
-      grad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
-      grad.addColorStop(0.4, `${pColor}88`);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(dir === 'west' ? wallEdgeX : gateX - 40, py - gateH * 0.5, 80, gateH, 6);
-      ctx.fill();
-
-      // 2. 虚空光幕 (沿墙线流动)
-      ctx.strokeStyle = pColor;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = pColor;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(gateX + (dir === 'west' ? wave : -wave), py - gateH * 0.5 + 6);
-      ctx.lineTo(gateX + (dir === 'west' ? -wave : wave), py + gateH * 0.5 - 6);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // 3. 上下石关门柱 (Wall Pillars)
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 2;
-      // 上门柱
-      ctx.beginPath();
-      ctx.roundRect(dir === 'west' ? wallEdgeX : mapW - 80, py - gateH * 0.5 - 14, 50, 24, 3);
-      ctx.fill(); ctx.stroke();
-      // 下门柱
-      ctx.beginPath();
-      ctx.roundRect(dir === 'west' ? wallEdgeX : mapW - 80, py + gateH * 0.5 - 10, 50, 24, 3);
-      ctx.fill(); ctx.stroke();
-
-      // 4. 门楣标牌 (悬挂于墙顶)
-      ctx.font = 'bold 15px sans-serif';
-      ctx.textAlign = 'center';
-      const label = portal.name || '城门关隘';
-      const nameW = ctx.measureText(label).width + 24;
-      const tagX = dir === 'west' ? 260 : mapW - 260;
-      const tagY = py - gateH * 0.5 - 28;
-
-      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
-      ctx.strokeStyle = pColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(tagX - nameW * 0.5, tagY - 14, nameW, 28, 5);
-      ctx.fill(); ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, tagX, tagY + 5);
-
-    } else if (dir === 'north' || dir === 'south') {
-      // 🌟 南北向墙体豁口城门 (贴墙嵌入式，深度 60px，跨度 100px)
-      const gateY = dir === 'north' ? 180 : mapH - 180;
-      const wallEdgeY = dir === 'north' ? 40 : mapH - 40;
-      const gateW = 100;
-      const wave = Math.sin(validTime * 2.5 + px * 0.01) * 4;
-
-      // 1. 墙体豁口凹槽与空间裂隙
-      const grad = ctx.createLinearGradient(px, dir === 'north' ? wallEdgeY : gateY - 30, px, dir === 'north' ? gateY + 40 : wallEdgeY);
-      grad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
-      grad.addColorStop(0.4, `${pColor}88`);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(px - gateW * 0.5, dir === 'north' ? wallEdgeY : gateY - 40, gateW, 80, 6);
-      ctx.fill();
-
-      // 2. 虚空光幕
-      ctx.strokeStyle = pColor;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = pColor;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(px - gateW * 0.5 + 6, gateY + (dir === 'north' ? wave : -wave));
-      ctx.lineTo(px + gateW * 0.5 - 6, gateY + (dir === 'north' ? -wave : wave));
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // 3. 左右石关门柱
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 2;
-      // 左门柱
-      ctx.beginPath();
-      ctx.roundRect(px - gateW * 0.5 - 14, dir === 'north' ? wallEdgeY : mapH - 80, 24, 50, 3);
-      ctx.fill(); ctx.stroke();
-      // 右门柱
-      ctx.beginPath();
-      ctx.roundRect(px + gateW * 0.5 - 10, dir === 'north' ? wallEdgeY : mapH - 80, 24, 50, 3);
-      ctx.fill(); ctx.stroke();
-
-      // 4. 门楣标牌
-      ctx.font = 'bold 15px sans-serif';
-      ctx.textAlign = 'center';
-      const label = portal.name || '城门关隘';
-      const nameW = ctx.measureText(label).width + 24;
-      const tagX = px;
-      const tagY = dir === 'north' ? 260 : mapH - 260;
-
-      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
-      ctx.strokeStyle = pColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(tagX - nameW * 0.5, tagY - 14, nameW, 28, 5);
-      ctx.fill(); ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, tagX, tagY + 5);
-
-    } else {
-      // 🌟 地图中央特殊阵眼 (如天坛) - 50px 半径
-      const radius = 50;
-      const pulse = Math.sin(validTime * 3 + px * 0.001) * 5;
-      const outRadius = Math.max(15, radius + pulse);
-
-      const grad = ctx.createRadialGradient(px, py, 10, px, py, outRadius);
-      grad.addColorStop(0, `${pColor}aa`);
-      grad.addColorStop(0.5, `${pColor}44`);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(px, py, outRadius, 0, Math.PI * 2);
-      ctx.fill();
-
+      // 1. 地面 2.5D 椭圆能量光渊与扩散涟漪 (Ground 2.5D Ellipse Projection)
+      const rippleR = 24 + Math.sin(validTime * 2.2 + py * 0.01) * 6;
       ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(validTime * 0.8);
-      ctx.strokeStyle = pColor;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-radius * 0.4, -radius * 0.4, radius * 0.8, radius * 0.8);
+      ctx.beginPath();
+      ctx.ellipse(px + groundOffsetX, py + gateH * 0.46, rippleR, rippleR * 0.42, 0, 0, Math.PI * 2);
+      const groundGrad = ctx.createRadialGradient(px + groundOffsetX, py + gateH * 0.46, 4, px + groundOffsetX, py + gateH * 0.46, rippleR);
+      groundGrad.addColorStop(0, `${pColor}88`);
+      groundGrad.addColorStop(0.5, `${pColor}33`);
+      groundGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = groundGrad;
+      ctx.fill();
       ctx.restore();
 
-      ctx.font = 'bold 15px sans-serif';
-      ctx.textAlign = 'center';
-      const label = portal.name || '虚空法阵';
-      const nameW = ctx.measureText(label).width + 24;
-      const labelY = py - radius - 16;
+      // 2. 墙体表面空间裂隙底色 (暗黑虚空核心)
+      ctx.save();
+      const riftGrad = ctx.createLinearGradient(px - (isWest ? 20 : 60), py, px + (isWest ? 60 : -20), py);
+      riftGrad.addColorStop(0, 'rgba(2, 6, 23, 0.98)');
+      riftGrad.addColorStop(0.35, `${pColor}44`);
+      riftGrad.addColorStop(0.7, `${pColor}18`);
+      riftGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = riftGrad;
+      ctx.beginPath();
+      // 2.5D 倾斜梭形裂隙
+      ctx.moveTo(px, py - gateH * 0.5);
+      ctx.bezierCurveTo(px + (isWest ? 38 : -38), py - gateH * 0.25, px + (isWest ? 38 : -38), py + gateH * 0.25, px, py + gateH * 0.5);
+      ctx.bezierCurveTo(px - (isWest ? 8 : -8), py + gateH * 0.25, px - (isWest ? 8 : -8), py - gateH * 0.25, px, py - gateH * 0.5);
+      ctx.fill();
+      ctx.restore();
 
-      ctx.fillStyle = 'rgba(8, 14, 24, 0.94)';
+      // 3. 墙体 2.5D 垂直流光能量帘幕 (双频正弦波动光瀑)
+      ctx.save();
       ctx.strokeStyle = pColor;
+      ctx.lineWidth = 3.2;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = 18;
+
+      // 主光帘
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const currY = (py - gateH * 0.5) + t * gateH;
+        const wave1 = Math.sin(validTime * 3.5 + t * 6.0) * 5.5 * (1 - Math.abs(t - 0.5) * 1.8);
+        const currX = px + (isWest ? wave1 : -wave1);
+        if (i === 0) ctx.moveTo(currX, currY);
+        else ctx.lineTo(currX, currY);
+      }
+      ctx.stroke();
+
+      // 副光帘 (内层高亮细线)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.6;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const currY = (py - gateH * 0.5) + t * gateH;
+        const wave2 = Math.cos(validTime * 4.2 + t * 8.0) * 3.0 * (1 - Math.abs(t - 0.5) * 1.8);
+        const currX = px + (isWest ? wave2 + 4 : -wave2 - 4);
+        if (i === 0) ctx.moveTo(currX, currY);
+        else ctx.lineTo(currX, currY);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. 墙面延伸符文能量纹理 (沿墙体上下蔓延的微光灵脉)
+      ctx.save();
+      ctx.strokeStyle = `${pColor}66`;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(px - nameW * 0.5, labelY - 14, nameW, 28, 5);
-      ctx.fill(); ctx.stroke();
+      // 上延伸纹
+      ctx.moveTo(px, py - gateH * 0.5);
+      ctx.lineTo(px, py - gateH * 0.5 - 28);
+      ctx.lineTo(px + (isWest ? 8 : -8), py - gateH * 0.5 - 40);
+      // 下延伸纹
+      ctx.moveTo(px, py + gateH * 0.5);
+      ctx.lineTo(px, py + gateH * 0.5 + 28);
+      ctx.lineTo(px + (isWest ? 8 : -8), py + gateH * 0.5 + 40);
+      ctx.stroke();
+      ctx.restore();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, px, labelY + 5);
+      // 5. 2.5D 升华能量微粒 (升腾光点)
+      ctx.save();
+      for (let p = 0; p < 5; p++) {
+        const pProgress = (validTime * 0.8 + p * 0.2) % 1.0;
+        const partY = (py + gateH * 0.45) - pProgress * gateH * 0.9;
+        const partX = px + (isWest ? 1 : -1) * (Math.sin(validTime * 3 + p * 1.7) * 8 + (1 - pProgress) * 10);
+        const partAlpha = Math.sin(pProgress * Math.PI) * 0.85;
+        ctx.fillStyle = `${pColor}${Math.floor(partAlpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.beginPath();
+        ctx.arc(partX, partY, 2.2 * (1 - pProgress * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 6. 悬浮 2.5D 晶体微光标牌
+      drawPortalFloatingTag(ctx, px, py - gateH * 0.5 - 22, label, pColor, validTime);
+
+    } else if (dir === 'north' || dir === 'south') {
+      // 🌟 南北横向墙面：2.5D 拱形星穹光门 (嵌入横向立面墙，带拱门光弧与地面光渊)
+      const gateW = 120;
+      const isNorth = dir === 'north';
+      const groundOffsetY = isNorth ? 14 : -14;
+
+      // 1. 地面 2.5D 椭圆能量光渊 (Ground 2.5D Ellipse)
+      const rippleR = 36 + Math.sin(validTime * 2.2 + px * 0.01) * 8;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(px, py + groundOffsetY, rippleR, rippleR * 0.38, 0, 0, Math.PI * 2);
+      const groundGrad = ctx.createRadialGradient(px, py + groundOffsetY, 4, px, py + groundOffsetY, rippleR);
+      groundGrad.addColorStop(0, `${pColor}88`);
+      groundGrad.addColorStop(0.5, `${pColor}33`);
+      groundGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = groundGrad;
+      ctx.fill();
+      ctx.restore();
+
+      // 2. 墙体拱形虚空暗面
+      ctx.save();
+      const archGrad = ctx.createLinearGradient(px, py - (isNorth ? 15 : 45), px, py + (isNorth ? 45 : -15));
+      archGrad.addColorStop(0, 'rgba(2, 6, 23, 0.98)');
+      archGrad.addColorStop(0.4, `${pColor}44`);
+      archGrad.addColorStop(0.8, `${pColor}14`);
+      archGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = archGrad;
+      ctx.beginPath();
+      const archH = 50;
+      ctx.moveTo(px - gateW * 0.5, py);
+      ctx.bezierCurveTo(px - gateW * 0.5, py + (isNorth ? -archH : archH), px + gateW * 0.5, py + (isNorth ? -archH : archH), px + gateW * 0.5, py);
+      ctx.bezierCurveTo(px + gateW * 0.3, py + (isNorth ? 8 : -8), px - gateW * 0.3, py + (isNorth ? 8 : -8), px - gateW * 0.5, py);
+      ctx.fill();
+      ctx.restore();
+
+      // 3. 2.5D 拱顶流动光弧 (主光帘 & 副光帘)
+      ctx.save();
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 3.2;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = 18;
+
+      ctx.beginPath();
+      for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        const currX = (px - gateW * 0.5) + t * gateW;
+        const wave = Math.sin(validTime * 3.2 + t * 6.0) * 4.5 * (1 - Math.abs(t - 0.5) * 1.6);
+        const arcY = Math.sin(t * Math.PI) * (isNorth ? -36 : 36) + wave;
+        const currY = py + arcY;
+        if (i === 0) ctx.moveTo(currX, currY);
+        else ctx.lineTo(currX, currY);
+      }
+      ctx.stroke();
+
+      // 内层白色高亮微波
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        const currX = (px - gateW * 0.5) + t * gateW;
+        const wave2 = Math.cos(validTime * 4.0 + t * 8.0) * 2.5 * (1 - Math.abs(t - 0.5) * 1.6);
+        const arcY = Math.sin(t * Math.PI) * (isNorth ? -32 : 32) + wave2;
+        const currY = py + arcY;
+        if (i === 0) ctx.moveTo(currX, currY);
+        else ctx.lineTo(currX, currY);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. 左右横向蔓延符文纹理
+      ctx.save();
+      ctx.strokeStyle = `${pColor}66`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      // 左延伸
+      ctx.moveTo(px - gateW * 0.5, py);
+      ctx.lineTo(px - gateW * 0.5 - 28, py);
+      ctx.lineTo(px - gateW * 0.5 - 40, py + (isNorth ? 8 : -8));
+      // 右延伸
+      ctx.moveTo(px + gateW * 0.5, py);
+      ctx.lineTo(px + gateW * 0.5 + 28, py);
+      ctx.lineTo(px + gateW * 0.5 + 40, py + (isNorth ? 8 : -8));
+      ctx.stroke();
+      ctx.restore();
+
+      // 5. 2.5D 升华能量微粒
+      ctx.save();
+      for (let p = 0; p < 5; p++) {
+        const pProgress = (validTime * 0.8 + p * 0.2) % 1.0;
+        const partX = (px - gateW * 0.35) + (p / 4) * gateW * 0.7 + Math.sin(validTime * 2.5 + p) * 6;
+        const partY = py + (isNorth ? 6 : -6) - (isNorth ? 1 : -1) * pProgress * 32;
+        const partAlpha = Math.sin(pProgress * Math.PI) * 0.85;
+        ctx.fillStyle = `${pColor}${Math.floor(partAlpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.beginPath();
+        ctx.arc(partX, partY, 2.2 * (1 - pProgress * 0.3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 6. 悬浮 2.5D 晶体微光标牌
+      const tagY = isNorth ? py + 52 : py - 52;
+      drawPortalFloatingTag(ctx, px, tagY, label, pColor, validTime);
+
+    } else {
+      // 🌟 地图中央特殊阵眼 (如天坛) - 纯正 2.5D 倾斜星轨阵盘与垂直虚空光柱
+      const rx = 64;
+      const ry = 28; // 2.5D 倾斜透视压扁
+
+      // 1. 地面 2.5D 虚空能量光渊
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx * 1.3, ry * 1.3, 0, 0, Math.PI * 2);
+      const centerGrad = ctx.createRadialGradient(px, py, 6, px, py, rx * 1.3);
+      centerGrad.addColorStop(0, `${pColor}99`);
+      centerGrad.addColorStop(0.4, `${pColor}44`);
+      centerGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = centerGrad;
+      ctx.fill();
+      ctx.restore();
+
+      // 2. 双层 2.5D 旋转符文星轨
+      ctx.save();
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = 14;
+
+      // 外环星轨 (带 2.5D 倾斜)
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 内环逆向旋转点阵
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx * 0.6, ry * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 旋转星芒法阵
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1.0, 0.44); // 2.5D 透视压缩
+      ctx.rotate(validTime * 0.6);
+      ctx.strokeStyle = `${pColor}aa`;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      for (let s = 0; s < 6; s++) {
+        const rad = (s * Math.PI) / 3;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(rad) * rx * 0.9, Math.sin(rad) * rx * 0.9);
+      }
+      ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+
+      // 3. 垂直升腾 2.5D 虚空光柱 (从地面椭圆向上穿透)
+      ctx.save();
+      const beamH = 80;
+      const beamGrad = ctx.createLinearGradient(px, py, px, py - beamH);
+      beamGrad.addColorStop(0, `${pColor}66`);
+      beamGrad.addColorStop(0.6, `${pColor}22`);
+      beamGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(px - rx * 0.45, py);
+      ctx.lineTo(px - rx * 0.25, py - beamH);
+      ctx.lineTo(px + rx * 0.25, py - beamH);
+      ctx.lineTo(px + rx * 0.45, py);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // 4. 悬浮 2.5D 晶体微光标牌
+      drawPortalFloatingTag(ctx, px, py - beamH - 12, label, pColor, validTime);
     }
   }
+  ctx.restore();
+}
+
+/**
+ * 🌟 辅助：绘制精致 2.5D 悬浮微光晶体标牌 (无生硬方块，通透玻璃微光质感)
+ */
+function drawPortalFloatingTag(ctx, x, y, label, color, time) {
+  ctx.save();
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const textMetrics = ctx.measureText(label);
+  const tagW = Math.max(80, textMetrics.width + 24);
+  const tagH = 26;
+  const floatY = y + Math.sin(time * 2.4) * 3;
+
+  // 1. 半透明幽邃晶体底板
+  ctx.fillStyle = 'rgba(6, 11, 24, 0.88)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+
+  ctx.beginPath();
+  ctx.roundRect(x - tagW * 0.5, floatY - tagH * 0.5, tagW, tagH, 13); // 胶囊圆润晶片
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 2. 悬浮文字与发光小圆点
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(label, x + 4, floatY);
+
+  // 3. 左侧灵气流光指示微点
+  const dotPulse = Math.sin(time * 4) * 0.4 + 0.6;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x - tagW * 0.5 + 10, floatY, 3.2 * dotPulse, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.restore();
 }
 

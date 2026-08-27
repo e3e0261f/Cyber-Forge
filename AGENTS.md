@@ -9,5 +9,6 @@
    - 根目录环境：负责 Web 开发、快速调试、UI 原型与实时容器热览。
    - `Cyber-Forge/` 目录：负责纯 Rust 原版全栈工程（包含 Tokio 服务端、Macroquad/WASM 客户端、九州拓扑与 Shared 协议库），保持生产级无瑕疵编译。
 
-3. **TODO 与需求管理路径**：
-   - 任务清单 `TODO.md` 统一维护在 `/Cyber-Forge/TODO.md`，后续所有开发任务与待办事项均以此路径为准。
+3. **TODO 与日志管理路径**：
+   - 需求待办统一维护在 `/Cyber-Forge/README.md` 的【玩法任务与交付记录】及【路线图与工程 TODO】中。
+   - 所有已交付功能的归档及历史流转日志统一维护在 `/Cyber-Forge/LOG/` 目录下（如 `/Cyber-Forge/LOG/DONE.md` 与 `LOG/*.log`），并在 `README.md` 中保留索引链接。

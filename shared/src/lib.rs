@@ -12,6 +12,9 @@ impl GameConfig {
     pub const DEFAULT_SPAWN_X: f64 = 13500.0;
     pub const DEFAULT_SPAWN_Y: f64 = 13500.0;
 
+    // === 墙体与边界页边距 ===
+    pub const WALL_MARGIN: f64 = 80.0;
+
     // === 传送门与过图 ===
     pub const PORTAL_RADIUS: f64 = 24.0;
     pub const PORTAL_INTERACT_RADIUS: f64 = 36.0;

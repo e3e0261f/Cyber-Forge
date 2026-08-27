@@ -1,6 +1,6 @@
 [package]
 name = "cyber-forge-server"
-version = "0.1.0"
+version = "2.9.27"
 edition = "2021"
 repository = "https://github.com/e3e0261f/rustCF2513"
 

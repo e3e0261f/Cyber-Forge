@@ -4,6 +4,7 @@ use cyber_forge_shared::GameConfig;
 
 pub const MAP_SIZE: f64 = GameConfig::MAP_SIZE;
 pub const PORTAL_RADIUS: f64 = GameConfig::PORTAL_INTERACT_RADIUS;
+pub const WALL_MARGIN: f64 = GameConfig::WALL_MARGIN;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -318,7 +319,25 @@ impl ClientTopology {
         Self::populate_wild_chain(&mut zones, "wild_yn_qh", "茶马雪山", &["玉龙雪峰", "金沙飞渡", "香格里拉", "澜沧天堑", "念青唐古", "巴颜喀拉"], "yunnan", "qinghai", "north", "south", "snow", "严寒", "冰魄淬火 +12%", Color::new(0.92, 0.70, 0.03, 1.0));
         Self::populate_wild_chain(&mut zones, "wild_qh_hb", "黄土陇东", &["祁连雪积", "乌鞘雄岭", "宁夏平野", "鄂尔多斯", "雁门古塞", "五台圣境"], "qinghai", "hebei", "north", "west", "mountain", "风沙", "厚土加持：坚韧 +15%", Color::new(0.97, 0.45, 0.09, 1.0));
 
+        for zone in zones.values_mut() {
+            Self::bind_portals_to_wall(zone, WALL_MARGIN);
+        }
+
         Self { zones }
+    }
+
+    pub fn bind_portals_to_wall(zone: &mut ZoneDef, margin: f64) {
+        let map_w = MAP_SIZE;
+        let map_h = MAP_SIZE;
+        for gate in &mut zone.gates {
+            match gate.dir.as_str() {
+                "north" | "northwest" | "northeast" => gate.y = margin,
+                "south" | "southwest" | "southeast" => gate.y = map_h - margin,
+                "west" => gate.x = margin,
+                "east" => gate.x = map_w - margin,
+                _ => {}
+            }
+        }
     }
 
     fn populate_wild_chain(
@@ -485,21 +504,19 @@ impl ClientTopology {
         }
     }
 
-    /// 🌟 全局统一：传送门严格物理接触判定
+    /// 🌟 全局统一：传送门严格物理接触判定 (对齐 2.5D 空间门视觉跨度)
     pub fn check_portal_trigger(&self, player_x: f64, player_y: f64, zone_id: &str) -> Option<(&PortalDef, &str, &str)> {
         let zone = self.zones.get(zone_id)?;
-        let gate_half_width = 30.0;
-        let touch_depth = 6.0;
+        let gate_half_width = 60.0;
+        let touch_depth = 40.0;
 
         for gate in &zone.gates {
             let gx = gate.x;
             let gy = gate.y;
             let is_hit = match gate.dir.as_str() {
-                "north" => player_y <= gy + touch_depth && player_y >= gy - 40.0 && (player_x - gx).abs() <= gate_half_width,
-                "south" => player_y >= gy - touch_depth && player_y <= gy + 40.0 && (player_x - gx).abs() <= gate_half_width,
-                "west"  => player_x <= gx + touch_depth && player_x >= gx - 40.0 && (player_y - gy).abs() <= gate_half_width,
-                "east"  => player_x >= gx - touch_depth && player_x <= gx + 40.0 && (player_y - gy).abs() <= gate_half_width,
-                _ => ((player_x - gx).powi(2) + (player_y - gy).powi(2)).sqrt() <= 24.0,
+                "north" | "south" => (player_y - gy).abs() <= touch_depth && (player_x - gx).abs() <= gate_half_width,
+                "west" | "east"   => (player_x - gx).abs() <= touch_depth && (player_y - gy).abs() <= gate_half_width,
+                _ => ((player_x - gx).powi(2) + (player_y - gy).powi(2)).sqrt() <= 40.0,
             };
 
             if is_hit {
