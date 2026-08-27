@@ -84,6 +84,10 @@ pub async fn api_action_handler(
         "issue_merchant_ticket" => handle_issue_ticket(&mut player, &body),
         "bank_deposit" => handle_bank_deposit(&mut player, &body),
         "bank_withdraw" => handle_bank_withdraw(&mut player, &body),
+        key if key.starts_with("list_item") => handle_list_item(&mut player, key, &body),
+        key if key.starts_with("melt_item") => handle_melt_item(&mut player, key, &body),
+        key if key.starts_with("recycle_equipment") => handle_recycle_equipment(&mut player, key, &body),
+        key if key.starts_with("use_item") => handle_use_item(&mut player, key, &body),
         _ => Ok(None),
     };
 
@@ -429,6 +433,9 @@ fn handle_cloud_snapshot(
             if let Some(px) = b.get("player_x").and_then(|v| v.as_f64()) { player.position.x = px.clamp(GameConfig::COORD_MIN, GameConfig::COORD_MAX); }
             if let Some(py) = b.get("player_y").and_then(|v| v.as_f64()) { player.position.y = py.clamp(GameConfig::COORD_MIN, GameConfig::COORD_MAX); }
             if let Some(zid) = b.get("current_zone_id").and_then(|v| v.as_str()) { player.position.zone_id = zid.to_string(); }
+            if let Some(c) = b.get("copper").and_then(|v| v.as_u64()) { player.copper = c; }
+            if let Some(c) = b.get("coins").and_then(|v| v.as_u64()) { player.coins = c; }
+            if let Some(j) = b.get("jade").or_else(|| b.get("sky_jade")).and_then(|v| v.as_u64()) { player.jade = j; }
 
             // 🌟 快照背包落库: 客户端 HashChain 锚定的全量资产快照是权威账本,
             //    落库后刷新页面 /api/state 即可恢复, 解决物品刷新丢失问题。
@@ -481,7 +488,7 @@ fn parse_snapshot_item(v: &serde_json::Value) -> Option<GameItem> {
         _ => ItemType::Material, // 'Tool' 等未知类型统一归为 Material
     };
     let stack_count = v.get("stack_count").or_else(|| v.get("stackCount")).and_then(|x| x.as_u64()).unwrap_or(1).max(1) as u32;
-    let max_stack = v.get("max_stack").and_then(|x| x.as_u64()).unwrap_or(999).max(1) as u32;
+    let max_stack = v.get("max_stack").and_then(|x| x.as_u64()).unwrap_or(99999999).max(1) as u32;
     let tier = v.get("tier").and_then(|x| x.as_u64()).unwrap_or(1).min(255) as u8;
     let weight = v.get("weight").and_then(|x| x.as_f64()).unwrap_or(GameConfig::WEIGHT_DEFAULT);
     Some(GameItem {
@@ -682,5 +689,221 @@ fn handle_bank_withdraw(
 
         info!("🏦 玩家 [{}] 从银行取出: {} x{}", player.account_id, item_name, withdraw_count);
     }
+    Ok(None)
+}
+
+/// 上架藏宝阁 / 拍卖行处理
+fn handle_list_item(
+    player: &mut PlayerState,
+    action_key: &str,
+    body: &Option<web::Json<serde_json::Value>>,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let item_id = action_key.strip_prefix("list_item:").unwrap_or("");
+    let body_id = body.as_ref().and_then(|b| b.get("item_id").or_else(|| b.get("id")).and_then(|v| v.as_str())).unwrap_or("");
+    let body_name = body.as_ref().and_then(|b| b.get("name").and_then(|v| v.as_str())).unwrap_or("");
+
+    let target_idx = player.backpack.iter().position(|i| {
+        (!item_id.is_empty() && (i.id == item_id || i.item_id == item_id)) ||
+        (!body_id.is_empty() && (i.id == body_id || i.item_id == body_id)) ||
+        (!body_name.is_empty() && i.name == body_name)
+    });
+
+    if let Some(idx) = target_idx {
+        let item_name = player.backpack[idx].name.clone();
+        if player.backpack[idx].stack_count > 1 {
+            player.backpack[idx].stack_count -= 1;
+        } else {
+            player.backpack.remove(idx);
+        }
+        player.recalculate_weight();
+        info!("🏛️ 玩家 [{}] 上架藏宝阁成功: {}", player.account_id, item_name);
+    }
+    Ok(None)
+}
+
+/// 熔炼成渣处理
+fn handle_melt_item(
+    player: &mut PlayerState,
+    action_key: &str,
+    body: &Option<web::Json<serde_json::Value>>,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let item_id = action_key.strip_prefix("melt_item:").unwrap_or("");
+    let body_id = body.as_ref().and_then(|b| b.get("item_id").or_else(|| b.get("id")).and_then(|v| v.as_str())).unwrap_or("");
+    let body_name = body.as_ref().and_then(|b| b.get("name").and_then(|v| v.as_str())).unwrap_or("");
+
+    let target_idx = player.backpack.iter().position(|i| {
+        (!item_id.is_empty() && (i.id == item_id || i.item_id == item_id)) ||
+        (!body_id.is_empty() && (i.id == body_id || i.item_id == body_id)) ||
+        (!body_name.is_empty() && i.name == body_name)
+    });
+
+    if let Some(idx) = target_idx {
+        let item = &mut player.backpack[idx];
+        let tier = item.tier.max(1);
+        let slag_name = format!("玄铁矿渣·T{}", tier);
+        let slag_item_id = format!("mat_slag_t{}", tier);
+
+        if item.stack_count > 1 {
+            item.stack_count -= 1;
+        } else {
+            player.backpack.remove(idx);
+        }
+
+        // 给予熔炼产物: 玄铁矿渣
+        if let Some(existing_slag) = player.backpack.iter_mut().find(|i| i.name == slag_name) {
+            existing_slag.stack_count += 1;
+        } else {
+            player.backpack.push(GameItem {
+                id: format!("slag_{}_{}", tier, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis()),
+                item_id: slag_item_id,
+                name: slag_name.clone(),
+                item_type: ItemType::Material,
+                tier,
+                stack_count: 1,
+                max_stack: 999,
+                is_bound: false,
+                weight: 0.5,
+                attributes: std::collections::HashMap::new(),
+            });
+        }
+
+        // 熔炼返还微量铜钱
+        let copper_gain = (tier as u64) * 50;
+        player.copper += copper_gain;
+        player.recalculate_weight();
+        info!("🔥 玩家 [{}] 熔炼成功: 产出 {} + {} 铜钱", player.account_id, slag_name, copper_gain);
+    }
+    Ok(None)
+}
+
+/// 装备回收 (炼铁返金, 仅限装备)
+fn handle_recycle_equipment(
+    player: &mut PlayerState,
+    action_key: &str,
+    body: &Option<web::Json<serde_json::Value>>,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let item_id = action_key.strip_prefix("recycle_equipment:").unwrap_or("");
+    let body_id = body.as_ref().and_then(|b| b.get("item_id").or_else(|| b.get("id")).and_then(|v| v.as_str())).unwrap_or("");
+    let body_name = body.as_ref().and_then(|b| b.get("name").and_then(|v| v.as_str())).unwrap_or("");
+
+    let target_idx = player.backpack.iter().position(|i| {
+        (!item_id.is_empty() && (i.id == item_id || i.item_id == item_id)) ||
+        (!body_id.is_empty() && (i.id == body_id || i.item_id == body_id)) ||
+        (!body_name.is_empty() && i.name == body_name)
+    });
+
+    let Some(idx) = target_idx else {
+        return Ok(None);
+    };
+
+    let item = &player.backpack[idx];
+    
+    // 🌟 严格限制: 仅限装备进行回收
+    let is_equipment = item.item_type == ItemType::Equipment || {
+        let name = &item.name;
+        let eq_keywords = ["剑", "刀", "枪", "甲", "盔", "靴", "盾", "佩", "袍", "冠", "戒", "履", "刃", "杖", "弓", "神兵", "法器", "道袍", "铠"];
+        let mat_keywords = ["矿", "木", "草", "花", "皮", "石", "麻", "棉", "渣", "特产", "商票", "铜钱", "金币", "仙玉", "纳玉", "玄晶", "神晶", "镐", "锤", "斧"];
+        !mat_keywords.iter().any(|k| name.contains(k)) && eq_keywords.iter().any(|k| name.contains(k))
+    };
+
+    if !is_equipment {
+        warn!("⚠️ 玩家 [{}] 尝试回收非装备物品: {}", player.account_id, item.name);
+        return Err(ApiError::BadRequest("仅限装备可进行回收炼铁返金！".to_string()));
+    }
+
+    let tier = item.tier.max(1);
+    let item_name = item.name.clone();
+    let is_beijing = player.position.zone_id == "beijing";
+    let copper_refund = (tier as u64) * if is_beijing { 1000 } else { 500 };
+    let coins_refund = (tier as u64) * if is_beijing { 20 } else { 10 };
+
+    let iron_name = format!("精铁锭·T{}", tier);
+    let iron_id = format!("mat_iron_ingot_t{}", tier);
+
+    player.backpack.remove(idx);
+
+    // 产出精铁锭
+    if let Some(existing_iron) = player.backpack.iter_mut().find(|i| i.name == iron_name) {
+        existing_iron.stack_count += 1;
+    } else {
+        player.backpack.push(GameItem {
+            id: format!("iron_{}_{}", tier, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis()),
+            item_id: iron_id,
+            name: iron_name.clone(),
+            item_type: ItemType::Material,
+            tier,
+            stack_count: 1,
+            max_stack: 999,
+            is_bound: false,
+            weight: 1.0,
+            attributes: std::collections::HashMap::new(),
+        });
+    }
+
+    player.copper += copper_refund;
+    player.coins += coins_refund;
+    player.recalculate_weight();
+
+    info!("♻️ 玩家 [{}] 装备回收成功: {} → 产出 {} + {} 金币 + {} 铜钱", player.account_id, item_name, iron_name, coins_refund, copper_refund);
+    Ok(None)
+}
+
+/// 🌟 物品使用处理器 (货币存入、丹药吞服、宝箱开启、秘籍研读)
+fn handle_use_item(
+    player: &mut PlayerState,
+    action_key: &str,
+    body: &Option<web::Json<serde_json::Value>>,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let item_id = action_key.strip_prefix("use_item:").unwrap_or("");
+    let body_id = body.as_ref().and_then(|b| b.get("item_id").or_else(|| b.get("id")).and_then(|v| v.as_str())).unwrap_or("");
+    let body_name = body.as_ref().and_then(|b| b.get("name").and_then(|v| v.as_str())).unwrap_or("");
+    let usage_type = body.as_ref().and_then(|b| b.get("type").and_then(|v| v.as_str())).unwrap_or("");
+    let curr_key = body.as_ref().and_then(|b| b.get("currency_key").and_then(|v| v.as_str())).unwrap_or("");
+    let count = body.as_ref().and_then(|b| b.get("count").and_then(|v| v.as_u64())).unwrap_or(1);
+
+    let target_idx = player.backpack.iter().position(|i| {
+        (!item_id.is_empty() && (i.id == item_id || i.item_id == item_id)) ||
+        (!body_id.is_empty() && (i.id == body_id || i.item_id == body_id)) ||
+        (!body_name.is_empty() && i.name == body_name)
+    });
+
+    let (item_name, item_tier) = if let Some(idx) = target_idx {
+        let item = &mut player.backpack[idx];
+        let name = item.name.clone();
+        let tier = item.tier.max(1);
+        let consume = count.min(item.stack_count as u64) as u32;
+
+        if item.stack_count > consume {
+            item.stack_count -= consume;
+        } else {
+            player.backpack.remove(idx);
+        }
+        (name, tier)
+    } else {
+        (body_name.to_string(), 1)
+    };
+
+    // 货币处理
+    if usage_type == "currency" || curr_key == "copper" || curr_key == "coins" || curr_key == "jade" ||
+       item_name.contains("铜钱") || item_name.contains("金币") || item_name.contains("仙玉") || item_name.contains("纳玉") {
+        if curr_key == "copper" || item_name.contains("铜钱") {
+            player.copper += count;
+        } else if curr_key == "coins" || item_name.contains("金币") {
+            player.coins += count;
+        } else if curr_key == "jade" || item_name.contains("仙玉") || item_name.contains("纳玉") {
+            player.jade += count;
+        }
+        info!("✨ 玩家 [{}] 使用存入货币 [{}] x{} (余额: copper={}, coins={}, jade={})", player.account_id, item_name, count, player.copper, player.coins, player.jade);
+    } else if usage_type == "chest" {
+        let copper_rew = (item_tier as u64) * 500;
+        let coins_rew = (item_tier as u64) * 10;
+        player.copper += copper_rew;
+        player.coins += coins_rew;
+        info!("📦 玩家 [{}] 开启宝箱 [{}] (获得 copper+{}, coins+{})", player.account_id, item_name, copper_rew, coins_rew);
+    } else {
+        info!("✨ 玩家 [{}] 使用物品 [{}] x{} (类型: {})", player.account_id, item_name, count, usage_type);
+    }
+
+    player.recalculate_weight();
     Ok(None)
 }

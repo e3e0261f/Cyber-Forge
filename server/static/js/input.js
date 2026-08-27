@@ -28,6 +28,8 @@ import {
 } from './world/world-topology.js';
 import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
+import { isEquipmentItem } from './context-menu.js';
+import { getModalDimensions, UI_WINDOW_CONFIG } from './ui-window-config.js';
 import { auditReporter } from './security/audit-reporter.js';
 import { gameConfig, isDevMode } from './config.js';
 import { 
@@ -1018,15 +1020,9 @@ function startMainLoop() {
 }
 
 export function getModalBounds(id, w, h) {
-  let mw = 560, mh = 420;
-  if (id === 'map') { mw = 880; mh = 640; }
-  if (id === 'inspect') { mw = 480; mh = 320; }
-  if (id === 'body') { mw = 580; mh = 560; }
-  if (id === 'auction') { mw = 580; mh = 440; }
-  if (id === 'stash') { mw = 560; mh = 420; }
-  if (id === 'debug') { mw = 480; mh = 440; }
-  if (id === 'trade') { mw = 600; mh = 560; }
-  if (id === 'bank') { mw = 640; mh = 440; }
+  const dim = getModalDimensions(id);
+  let mw = dim.width;
+  let mh = dim.height;
   mw = Math.min(mw, w * 0.95);
   mh = Math.min(mh, h * 0.9);
 
@@ -1151,18 +1147,278 @@ export function setupInteractions() {
           if (!uiState.isOpen('inspect')) uiState.toggleModal('inspect');
           return;
         }
-        if (entry.id === 'recycle' && item?.id != null) {
-          gameStore.dispatchAction(`recycle_equipment:${item.id}`);
+
+        // 🌟 0. 自动识别物品使用 (货币存入、丹药吞服、宝物开启、秘籍领悟)
+        if (entry.id === 'use' && item) {
+          const usage = entry.usage || {};
+          const tier = Number(item.tier) || 1;
+          const count = Number(item.stack_count || item.stackCount || 1) || 1;
+          const itemId = item.id || item.itemId || item.name;
+
+          // 货币全额存入，其他消耗品默认单次使用 1 个
+          const isCurrency = usage.type === 'currency' || ['铜钱', '金币', '仙玉', '纳玉'].some(c => (item.name || '').includes(c));
+          const consumeCount = isCurrency ? count : 1;
+
+          // 从随身背包扣除对应堆叠
+          if (Array.isArray(gameState.backpack)) {
+            const idx = gameState.backpack.findIndex(i => i && (i.id === item.id || (i.name === item.name && i.itemId === item.itemId)));
+            if (idx >= 0) {
+              const cur = gameState.backpack[idx];
+              const curStack = Number(cur.stack_count || cur.stackCount || 1) || 1;
+              if (curStack > consumeCount) {
+                cur.stack_count = curStack - consumeCount;
+                cur.stackCount = cur.stack_count;
+              } else {
+                gameState.backpack[idx] = null;
+              }
+            }
+          }
+
+          if (isCurrency) {
+            let key = usage.currencyKey;
+            if (!key) {
+              if (item.name.includes('铜钱')) key = 'copper';
+              else if (item.name.includes('金币')) key = 'coins';
+              else if (item.name.includes('仙玉') || item.name.includes('纳玉')) key = 'jade';
+              else key = 'copper';
+            }
+            const currName = key === 'copper' ? '铜钱' : key === 'coins' ? '金币' : '仙玉';
+            gameState[key] = (Number(gameState[key]) || 0) + consumeCount;
+            audio.playCoin();
+            gameStore.setToast(`✨ 成功使用并存入【${currName}】+${consumeCount}！(当前总计: ${gameState[key]})`);
+            gameStore.addLog(`🪙 物品使用: 消耗 ${currName} x${consumeCount}，存入账户 (当前余额: ${gameState[key]})`);
+            auditReporter.reportItemDrop(item, consumeCount, 'use_currency');
+            auditReporter.saveCloudStateSnapshot();
+            gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: consumeCount, type: 'currency', currency_key: key });
+            return;
+          }
+
+          if (usage.type === 'consumable') {
+            const hpGain = 50 * tier;
+            const mpGain = 30 * tier;
+            const expGain = 100 * tier;
+            if (gameState.hp != null) gameState.hp = Math.min(gameState.max_hp || 100, (Number(gameState.hp) || 100) + hpGain);
+            if (gameState.mp != null) gameState.mp = Math.min(gameState.max_mp || 100, (Number(gameState.mp) || 100) + mpGain);
+            gameState.exp = (Number(gameState.exp) || 0) + expGain;
+            audio.playLevelUp?.() || audio.playUI();
+            gameStore.setToast(`🧪 成功吞服【${item.name}】！气血+${hpGain}, 真气+${mpGain}, 修为+${expGain}！`);
+            gameStore.addLog(`🧪 吞服丹药: ${item.name} (气血+${hpGain}, 真气+${mpGain}, 修为+${expGain})`);
+            auditReporter.reportItemDrop(item, 1, 'use_consumable');
+            auditReporter.saveCloudStateSnapshot();
+            gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'consumable' });
+            return;
+          }
+
+          if (usage.type === 'chest') {
+            const copperReward = 500 * tier;
+            const coinsReward = 10 * tier;
+            gameState.copper = (Number(gameState.copper) || 0) + copperReward;
+            gameState.coins = (Number(gameState.coins) || 0) + coinsReward;
+            if (item.name.includes('仙玉') || item.name.includes('混沌')) {
+              gameState.jade = (Number(gameState.jade) || 0) + 10 * tier;
+            }
+            audio.playLevelUp?.() || audio.playCoin();
+            gameStore.setToast(`📦 成功开启【${item.name}】！获得铜钱+${copperReward}, 金币+${coinsReward}！`);
+            gameStore.addLog(`📦 宝物使用: ${item.name} (获得铜钱+${copperReward}, 金币+${coinsReward})`);
+            auditReporter.reportItemDrop(item, 1, 'use_chest');
+            auditReporter.saveCloudStateSnapshot();
+            gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'chest' });
+            return;
+          }
+
+          if (usage.type === 'book') {
+            const expGain = 200 * tier;
+            gameState.exp = (Number(gameState.exp) || 0) + expGain;
+            audio.playLevelUp?.() || audio.playUI();
+            gameStore.setToast(`📖 研读领悟【${item.name}】！心领神会，修为+${expGain}！`);
+            gameStore.addLog(`📖 研读领悟: ${item.name} (修为+${expGain})`);
+            auditReporter.reportItemDrop(item, 1, 'use_book');
+            auditReporter.saveCloudStateSnapshot();
+            gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'book' });
+            return;
+          }
+
+          // 通用物品使用
+          audio.playUI();
+          gameStore.setToast(`✨ 已使用【${item.name}】！`);
+          gameStore.addLog(`✨ 物品使用: ${item.name}`);
+          auditReporter.reportItemDrop(item, 1, 'use_item');
+          auditReporter.saveCloudStateSnapshot();
+          gameStore.dispatchAction(`use_item:${itemId}`, { id: item.id, item_id: item.itemId, name: item.name, count: 1, type: 'general' });
           return;
         }
-        if (entry.id === 'list' && item?.id != null) {
-          gameStore.dispatchAction(`list_item:${item.id}`);
+
+        // 🌟 穿戴装备
+        if (entry.id === 'equip' && item) {
+          audio.playHammer();
+          gameStore.setToast(`⚔️ 已成功穿戴【${item.name}】！`);
+          gameStore.addLog(`⚔️ 装备入身: ${item.name} (品阶 T${item.tier || 1})`);
+          gameStore.dispatchAction(`equip_item:${item.id || item.itemId || item.name}`, { id: item.id, item_id: item.itemId, name: item.name, tier: item.tier });
           return;
         }
-        if (entry.id === 'melt' && item?.id != null) {
-          gameStore.dispatchAction(`melt_item:${item.id}`);
+
+        // 1. 装备回收 (炼铁返金, 仅限装备)
+        if (entry.id === 'recycle' && item) {
+          if (!isEquipmentItem(item)) {
+            gameStore.setToast('⚠️ 只有装备方可进行【装备回收 (炼铁返金)】！', '#ef4444');
+            audio.playUI();
+            return;
+          }
+          const tier = Number(item.tier) || 1;
+          const isBeijing = gameState.current_city_id === 'beijing';
+          const copperRefund = tier * (isBeijing ? 1000 : 500);
+          const coinsRefund = tier * (isBeijing ? 20 : 10);
+          const ironName = `精铁锭·T${tier}`;
+
+          // 从背包扣除
+          if (Array.isArray(gameState.backpack)) {
+            const idx = gameState.backpack.findIndex(i => i && (i.id === item.id || (i.name === item.name && i.itemId === item.itemId)));
+            if (idx >= 0) {
+              const cur = gameState.backpack[idx];
+              if ((cur.stack_count || cur.stackCount || 1) > 1) {
+                cur.stack_count = (cur.stack_count || cur.stackCount) - 1;
+                cur.stackCount = cur.stack_count;
+              } else {
+                gameState.backpack[idx] = null;
+              }
+            }
+            // 产出精铁锭
+            const existingIron = gameState.backpack.find(i => i && i.name === ironName);
+            if (existingIron) {
+              existingIron.stack_count = (existingIron.stack_count || existingIron.stackCount || 1) + 1;
+              existingIron.stackCount = existingIron.stack_count;
+            } else {
+              const emptySlot = gameState.backpack.indexOf(null);
+              const newIron = {
+                id: `iron_${tier}_${Date.now()}`,
+                itemId: `mat_iron_ingot_t${tier}`,
+                name: ironName,
+                itemType: 'Material',
+                tier: tier,
+                stack_count: 1,
+                stackCount: 1,
+                max_stack: 999,
+                is_bound: false,
+                weight: 1.0,
+                glyph: '🧱',
+                color: '#38bdf8',
+                colorHex: '#38bdf8'
+              };
+              if (emptySlot >= 0) gameState.backpack[emptySlot] = newIron;
+              else gameState.backpack.push(newIron);
+            }
+          }
+
+          gameState.copper = (Number(gameState.copper) || 0) + copperRefund;
+          gameState.coins = (Number(gameState.coins) || 0) + coinsRefund;
+
+          audio.playHammer();
+          gameStore.setToast(`♻️ 装备【${item.name}】回收成功！获得【${ironName}】x1 + ${coinsRefund}金币 + ${copperRefund}铜钱${isBeijing ? ' (红皇城2.0x特惠)' : ''}！`);
+          gameStore.addLog(`♻️ 装备回收: ${item.name} → ${ironName} x1 + ${coinsRefund}金币 + ${copperRefund}铜钱`);
+          auditReporter.reportItemGain({ id: `iron_${tier}`, name: ironName }, 1, 'recycle_equipment');
+          gameStore.dispatchAction(`recycle_equipment:${item.id || item.itemId || item.name}`, { id: item.id, item_id: item.itemId, name: item.name, tier: tier });
           return;
         }
+
+        // 2. 上架藏宝阁 / 拍卖行
+        if (entry.id === 'list' && item) {
+          const tier = Number(item.tier) || 1;
+          const bid = tier * 2000;
+          const fair = tier * 3500;
+
+          // 从背包扣除
+          if (Array.isArray(gameState.backpack)) {
+            const idx = gameState.backpack.findIndex(i => i && (i.id === item.id || (i.name === item.name && i.itemId === item.itemId)));
+            if (idx >= 0) {
+              const cur = gameState.backpack[idx];
+              if ((cur.stack_count || cur.stackCount || 1) > 1) {
+                cur.stack_count = (cur.stack_count || cur.stackCount) - 1;
+                cur.stackCount = cur.stack_count;
+              } else {
+                gameState.backpack[idx] = null;
+              }
+            }
+          }
+
+          // 添加到拍品池
+          if (!Array.isArray(gameState.lots)) gameState.lots = [];
+          const newLot = {
+            id: `lot_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+            name: item.name,
+            seller: gameState.account_id || '道友',
+            bid: bid,
+            fair: fair,
+            time: 300,
+            color: item.colorHex || item.color || '#38bdf8',
+            waiting: false,
+            sold: false,
+            item: { ...item, stack_count: 1, stackCount: 1 }
+          };
+          gameState.lots.unshift(newLot);
+
+          audio.playCoin();
+          gameStore.setToast(`🏛️ 已将【${item.name}】上架至藏宝阁拍卖大厅！起拍价: ${bid} 铜钱`);
+          gameStore.addLog(`🏛️ 藏宝阁上架: ${item.name} (起拍价: ${bid} 铜钱, 估值: ${fair})`);
+          auditReporter.reportItemDrop(item, 1, 'auction_list');
+          gameStore.dispatchAction(`list_item:${item.id || item.itemId || item.name}`, { id: item.id, item_id: item.itemId, name: item.name, tier: tier });
+          return;
+        }
+
+        // 3. 熔炼成渣 (玄铁矿渣)
+        if (entry.id === 'melt' && item) {
+          const tier = Number(item.tier) || 1;
+          const slagName = `玄铁矿渣·T${tier}`;
+          const copperGain = tier * 50;
+
+          // 从背包扣除
+          if (Array.isArray(gameState.backpack)) {
+            const idx = gameState.backpack.findIndex(i => i && (i.id === item.id || (i.name === item.name && i.itemId === item.itemId)));
+            if (idx >= 0) {
+              const cur = gameState.backpack[idx];
+              if ((cur.stack_count || cur.stackCount || 1) > 1) {
+                cur.stack_count = (cur.stack_count || cur.stackCount) - 1;
+                cur.stackCount = cur.stack_count;
+              } else {
+                gameState.backpack[idx] = null;
+              }
+            }
+            // 产出玄铁矿渣
+            const existingSlag = gameState.backpack.find(i => i && i.name === slagName);
+            if (existingSlag) {
+              existingSlag.stack_count = (existingSlag.stack_count || existingSlag.stackCount || 1) + 1;
+              existingSlag.stackCount = existingSlag.stack_count;
+            } else {
+              const emptySlot = gameState.backpack.indexOf(null);
+              const newSlag = {
+                id: `slag_${tier}_${Date.now()}`,
+                itemId: `mat_slag_t${tier}`,
+                name: slagName,
+                itemType: 'Material',
+                tier: tier,
+                stack_count: 1,
+                stackCount: 1,
+                max_stack: 999,
+                is_bound: false,
+                weight: 0.5,
+                glyph: '🔥',
+                color: '#94a3b8',
+                colorHex: '#94a3b8'
+              };
+              if (emptySlot >= 0) gameState.backpack[emptySlot] = newSlag;
+              else gameState.backpack.push(newSlag);
+            }
+          }
+
+          gameState.copper = (Number(gameState.copper) || 0) + copperGain;
+
+          audio.playHammer();
+          gameStore.setToast(`🔥 已将【${item.name}】成功熔炼成渣，获得【${slagName}】x1 + ${copperGain} 铜钱！`);
+          gameStore.addLog(`🔥 熔炼成渣: ${item.name} → ${slagName} x1 + ${copperGain} 铜钱`);
+          auditReporter.reportItemGain({ id: `slag_${tier}`, name: slagName }, 1, 'melt_item');
+          gameStore.dispatchAction(`melt_item:${item.id || item.itemId || item.name}`, { id: item.id, item_id: item.itemId, name: item.name, tier: tier });
+          return;
+        }
+
         if (entry.id === 'equip' && item?.id != null) {
           gameStore.dispatchAction(`equip_item:${item.id}`);
           return;

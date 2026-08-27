@@ -206,3 +206,35 @@
      - 同步更新 `server/src/world_topology.rs`、`Cyber-Forge/server/src/world_topology.rs` 及 `Cyber-Forge/client/src/world_topology.rs`。
      - 同步更新 `Cyber-Forge/server/static/` 下所有前端脚本。
 ================================================================================
+[对话与修改记录 15] 弹窗尺寸参数化入lib、调试特殊库货币直取、背包右键上架/熔炼/装备回收打通
+- 用户需求:
+  1. 需要把游戏里每一个弹出窗口的大小都量化成参数。变成参数放入 lib.rs 里。
+  2. 在调试模式物品库 特殊 标签页里增加铜钱、金币和先玉。获取方式。像其他物品一样，点击一下就获取。
+  3. 背包里的物品右键上架拍卖行：上架藏宝阁：这个需要修复啊。、熔炼成渣：这个右键功能也需要打通。装备回收炼铁返金：这个也需要打通，但是他只能回收装备，因为标签里写的很清楚，目前让他回收装备。
+- 解决动作:
+  1. 弹窗尺寸全面量化与参数化 (UIWindowConfig):
+     - 在 Cyber-Forge/shared/src/lib.rs 中新增 WindowDimensions 结构体与 UIWindowConfig，将游戏内所有 15 个弹出窗口尺寸（map、stash、auction、quest、apprentice、logs、body、inspect、debug、settings、trade、bank、dungeon、drop_confirm、context_menu）全部量化为命名常量，并提供 get_window_size(modal_id) 检索函数。
+     - 在前端新增 server/static/js/ui-window-config.js，导出 UI_WINDOW_CONFIG、getModalDimensions(id) 与 setModalDimensions(id, w, h) 开放接口，重构 getModalBounds 与 context-menu.js。
+  2. 调试模式物品库特殊标签页新增货币直取:
+     - 在 debug-view.js 的 _buildItemCatalog 特殊标签页中增加 铜钱 (+10000)、金币 (+1000)、仙玉 (+100)。
+     - 在 _addItemToBackpack 中增加货币直取分支：点击后直接增加对应 gameState.copper、gameState.coins、gameState.jade 余额，并记录区块链审计、飘字 Toast 及系统日志。
+  3. 背包右键菜单三大功能全面打通与严格限制:
+     - 装备回收 (炼铁返金, 仅限装备):
+       - 编写 isEquipmentItem(item) 严格判据，非装备在右键菜单中显示为 (仅限装备) 且处于禁用置灰状态。
+       - 回收时扣除装备，返还 精铁锭·T{tier} x1，并根据所在城市返还铜钱与金币（北京享有 2.0x 红皇城特惠）。
+       - 前后端联动同步处理 recycle_equipment 动作指令。
+     - 上架藏宝阁 / 拍卖行:
+       - 扣除背包物品，计算起拍价与估值，生成拍品对象推入 gameState.lots，同步派发 list_item 动作指令至服务端。
+     - 熔炼成渣 (玄铁矿渣):
+       - 扣除背包物品，生成产物 玄铁矿渣·T{tier} x1 并返还微量铜钱，同步派发 melt_item 动作指令至服务端。
+  4. 双向同步与编译验证:
+     - 同步更新前后端、Cyber-Forge/ 原版工程与共享协议库，compile_applet 全绿通过。
+================================================================================
+
+[错误修复] 修复 debug-view.js 缺少 audio 模块导入报错问题
+- 异常现象:
+  - 玩家在调试物品库点击获取货币时，控制台抛出 Uncaught (in promise) ReferenceError: audio is not defined at _addItemToBackpack (debug-view.js:928:5)。
+- 修复动作:
+  - 在 server/static/js/debug-view.js 及 Cyber-Forge/server/static/js/debug-view.js 顶部补全 import { audio } from './audio.js'; 引用。
+  - 同步更新原版工程与 Web 容器，lint_applet 与 compile_applet 验证无误通过。
+================================================================================

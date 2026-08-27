@@ -161,12 +161,18 @@ export class GameStore {
                 const name = it.name || '五行玄晶';
                 const tier = Number(it.tier) || 1;
                 const glyph = it.glyph || (
+                    name.includes('铜钱') ? '🪙' :
+                    name.includes('金币') ? '💰' :
+                    name.includes('仙玉') || name.includes('纳玉') ? '💎' :
                     name.includes('木') ? '🪵' :
                     name.includes('草') || name.includes('芝') || name.includes('叶') || name.includes('药') ? '🌿' :
                     name.includes('皮') || name.includes('兽') ? '🦊' :
                     name.includes('石') || name.includes('矿') || name.includes('铁') || name.includes('晶') ? '⛏️' : '💎'
                 );
                 const colorHex = it.colorHex || it.color || (
+                    name.includes('铜钱') ? '#f59e0b' :
+                    name.includes('金币') ? '#eab308' :
+                    name.includes('仙玉') ? '#38bdf8' :
                     tier >= 6 ? '#ef4444' :
                     tier >= 5 ? '#f59e0b' :
                     tier >= 4 ? '#a855f7' :

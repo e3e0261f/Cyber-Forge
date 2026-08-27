@@ -90,6 +90,103 @@ impl GameConfig {
     pub const AUTH_TOKEN_HEADER: &'static str = "X-Auth-Token";
 }
 
+/// 🌟 UI 弹窗与模态框几何尺寸配置 (量化游戏内每一个弹出窗口的大小)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub struct WindowDimensions {
+    pub width: f64,
+    pub height: f64,
+}
+
+pub struct UIWindowConfig;
+
+impl UIWindowConfig {
+    // 1. 九州导航网络地图 (map)
+    pub const MAP_WIDTH: f64 = 880.0;
+    pub const MAP_HEIGHT: f64 = 640.0;
+
+    // 2. 矩阵锦囊背包 (stash)
+    pub const STASH_WIDTH: f64 = 560.0;
+    pub const STASH_HEIGHT: f64 = 420.0;
+
+    // 3. 藏宝阁拍卖大厅 (auction)
+    pub const AUCTION_WIDTH: f64 = 580.0;
+    pub const AUCTION_HEIGHT: f64 = 440.0;
+
+    // 4. 天道任务 (quest)
+    pub const QUEST_WIDTH: f64 = 560.0;
+    pub const QUEST_HEIGHT: f64 = 420.0;
+
+    // 5. 铁匠铺学徒工坊 (apprentice)
+    pub const APPRENTICE_WIDTH: f64 = 560.0;
+    pub const APPRENTICE_HEIGHT: f64 = 420.0;
+
+    // 6. 宗门天道日志 (logs)
+    pub const LOGS_WIDTH: f64 = 560.0;
+    pub const LOGS_HEIGHT: f64 = 420.0;
+
+    // 7. 身体素质/炼体 (body)
+    pub const BODY_WIDTH: f64 = 580.0;
+    pub const BODY_HEIGHT: f64 = 560.0;
+
+    // 8. 天道出生证明 (inspect)
+    pub const INSPECT_WIDTH: f64 = 480.0;
+    pub const INSPECT_HEIGHT: f64 = 320.0;
+
+    // 9. 调试控制台 (debug)
+    pub const DEBUG_WIDTH: f64 = 480.0;
+    pub const DEBUG_HEIGHT: f64 = 440.0;
+
+    // 10. 系统设置 (settings)
+    pub const SETTINGS_WIDTH: f64 = 560.0;
+    pub const SETTINGS_HEIGHT: f64 = 440.0;
+
+    // 11. 跑商与特产行 (trade)
+    pub const TRADE_WIDTH: f64 = 600.0;
+    pub const TRADE_HEIGHT: f64 = 560.0;
+
+    // 12. 万宝金库/银行 (bank)
+    pub const BANK_WIDTH: f64 = 640.0;
+    pub const BANK_HEIGHT: f64 = 440.0;
+
+    // 13. 地牢探索 (dungeon)
+    pub const DUNGEON_WIDTH: f64 = 640.0;
+    pub const DUNGEON_HEIGHT: f64 = 480.0;
+
+    // 14. 丢弃销毁确认 (drop_confirm)
+    pub const DROP_CONFIRM_WIDTH: f64 = 360.0;
+    pub const DROP_CONFIRM_HEIGHT: f64 = 220.0;
+
+    // 15. 右键上下文菜单 (context_menu)
+    pub const CONTEXT_MENU_WIDTH: f64 = 184.0;
+    pub const CONTEXT_MENU_ROW_HEIGHT: f64 = 28.0;
+    pub const CONTEXT_MENU_PAD: f64 = 6.0;
+
+    // 默认回退弹窗尺寸
+    pub const DEFAULT_MODAL_WIDTH: f64 = 560.0;
+    pub const DEFAULT_MODAL_HEIGHT: f64 = 420.0;
+
+    /// 根据弹窗 ID 获取量化窗口尺寸
+    pub fn get_window_size(modal_id: &str) -> WindowDimensions {
+        match modal_id {
+            "map" => WindowDimensions { width: Self::MAP_WIDTH, height: Self::MAP_HEIGHT },
+            "stash" => WindowDimensions { width: Self::STASH_WIDTH, height: Self::STASH_HEIGHT },
+            "auction" => WindowDimensions { width: Self::AUCTION_WIDTH, height: Self::AUCTION_HEIGHT },
+            "quest" => WindowDimensions { width: Self::QUEST_WIDTH, height: Self::QUEST_HEIGHT },
+            "apprentice" => WindowDimensions { width: Self::APPRENTICE_WIDTH, height: Self::APPRENTICE_HEIGHT },
+            "logs" => WindowDimensions { width: Self::LOGS_WIDTH, height: Self::LOGS_HEIGHT },
+            "body" => WindowDimensions { width: Self::BODY_WIDTH, height: Self::BODY_HEIGHT },
+            "inspect" => WindowDimensions { width: Self::INSPECT_WIDTH, height: Self::INSPECT_HEIGHT },
+            "debug" => WindowDimensions { width: Self::DEBUG_WIDTH, height: Self::DEBUG_HEIGHT },
+            "settings" => WindowDimensions { width: Self::SETTINGS_WIDTH, height: Self::SETTINGS_HEIGHT },
+            "trade" => WindowDimensions { width: Self::TRADE_WIDTH, height: Self::TRADE_HEIGHT },
+            "bank" => WindowDimensions { width: Self::BANK_WIDTH, height: Self::BANK_HEIGHT },
+            "dungeon" => WindowDimensions { width: Self::DUNGEON_WIDTH, height: Self::DUNGEON_HEIGHT },
+            "drop_confirm" | "drop" => WindowDimensions { width: Self::DROP_CONFIRM_WIDTH, height: Self::DROP_CONFIRM_HEIGHT },
+            _ => WindowDimensions { width: Self::DEFAULT_MODAL_WIDTH, height: Self::DEFAULT_MODAL_HEIGHT },
+        }
+    }
+}
+
 /// 空间坐标 (0.0 ~ 27000.0)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {

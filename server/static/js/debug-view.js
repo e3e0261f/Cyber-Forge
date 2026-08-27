@@ -15,6 +15,7 @@ import { getModalBounds } from './input.js';
 import { storageAdapter } from './adapters/storage-adapter.js';
 import { networkAdapter } from './adapters/network-adapter.js';
 import { auditReporter } from './security/audit-reporter.js';
+import { audio } from './audio.js';
 import { isDevMode } from './config.js';
 
 const DEBUG_SETTINGS_KEY = 'cyber_forge_debug_settings';
@@ -158,7 +159,10 @@ function _buildItemCatalog() {
     });
   }
 
-  // 4. 特殊物品
+  // 4. 特殊物品 (含货币入包: 铜钱、金币、仙玉)
+  catalog.push({ name: '铜钱', tier: 1, subLevel: 1, type: 'currency', currencyKey: 'copper', amount: 10000, icon: '🪙', category: 'special', source: 'currency' });
+  catalog.push({ name: '金币', tier: 4, subLevel: 1, type: 'currency', currencyKey: 'coins', amount: 1000, icon: '💰', category: 'special', source: 'currency' });
+  catalog.push({ name: '仙玉', tier: 7, subLevel: 1, type: 'currency', currencyKey: 'jade', amount: 100, icon: '💎', category: 'special', source: 'currency' });
   catalog.push({ name: '天道纳玉', tier: 1, subLevel: 1, type: 'currency', icon: '💎', category: 'special', source: 'special' });
   catalog.push({ name: '五行玄晶', tier: 5, subLevel: 1, type: 'currency', icon: '🔮', category: 'special', source: 'special' });
   catalog.push({ name: '混沌神晶', tier: 8, subLevel: 1, type: 'gem', icon: '💎', category: 'special', source: 'special' });
@@ -870,6 +874,61 @@ function _addItemToBackpack(item) {
   const getColor = (t) => t >= 6 ? '#ef4444' : t >= 4 ? '#a855f7' : t >= 3 ? '#38bdf8' : '#10b981';
   const getGlyph = (type) => type === 'wood' ? '🪵' : type === 'herb' ? '🌿' : type === 'hide' ? '🦊' : type === 'tool' ? '🔧' : '⛏️';
   const color = getColor(tier);
+
+  // 🌟 货币类直接点击获取: 铜钱、金币、仙玉 -> 既累加全局账户余额，又将对应货币物品直接放入背包
+  const isCurrency = item.currencyKey || item.source === 'currency' || item.type === 'currency' || ['铜钱', '金币', '仙玉'].some(c => (item.name || '').includes(c));
+  if (isCurrency) {
+    const key = item.currencyKey || (item.name.includes('铜钱') ? 'copper' : item.name.includes('金币') ? 'coins' : 'jade');
+    const cleanName = key === 'copper' ? '铜钱' : key === 'coins' ? '金币' : '仙玉';
+    const amt = Number(item.amount || item.count) || (key === 'copper' ? 10000 : key === 'coins' ? 1000 : 100);
+    const currGlyph = item.icon || (key === 'copper' ? '🪙' : key === 'coins' ? '💰' : '💎');
+    const currColor = key === 'copper' ? '#f59e0b' : key === 'coins' ? '#eab308' : '#38bdf8';
+    
+    // 1. 累加账户余额
+    gameState[key] = (Number(gameState[key]) || 0) + amt;
+
+    // 2. 存入背包槽位
+    if (!Array.isArray(gameState.backpack)) gameState.backpack = [];
+    const maxSlots = gameState.max_backpack || 12;
+    while (gameState.backpack.length < maxSlots) gameState.backpack.push(null);
+
+    const existing = gameState.backpack.find(it => it && (it.name === cleanName || it.name === item.name || it.itemId === cleanName));
+    if (existing) {
+      existing.stack_count = (Number(existing.stack_count || existing.stackCount) || 0) + amt;
+      existing.stackCount = existing.stack_count;
+    } else {
+      const emptySlot = gameState.backpack.indexOf(null);
+      const newItem = {
+        id: `dbg_${key}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        itemId: cleanName,
+        item_id: cleanName,
+        name: cleanName,
+        itemType: 'Material',
+        item_type: 'Material',
+        tier: tier,
+        stack_count: amt,
+        stackCount: amt,
+        max_stack: 99999999,
+        is_bound: false,
+        weight: 0.001,
+        glyph: currGlyph,
+        color: currColor,
+        colorHex: currColor,
+      };
+      if (emptySlot >= 0) {
+        gameState.backpack[emptySlot] = newItem;
+      } else {
+        gameState.backpack.push(newItem);
+      }
+    }
+
+    // 3. 区块链审计与云端快照同步 (带入完整背包与货币)
+    auditReporter.reportItemGain({ id: `dbg_${key}`, name: cleanName, stack_count: amt }, amt, 'debug_currency');
+    debugState.setToast(`✅ 已获得【${cleanName}】x${amt} 并成功存入背包！(余额: ${gameState[key]})`);
+    gameStore.addLog(`🪙 调试获取: ${currGlyph} ${cleanName} x${amt} (已存入背包，当前余额: ${gameState[key]})`);
+    audio.playCoin();
+    return;
+  }
 
   // 🌟 工具类: 先升级 gameState 中的工具等级 (供采集判定使用)，不 return，继续入包;
   //    同时写入本地持久化, 防止刷新页面后工具等级回落为 T1 (game-store 对账时双通道恢复)
