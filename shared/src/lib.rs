@@ -161,6 +161,11 @@ impl UIWindowConfig {
     pub const CONTEXT_MENU_ROW_HEIGHT: f64 = 28.0;
     pub const CONTEXT_MENU_PAD: f64 = 6.0;
 
+    // === 弹窗最大化区域（上下 HUD 之间） ===
+    pub const MAX_MODAL_TOP_INSET: f64 = 60.0;
+    pub const MAX_MODAL_BOTTOM_INSET: f64 = 44.0;
+    pub const MAX_MODAL_SIDE_INSET: f64 = 10.0;
+
     // 默认回退弹窗尺寸
     pub const DEFAULT_MODAL_WIDTH: f64 = 560.0;
     pub const DEFAULT_MODAL_HEIGHT: f64 = 420.0;
@@ -404,6 +409,10 @@ pub struct ItemDropReport {
 }
 
 /// 本地区块链链式日志条目 (Local Blockchain Hash Chain Block)
+/// 客户端玩家行为账本协议版本。
+/// v2 的核心语义：一笔玩家动作对应一个 Ledger Block；服务端仍拥有最终裁决权。
+pub const PLAYER_LEDGER_VERSION: u32 = 2;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionLogBlock {
     pub height: u64,
@@ -551,6 +560,18 @@ mod tests {
         // 篡改 payload
         block.payload_json = "{\"ore\":999}".to_string();
         assert!(!block.verify(), "篡改后的区块应校验失败");
+    }
+
+    #[test]
+    fn test_action_log_block_chain_continuity() {
+        let first = ActionLogBlock::create(1, "genesis", "move", "{\"x\":10}", 1000);
+        let second = ActionLogBlock::create(2, &first.block_hash, "attack", "{\"target\":7}", 1001);
+
+        assert_eq!(PLAYER_LEDGER_VERSION, 2);
+        assert!(first.verify());
+        assert!(second.verify());
+        assert_eq!(second.prev_hash, first.block_hash);
+        assert_eq!(second.height, first.height + 1);
     }
 
     #[test]

@@ -23,6 +23,8 @@ export const gameState = gameStore.state;
 export const uiState = {
     activeModals: new Set(),
 
+    modalMaximized: {},
+
     modalPositions: {
         map: { x: null, y: null },
         stash: { x: null, y: null },
@@ -66,6 +68,15 @@ export const uiState = {
             this.activeModals.delete(id);
             this.activeModals.add(id);
         }
+    },
+
+    toggleMaximize(id) {
+        this.modalMaximized[id] = !this.modalMaximized[id];
+        return this.modalMaximized[id];
+    },
+
+    isMaximized(id) {
+        return this.modalMaximized[id] === true;
     },
 
     closeModal(id) {

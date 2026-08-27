@@ -21,7 +21,7 @@ export function drawLogsModal(ctx, w, h, time) {
     const bounds = getModalBounds('logs', w, h);
     const { mx, my, mw, mh } = bounds;
 
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#a855f7', '【天道纪事 · 宗门日志】', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#a855f7', '【天道纪事 · 宗门日志】', time, 'logs');
 
     const logs = gameState.logs || [];
     const listX = mx + 16, listY = my + 54, lineH = 20, clipW = mw - 24, clipH = mh - 85;

@@ -458,7 +458,7 @@ export function drawStashModal(ctx, w, h, time) {
     const weightColor = curW > maxW ? '#ef4444' : curW > maxW * 0.8 ? '#f59e0b' : '#38bdf8';
 
     // 1. 全息外框
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', `【矩阵锦囊】 ${filled}/${totalSlots} ｜ 负重 ${curW.toFixed(1)} / ${maxW.toFixed(1)} KG`, time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', `【矩阵锦囊】 ${filled}/${totalSlots} ｜ 负重 ${curW.toFixed(1)} / ${maxW.toFixed(1)} KG`, time, 'stash');
 
     // 2. 标题栏排序按钮已移除: 排序开关整合至左下角提示小字 (点击循环, 命中检测见 hitTestSortHint)
     const sortOff = isStashSortOff();

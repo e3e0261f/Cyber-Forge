@@ -57,7 +57,7 @@ export function drawWorldMapModal(ctx, w, h, time) {
   const { mx, my, mw, mh } = bounds;
 
   // 1. 弹窗基框
-  drawHoloModalFrame(ctx, mx, my, mw, mh, '#00ffc8', '🗺️ Albion-Like 九州导航网络 (90秒规则 & 三级地图)', time);
+  drawHoloModalFrame(ctx, mx, my, mw, mh, '#00ffc8', '🗺️ Albion-Like 九州导航网络 (90秒规则 & 三级地图)', time, 'map');
 
   // 2. 标签页切换栏
   const tabY = my + 38;
@@ -119,9 +119,9 @@ export function drawWorldMapModal(ctx, w, h, time) {
   } else if (activeTab === 'world') {
     drawWorldTopologyView(ctx, contentX, contentY, contentW, contentH, time, curZoneId);
   } else if (activeTab === 'trade') {
-    drawTradeView(ctx, contentX, contentY, contentW, contentH, time);
+    drawTradeView(ctx, contentX, contentY, contentW, contentH, time, 'map');
   } else if (activeTab === 'sky_city') {
-    drawSkyCityView(ctx, contentX, contentY, contentW, contentH, time);
+    drawSkyCityView(ctx, contentX, contentY, contentW, contentH, time, 'map');
   }
 
   // 🌟 核心防御：完全恢复 Canvas 原始状态

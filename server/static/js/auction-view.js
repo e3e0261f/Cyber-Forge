@@ -26,7 +26,7 @@ export function drawAuctionModal(ctx, w, h, time) {
     const { mx, my, mw, mh } = bounds;
 
     const lots = gameState.lots || [];
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#e0a050', `【藏宝阁拍卖大厅】 拍品 ${lots.length}/${gameState.max_pavilion || 20}`, time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#e0a050', `【藏宝阁拍卖大厅】 拍品 ${lots.length}/${gameState.max_pavilion || 20}`, time, 'auction');
 
     const listX = mx + 16;
     const listY = my + 54;

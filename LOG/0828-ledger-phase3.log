@@ -1,0 +1,20 @@
+# Cyber Forge — Phase 3: GM / UI / Player Ledger Management
+
+Date: 2026-08-28
+
+## 本阶段目标
+1. 常规窗口保留 lib.rs 的正常尺寸参数；右上角增加最大化/恢复按钮。
+2. 最大化窗口限制在上下 HUD 之间，并使用轻微透明背景。
+3. Debug 模式升级为 GM 玩家管理工具。
+4. 玩家列表点选后进入玩家详细档案；在档案内查看最近/完整 Ledger、服务器校验和 Replay。
+5. 服务端开始保存已通过 Hash Chain 校验的玩家 Ledger，并与 world_state 分离持久化。
+
+## 设计边界
+- 不删除已有正常游戏 UI。
+- 不把 Replay 结果写入正式 GameStore。
+- 玩家账号前端仍只显示脱敏值；使用稳定 player_ref 作为 GM 查询索引。
+- 服务端仍是最终权威。
+
+## 验证
+- JavaScript 核心修改已通过 node --check。
+- 当前执行环境没有 cargo，无法执行项目要求的 cargo check；此项必须在开发环境补做。

@@ -169,7 +169,7 @@ export function drawBankModal(ctx, w, h, time) {
     const { mx, my, mw, mh } = bounds;
 
     // 绘制模态边框
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#22c55e', '🏦 万宝金库', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#22c55e', '🏦 万宝金库', time, 'bank');
 
     ctx.save();
 

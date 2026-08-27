@@ -512,7 +512,7 @@ export function drawTradeModal(ctx, w, h, time) {
     const bounds = getModalBounds('trade', w, h);
     const { mx, my, mw, mh } = bounds;
 
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f59e0b', '📜 九州商票驿站 (跑商总汇)', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f59e0b', '📜 九州商票驿站 (跑商总汇)', time, 'trade');
 
     const now = Date.now();
     const currentCity = gameState.current_city_id || gameState.current_zone_id || 'beijing';

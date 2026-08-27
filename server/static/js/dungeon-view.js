@@ -266,7 +266,7 @@ export function drawDungeonModal(ctx, w, h, time) {
     const bounds = getModalBounds('dungeon', w, h);
     const { mx, my, mw, mh } = bounds;
     
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#ef4444', '⚔️ 地牢探索 (Rogue-like 试验区)', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#ef4444', '⚔️ 地牢探索 (Rogue-like 试验区)', time, 'dungeon');
     
     if (!initialized) {
         initPixi();

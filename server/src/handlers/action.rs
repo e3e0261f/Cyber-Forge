@@ -358,6 +358,7 @@ fn handle_hash_chain_sync(
             let mut is_tampered = false;
             let mut violation_msg = String::new();
             let mut verified_count = 0;
+            let mut verified_blocks: Vec<ActionLogBlock> = Vec::new();
 
             for blk_val in blocks_val {
                 if let Ok(block) = serde_json::from_value::<ActionLogBlock>(blk_val.clone()) {
@@ -382,6 +383,7 @@ fn handle_hash_chain_sync(
                     }
                     curr_h = block.height;
                     curr_hash = block.block_hash.clone();
+                    verified_blocks.push(block);
                     verified_count += 1;
                 }
             }
@@ -405,6 +407,9 @@ fn handle_hash_chain_sync(
                     return Ok(Some(HttpResponse::Ok().json(snap)));
                 }
             } else {
+                if !verified_blocks.is_empty() {
+                    world.player_ledgers.entry(player.account_id.clone()).or_default().extend(verified_blocks);
+                }
                 let prev_h = player.block_height;
                 player.block_height = curr_h;
                 player.block_hash = curr_hash;

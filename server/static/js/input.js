@@ -29,7 +29,7 @@ import {
 import { audio } from './audio.js';
 import { hudState, scrollLogs, setLogsScroll, logsScrollY, logsMaxScroll, scrollBody, openItemContextMenu, closeContextMenu, hitTestContextMenu } from './hud.js';
 import { isEquipmentItem } from './context-menu.js';
-import { getModalDimensions, UI_WINDOW_CONFIG } from './ui-window-config.js';
+import { getModalDimensions, UI_WINDOW_CONFIG, UI_MAX_BOUNDS } from './ui-window-config.js';
 import { auditReporter } from './security/audit-reporter.js';
 import { gameConfig, isDevMode } from './config.js';
 import { 
@@ -1020,6 +1020,13 @@ function startMainLoop() {
 }
 
 export function getModalBounds(id, w, h) {
+  if (uiState.isMaximized(id)) {
+    const mx = UI_MAX_BOUNDS.side;
+    const my = UI_MAX_BOUNDS.top;
+    const mw = Math.max(280, w - UI_MAX_BOUNDS.side * 2);
+    const mh = Math.max(220, h - UI_MAX_BOUNDS.top - UI_MAX_BOUNDS.bottom);
+    return { mx, my, mw, mh, maximized: true };
+  }
   const dim = getModalDimensions(id);
   let mw = dim.width;
   let mh = dim.height;
@@ -1029,7 +1036,7 @@ export function getModalBounds(id, w, h) {
   const pos = uiState.modalPositions[id] || { x: null, y: null };
   const mx = pos.x !== null ? pos.x : (w * 0.5 - mw / 2);
   const my = pos.y !== null ? pos.y : (h * 0.5 - mh / 2);
-  return { mx, my, mw, mh };
+  return { mx, my, mw, mh, maximized: false };
 }
 
 export function setupInteractions() {
@@ -1452,6 +1459,12 @@ export function setupInteractions() {
       if (!bounds) continue;
       const { mx, my, mw, mh } = bounds;
 
+      // 标题栏右上角：最大化 / 恢复（关闭按钮左侧）
+      if (clickX >= mx + mw - 58 && clickX < mx + mw - 32 && clickY >= my && clickY <= my + 42) {
+        uiState.toggleMaximize(id);
+        return;
+      }
+
       if (clickX >= mx + mw - 32 && clickX <= mx + mw && clickY >= my && clickY <= my + 42) {
         uiState.closeModal(id);
         return;
@@ -1553,7 +1566,7 @@ export function setupInteractions() {
         }
       }
 
-      if (clickX >= mx && clickX <= mx + mw && clickY >= my && clickY <= my + 44) {
+      if (!uiState.isMaximized(id) && clickX >= mx && clickX <= mx + mw && clickY >= my && clickY <= my + 44) {
         uiState.draggingModal = id;
         uiState.dragOffset.x = clickX - mx;
         uiState.dragOffset.y = clickY - my;

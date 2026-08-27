@@ -45,6 +45,9 @@ export class NetworkAdapter {
                 endpoint = '/api/action';
                 const payload = typeof args === 'object' && args !== null ? { ...args } : { key: String(args) };
                 body = JSON.stringify(payload);
+            } else if (name === 'player_detail') {
+                endpoint = '/api/player_detail';
+                body = JSON.stringify(args || {});
             } else if (name === 'players_report') {
                 // 🌟 调试专用: 在线/离线玩家报表 (服务端按最近心跳窗口判定在线, 非累计注册数)
                 endpoint = '/api/players_report';

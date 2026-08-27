@@ -1,7 +1,7 @@
 // 🌟 JsonStorage 部分方法为存储演进/运维预留, 接入前压制 dead_code 警告
 #![allow(dead_code)]
 
-use cyber_forge_shared::{GameConfig, PlayerState, ResourceNode};
+use cyber_forge_shared::{ActionLogBlock, GameConfig, PlayerState, ResourceNode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -114,10 +114,39 @@ pub fn load_world_state() -> Option<WorldSaveData> {
     }
 }
 
+/// 已验证玩家账本的独立持久化文件。账本与世界状态分离，便于后续做冷归档/分段。
+pub const LEDGER_SAVE_PATH: &str = "data/player_ledgers.json";
+
+pub fn save_player_ledgers(
+    ledgers: &dashmap::DashMap<String, Vec<ActionLogBlock>>,
+) -> Result<(), std::io::Error> {
+    let mut map: HashMap<String, Vec<ActionLogBlock>> = HashMap::new();
+    for entry in ledgers.iter() {
+        map.insert(entry.key().clone(), entry.value().clone());
+    }
+    if let Some(parent) = Path::new(LEDGER_SAVE_PATH).parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::to_string(&map)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let tmp = Path::new(LEDGER_SAVE_PATH).with_extension("tmp");
+    std::fs::write(&tmp, json)?;
+    std::fs::rename(&tmp, LEDGER_SAVE_PATH)?;
+    Ok(())
+}
+
+pub fn load_player_ledgers() -> HashMap<String, Vec<ActionLogBlock>> {
+    match std::fs::read_to_string(LEDGER_SAVE_PATH) {
+        Ok(json) => serde_json::from_str(&json).unwrap_or_default(),
+        Err(_) => HashMap::new(),
+    }
+}
+
 /// 启动定期自动保存后台任务 (接收 Arc 共享引用，确保保存实时数据)
 pub fn spawn_autosave_task(
     players: Arc<dashmap::DashMap<String, PlayerState>>,
     gathering_nodes: Arc<dashmap::DashMap<String, ResourceNode>>,
+    ledgers: Arc<dashmap::DashMap<String, Vec<ActionLogBlock>>>,
 ) {
     info!("🔄 自动保存任务已启动 (初始玩家: {}, 节点: {})", players.len(), gathering_nodes.len());
     tokio::spawn(async move {
@@ -133,6 +162,9 @@ pub fn spawn_autosave_task(
             }
             if let Err(e) = save_world_state(&players, &gathering_nodes) {
                 error!("❌ 自动保存失败: {}", e);
+            }
+            if let Err(e) = save_player_ledgers(&ledgers) {
+                error!("❌ 玩家账本保存失败: {}", e);
             }
         }
     });

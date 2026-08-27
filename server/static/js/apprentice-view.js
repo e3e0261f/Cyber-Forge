@@ -13,7 +13,7 @@ export function drawApprenticeModal(ctx, w, h, time) {
     const bounds = getModalBounds('apprentice', w, h);
     const { mx, my, mw, mh } = bounds;
 
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f59e0b', `【铁匠铺 · 学徒工坊】 ${gameState.apprentices || 0}/${gameState.max_apprentices || 10} 人`, time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f59e0b', `【铁匠铺 · 学徒工坊】 ${gameState.apprentices || 0}/${gameState.max_apprentices || 10} 人`, time, 'apprentice');
 
     const jobs = [
         { key: '1', name: '磨剑台', desc: '持续打磨提升武器锋锐与估价', count: gameState.sharpen_workers || 0, color: '#38bdf8' },

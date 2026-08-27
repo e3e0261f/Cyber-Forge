@@ -4,6 +4,8 @@
  * 文件路径: server/static/js/ui-window-config.js
  */
 
+export const UI_MAX_BOUNDS = { top: 60, bottom: 44, side: 10 };
+
 export const UI_WINDOW_CONFIG = {
   // 1. 九州导航网络地图 (map)
   map: { width: 880, height: 640 },

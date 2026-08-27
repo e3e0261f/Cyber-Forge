@@ -38,6 +38,8 @@ pub struct WorldState {
     pub market: Arc<MarketEngine>,
     /// 九州拓扑与商路图谱
     pub topology: Arc<WorldTopology>,
+    /// GM/审计使用：服务端保存已验证的玩家行为账本。
+    pub player_ledgers: Arc<DashMap<String, Vec<ActionLogBlock>>>,
 }
 
 impl WorldState {
@@ -55,6 +57,7 @@ impl WorldState {
             gathering,
             market,
             topology,
+            player_ledgers: Arc::new(DashMap::new()),
         }
     }
 
@@ -70,6 +73,14 @@ impl WorldState {
             }
             info!("🔄 世界状态已从存档恢复 (玩家数: {})", self.players.len());
         }
+    }
+
+    /// 从独立账本文件恢复已验证的玩家录像。
+    pub fn restore_ledgers_from_disk(&mut self) {
+        for (account_id, blocks) in persistence::load_player_ledgers() {
+            self.player_ledgers.insert(account_id, blocks);
+        }
+        info!("🎥 玩家行为账本已恢复 (玩家账本数: {})", self.player_ledgers.len());
     }
 
     /// 读取或创建玩家状态 (若已有历史坐标则保留，防止刷新被重置)
@@ -134,10 +145,11 @@ async fn main() -> std::io::Result<()> {
 
     let mut world_state = WorldState::new();
     world_state.restore_from_save();
+    world_state.restore_ledgers_from_disk();
     let world_state = Arc::new(world_state);
 
     // 启动定期自动保存 (玩家 + 采集节点储量)
-    persistence::spawn_autosave_task(world_state.players.clone(), world_state.gathering.nodes.clone());
+    persistence::spawn_autosave_task(world_state.players.clone(), world_state.gathering.nodes.clone(), world_state.player_ledgers.clone());
 
     // 🌟 第二步：尝试连接 Kafka 事件流
     let kafka_brokers = env::var("KAFKA_BROKERS").unwrap_or_else(|_| "127.0.0.1:9092".to_string());
@@ -202,6 +214,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/tick", web::post().to(state::api_tick_handler))
             .route("/api/action", web::post().to(action::api_action_handler))
             .route("/api/players_report", web::post().to(state::api_players_report_handler))
+            .route("/api/player_detail", web::post().to(state::api_player_detail_handler))
             .route("/ws", web::get().to(ws::ws_handler))
             .service(
                 fs::Files::new("/", &static_dir_str)

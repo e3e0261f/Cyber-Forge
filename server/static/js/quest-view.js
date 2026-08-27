@@ -83,7 +83,7 @@ export function drawQuestModal(ctx, w, h, time) {
     if (!uiState.isOpen('quest')) return;
     const bounds = getModalBounds('quest', w, h);
     const { mx, my, mw, mh } = bounds;
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f97316', '【天道任务 · 押镖/跑商/悬赏】', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#f97316', '【天道任务 · 押镖/跑商/悬赏】', time, 'quest');
     // 任务面板独立重置 Canvas 状态，避免被世界特效或前一个弹窗的透明度/字体污染。
     ctx.save();
     ctx.globalAlpha = 1;

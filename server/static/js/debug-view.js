@@ -65,7 +65,7 @@ if (isDevMode) loadDebugSettings();
 
 // ==================== 🌟 调试面板标签页系统 ====================
 export const debugTabState = {
-  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=玩家信息, 3=玩家账本, 4=录像回放
+  activeTab: 0,     // 0=场景监视器, 1=物品库, 2=GM玩家管理, 3=本机玩家账本
   itemScrollY: 0,   // 物品库滚动偏移
   playersScrollY: 0,// 玩家页滚动偏移
   _hitAreas: [],    // 当前帧物品点击区域缓存
@@ -77,6 +77,13 @@ export const debugTabState = {
   _ledgerScrollY: 0,
   _replay: null,
   _replayPlayTimer: null,
+  _playerRowHitAreas: [],
+  _selectedPlayerRef: null,
+  _selectedPlayerDetail: null,
+  _playerDetailLoading: false,
+  _playerDetailScrollY: 0,
+  _playerDetailReplay: null,
+  _playerDetailReplayAreas: {},
 };
 
 /** 🌟 拉取在线/离线玩家报表 (5 秒缓存; 切页自动拉一次, 刷新按钮强制重拉) */
@@ -316,15 +323,15 @@ export function drawDebugModal(ctx, boundsOrW, hOrTime, optTime) {
   const { mx, my, mw, mh } = bounds;
   const time = typeof hOrTime === 'number' && hOrTime < 1000 ? hOrTime : (optTime || performance.now() * 0.003);
 
-  const tabTitles = ['🛠️ 天道法则调试台 · 场景监视器', '📦 天道物品库 · 点击生成到背包', '👥 玩家信息 · 真实在线/离线', '⛓️ 玩家行为账本 · 本地录像机'];
-  drawHoloModalFrame(ctx, mx, my, mw, mh, '#ec4899', tabTitles[debugTabState.activeTab], time);
+  const tabTitles = ['🛠️ 天道法则调试台 · 场景监视器', '📦 天道物品库 · 点击生成到背包', '👥 GM 玩家管理', '⛓️ 玩家行为账本 · 本地录像机'];
+  drawHoloModalFrame(ctx, mx, my, mw, mh, '#ec4899', tabTitles[debugTabState.activeTab], time, 'debug');
 
   // --- 🌟 标签页按钮 (4 tabs) ---
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 5;
+  const TAB_COUNT = 4;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
-  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家', '⛓️ 账本', '▶️ 回放'];
+  const tabLabels = ['🔭 场景监视器', '📦 物品库', '👥 玩家', '⛓️ 账本'];
   for (let i = 0; i < TAB_COUNT; i++) {
     const tx = mx + 16 + i * (tabW + 6);
     const isActive = debugTabState.activeTab === i;
@@ -342,9 +349,9 @@ export function drawDebugModal(ctx, boundsOrW, hOrTime, optTime) {
   }
 
   if (debugTabState.activeTab === 0) {
-    _drawDebugSceneTab(ctx, mx, my, mw, mh, time);
+    _drawDebugSceneTab(ctx, mx, my, mw, mh, time, 'debug');
   } else if (debugTabState.activeTab === 1) {
-    _drawDebugItemTab(ctx, mx, my, mw, mh, time);
+    _drawDebugItemTab(ctx, mx, my, mw, mh, time, 'debug');
   } else if (debugTabState.activeTab === 2) {
     _drawDebugPlayersTab(ctx, mx, my, mw, mh);
   } else {
@@ -574,122 +581,66 @@ function _drawDebugItemTab(ctx, mx, my, mw, mh, time) {
 
 // ==================== Tab 2: 玩家信息 (真实在线/离线) ====================
 // 🌟 在线 = 最近 ONLINE_WINDOW_SECS 内有心跳 (服务端判定), 而非 players 表累计长度 (旧"在线人数"只增不减的根因)
+async function _openPlayerDetail(playerRef) {
+  if (!playerRef) return;
+  debugTabState._selectedPlayerRef = playerRef;
+  debugTabState._selectedPlayerDetail = null;
+  debugTabState._playerDetailLoading = true;
+  debugTabState._playerDetailScrollY = 0;
+  debugTabState._playerDetailReplay = null;
+  const detail = await networkAdapter.invoke('player_detail', { player_ref: playerRef });
+  debugTabState._playerDetailLoading = false;
+  if (detail) {
+    debugTabState._selectedPlayerDetail = detail;
+    debugTabState._playerDetailReplay = new (replayEngine.constructor)(detail.ledger || []);
+    debugState.setToast(`👤 已打开玩家 ${detail.account || playerRef.slice(0, 8)} 的 GM 详情`);
+  } else debugState.setToast('❌ 玩家详情读取失败');
+}
+function _closePlayerDetail() {
+  debugTabState._selectedPlayerRef = null; debugTabState._selectedPlayerDetail = null;
+  debugTabState._playerDetailReplay = null; debugTabState._playerDetailScrollY = 0; debugTabState._playerDetailReplayAreas = {};
+}
+function _fmtPlayerTime(ts) { if (!ts) return '—'; try { return new Date(Number(ts) * 1000).toLocaleString(); } catch (_) { return String(ts); } }
+
 function _drawDebugPlayersTab(ctx, mx, my, mw, mh) {
-  const data = debugTabState._playersData;
-  const padX = 16;
-  let cy = my + 64;
-
-  // 切页后无数据/过期时自动拉取 (异步, 下一帧渲染)
-  if (!data || performance.now() - debugTabState._playersFetchedAt > 5000) {
-    _fetchPlayersReport();
-  }
-
-  // --- 汇总栏 + 刷新按钮 ---
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-  ctx.strokeStyle = 'rgba(0, 255, 200, 0.3)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(mx + padX, cy, mw - padX * 2, 30, 5);
-  ctx.fill(); ctx.stroke();
-
-  ctx.font = 'bold 12px sans-serif';
-  ctx.fillStyle = '#34d399';
-  const onlineCount = data ? data.online_count : '…';
-  const offlineCount = data ? data.offline_count : '…';
-  const totalReg = data ? data.total_registered : '…';
-  const windowSecs = data ? data.online_window_secs : 30;
-  ctx.fillText(`🟢 在线 ${onlineCount}`, mx + padX + 10, cy + 19);
-  ctx.fillStyle = '#64748b';
-  ctx.fillText(`⚫ 离线 ${offlineCount}`, mx + padX + 90, cy + 19);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '11px sans-serif';
-  ctx.fillText(`累计注册 ${totalReg} · 判定窗口 ${windowSecs}s 心跳`, mx + padX + 175, cy + 19);
-
+  if (debugTabState._selectedPlayerRef) { _drawDebugPlayerDetail(ctx, mx, my, mw, mh); return; }
+  const data = debugTabState._playersData, padX = 16; let cy = my + 64;
+  if (!data || performance.now() - debugTabState._playersFetchedAt > 5000) _fetchPlayersReport();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)'; ctx.strokeStyle = 'rgba(0, 255, 200, 0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(mx + padX, cy, mw - padX * 2, 30, 5); ctx.fill(); ctx.stroke();
+  ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#34d399'; ctx.fillText(`🟢 在线 ${data ? data.online_count : '…'}`, mx + padX + 10, cy + 19);
+  ctx.fillStyle = '#64748b'; ctx.fillText(`⚫ 离线 ${data ? data.offline_count : '…'}`, mx + padX + 90, cy + 19);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.fillText(`累计注册 ${data ? data.total_registered : '…'} · GM 点选玩家查看详情`, mx + padX + 175, cy + 19);
   const rbW = 56, rbH = 20, rbX = mx + mw - padX - rbW - 6, rbY = cy + 5;
-  ctx.fillStyle = debugTabState._playersLoading ? 'rgba(100, 116, 139, 0.25)' : 'rgba(52, 211, 153, 0.15)';
-  ctx.strokeStyle = '#34d399';
-  ctx.beginPath();
-  ctx.roundRect(rbX, rbY, rbW, rbH, 3);
-  ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#34d399';
-  ctx.font = 'bold 10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(debugTabState._playersLoading ? '拉取中…' : '🔄 刷新', rbX + rbW / 2, rbY + 14);
-  ctx.textAlign = 'left';
-  debugTabState._refreshBtnArea = { x: rbX, y: rbY, w: rbW, h: rbH };
-  cy += 38;
+  ctx.fillStyle = debugTabState._playersLoading ? 'rgba(100, 116, 139, 0.25)' : 'rgba(52, 211, 153, 0.15)'; ctx.strokeStyle = '#34d399';
+  ctx.beginPath(); ctx.roundRect(rbX, rbY, rbW, rbH, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#34d399'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(debugTabState._playersLoading ? '拉取中…' : '🔄 刷新', rbX + rbW / 2, rbY + 14); ctx.textAlign = 'left';
+  debugTabState._refreshBtnArea = { x: rbX, y: rbY, w: rbW, h: rbH }; cy += 38;
+  const listTop = cy, listH = my + mh - 34 - listTop, rowH = 24;
+  const online = data ? (data.online || []) : [], offline = data ? (data.offline || []) : [];
+  const rows = [...online.map(p => ({ p, isOnline: true })), ...offline.map(p => ({ p, isOnline: false }))];
+  const maxScroll = Math.max(0, rows.length * rowH - listH); debugTabState.playersScrollY = Math.max(0, Math.min(maxScroll, debugTabState.playersScrollY || 0)); const scrollY = debugTabState.playersScrollY;
+  debugTabState._playerRowHitAreas = [];
+  ctx.font = 'bold 10px sans-serif'; ctx.fillStyle = '#475569';
+  ['玩家','区域','等级','包/库','状态 / 最后活跃'].forEach((t,i)=>ctx.fillText(t, mx + padX + [6,140,240,290,360][i], listTop + 12));
+  const headY = listTop + 18; ctx.strokeStyle = 'rgba(71, 85, 105, 0.5)'; ctx.beginPath(); ctx.moveTo(mx + padX, headY); ctx.lineTo(mx + mw - padX, headY); ctx.stroke();
+  if (!data) { ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.fillText(debugTabState._playersLoading ? '正在拉取玩家报表…' : '拉取失败, 点击右上角刷新重试', mx + padX + 6, headY + 24); }
+  for (let i=0;i<rows.length;i++) { const ry=headY+6+i*rowH-scrollY; if(ry+rowH<headY||ry>headY+listH)continue; const {p,isOnline}=rows[i]; if(i%2===0){ctx.fillStyle='rgba(15,23,42,.5)';ctx.fillRect(mx+padX,ry,mw-padX*2,rowH);} ctx.font='11px sans-serif';ctx.fillStyle=isOnline?'#34d399':'#64748b';ctx.fillText(p.account||'?',mx+padX+6,ry+16);ctx.fillStyle=isOnline?'#e2e8f0':'#94a3b8';ctx.fillText(p.zone||'-',mx+padX+140,ry+16);ctx.fillText(`Lv.${p.level||1}`,mx+padX+240,ry+16);ctx.fillText(`${p.backpack||0}/${p.bank||0}`,mx+padX+290,ry+16);ctx.fillStyle=isOnline?'#34d399':'#64748b';ctx.fillText(isOnline?`🟢 在线 (${_fmtAgo(p.idle_secs)})`:(p.last_active_at>0?`⚫ 离线 · ${_fmtAgo(p.idle_secs)}`:'⚫ 离线 · 从未活跃'),mx+padX+360,ry+16); debugTabState._playerRowHitAreas.push({x:mx+padX,y:ry,w:mw-padX*2,h:rowH,playerRef:p.player_ref}); }
+  if(rows.length*rowH>listH){const barH=Math.max(20,listH*listH/(rows.length*rowH));const barY=headY+(scrollY/(rows.length*rowH-listH))*(listH-barH);ctx.fillStyle='rgba(236,72,153,.3)';ctx.beginPath();ctx.roundRect(mx+mw-8,barY,4,barH,2);ctx.fill();}
+  ctx.font='11px sans-serif';ctx.fillStyle='#64748b';ctx.fillText('💡 GM 工具：点击任意玩家 → 详细状态 / 最近账本 / 全账本 / 校验 / 回放',mx+20,my+mh-12);
+}
 
-  // --- 列表区 (在线行在前绿, 离线行在后灰; 手动可见性裁剪 + 滚轮翻页) ---
-  const listTop = cy;
-  const listH = my + mh - 34 - listTop;
-  const rowH = 24;
-  const online = data ? (data.online || []) : [];
-  const offline = data ? (data.offline || []) : [];
-  const rows = [
-    ...online.map((p) => ({ p, isOnline: true })),
-    ...offline.map((p) => ({ p, isOnline: false })),
-  ];
-  const maxScroll = Math.max(0, rows.length * rowH - listH);
-  debugTabState.playersScrollY = Math.max(0, Math.min(maxScroll, debugTabState.playersScrollY || 0));
-  const scrollY = debugTabState.playersScrollY;
-
-  // 表头
-  ctx.font = 'bold 10px sans-serif';
-  ctx.fillStyle = '#475569';
-  ctx.fillText('账号 (脱敏)', mx + padX + 6, listTop + 12);
-  ctx.fillText('区域', mx + padX + 140, listTop + 12);
-  ctx.fillText('等级', mx + padX + 240, listTop + 12);
-  ctx.fillText('包/库', mx + padX + 290, listTop + 12);
-  ctx.fillText('状态 / 最后活跃', mx + padX + 360, listTop + 12);
-  const headY = listTop + 18;
-  ctx.strokeStyle = 'rgba(71, 85, 105, 0.5)';
-  ctx.beginPath();
-  ctx.moveTo(mx + padX, headY);
-  ctx.lineTo(mx + mw - padX, headY);
-  ctx.stroke();
-
-  if (!data) {
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(debugTabState._playersLoading ? '正在拉取玩家报表…' : '拉取失败, 点击右上角刷新重试', mx + padX + 6, headY + 24);
-  }
-
-  for (let i = 0; i < rows.length; i++) {
-    const ry = headY + 6 + i * rowH - scrollY;
-    if (ry + rowH < headY || ry > headY + listH) continue; // 可见性裁剪 (与物品库同款, 不用 clip)
-    const { p, isOnline } = rows[i];
-
-    if (i % 2 === 0) {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
-      ctx.fillRect(mx + padX, ry, mw - padX * 2, rowH);
-    }
-    ctx.font = '11px sans-serif';
-    ctx.fillStyle = isOnline ? '#34d399' : '#64748b';
-    ctx.fillText(p.account || '?', mx + padX + 6, ry + 16);
-    ctx.fillStyle = isOnline ? '#e2e8f0' : '#94a3b8';
-    ctx.fillText(p.zone || '-', mx + padX + 140, ry + 16);
-    ctx.fillText(`Lv.${p.level || 1}`, mx + padX + 240, ry + 16);
-    ctx.fillText(`${p.backpack || 0}/${p.bank || 0}`, mx + padX + 290, ry + 16);
-    ctx.fillStyle = isOnline ? '#34d399' : '#64748b';
-    const status = isOnline
-      ? `🟢 在线 (活跃于 ${_fmtAgo(p.idle_secs)})`
-      : (p.last_active_at > 0 ? `⚫ 离线 · ${_fmtAgo(p.idle_secs)}` : '⚫ 离线 · 从未活跃');
-    ctx.fillText(status, mx + padX + 360, ry + 16);
-  }
-
-  // 滚动条
-  if (rows.length * rowH > listH) {
-    const barH = Math.max(20, listH * listH / (rows.length * rowH));
-    const barY = headY + (scrollY / (rows.length * rowH - listH)) * (listH - barH);
-    ctx.fillStyle = 'rgba(236, 72, 153, 0.3)';
-    ctx.beginPath();
-    ctx.roundRect(mx + mw - 8, barY, 4, barH, 2);
-    ctx.fill();
-  }
-
-  ctx.font = '11px sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText('💡 在线判定 = 最近心跳在服务端窗口内 (客户端每秒轮询 /api/tick 即保活); 账号已脱敏仅显首4末2', mx + 20, my + mh - 12);
+function _drawDebugPlayerDetail(ctx,mx,my,mw,mh){
+  const d=debugTabState._selectedPlayerDetail; let cy=my+64; const back={x:mx+16,y:cy,w:58,h:22}; drawDebugBtn(ctx,back.x,back.y,back.w,back.h,'← 列表','#94a3b8',false);
+  if(debugTabState._playerDetailLoading){ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.fillText('正在读取玩家详情…',mx+88,cy+16);return;}
+  if(!d){ctx.fillStyle='#f87171';ctx.font='12px sans-serif';ctx.fillText('玩家详情不可用',mx+88,cy+16);return;}
+  ctx.fillStyle='#e2e8f0';ctx.font='bold 12px sans-serif';ctx.fillText(`👤 ${d.account||'玩家'} · GM 详细档案`,mx+88,cy+16);cy+=32;
+  ctx.fillStyle='rgba(15,23,42,.72)';ctx.strokeStyle='rgba(56,189,248,.3)';ctx.beginPath();ctx.roundRect(mx+16,cy,mw-32,78,6);ctx.fill();ctx.stroke();ctx.font='10px monospace';ctx.fillStyle='#94a3b8';
+  ctx.fillText(`区域 ${d.position?.zone_id||'—'}  坐标 (${Number(d.position?.x||0).toFixed(0)}, ${Number(d.position?.y||0).toFixed(0)})`,mx+28,cy+18);ctx.fillText(`等级 Lv.${d.level||1}   铜钱 ${d.copper||0}   金币 ${d.coins||0}   仙玉 ${d.jade||0}`,mx+28,cy+36);ctx.fillText(`账本高度 #${d.block_height||0}   区块 ${d.ledger_count||0}   最后活跃 ${_fmtPlayerTime(d.last_active_at)}`,mx+28,cy+54);ctx.fillStyle=d.ledger_integrity?'#34d399':'#f87171';ctx.fillText(d.ledger_integrity?'● SERVER LEDGER OK':'● SERVER LEDGER ERROR',mx+28,cy+70);cy+=90;
+  const bw=74,bh=24,gap=6,areas={verify:{x:mx+16,y:cy,w:bw,h:bh},replay:{x:mx+16+bw+gap,y:cy,w:bw,h:bh}};drawDebugBtn(ctx,areas.verify.x,cy,bw,bh,'🔍 校验','#34d399',false);drawDebugBtn(ctx,areas.replay.x,cy,bw,bh,'▶ 回放','#38bdf8',false);cy+=34;
+  const replay=debugTabState._playerDetailReplay||(debugTabState._playerDetailReplay=new (replayEngine.constructor)(d.ledger||[]));ctx.fillStyle='rgba(15,23,42,.62)';ctx.strokeStyle='rgba(56,189,248,.25)';ctx.beginPath();ctx.roundRect(mx+16,cy,mw-32,76,6);ctx.fill();ctx.stroke();ctx.font='10px monospace';ctx.fillStyle='#e2e8f0';ctx.fillText(`▶ 回放位置 ${replay.cursor}/${replay.blocks.length} · Block #${replay.state.block_height||'—'} · ${replay.state.last_action||'—'}`,mx+28,cy+18);ctx.fillStyle='#94a3b8';ctx.fillText(`状态 (${replay.state.player_x??'—'}, ${replay.state.player_y??'—'}) Zone ${replay.state.zone_id||'—'} · 事件 ${replay.state.action_count}`,mx+28,cy+36);
+  const rAreas={};[['⏮','start'],['⏭','step'],['▶','all']].forEach((it,i)=>{const x=mx+28+i*64;drawDebugBtn(ctx,x,cy+46,58,20,it[0],'#38bdf8',false);rAreas[it[1]]={x,y:cy+46,w:58,h:20};});debugTabState._playerDetailReplayAreas={...areas,...rAreas};cy+=86;
+  const blocks=d.ledger||[],rowH=20,listTop=cy,listH=my+mh-20-listTop,maxScroll=Math.max(0,blocks.length*rowH-listH);debugTabState._playerDetailScrollY=Math.max(0,Math.min(maxScroll,debugTabState._playerDetailScrollY||0));const sy=debugTabState._playerDetailScrollY;ctx.font='10px monospace';ctx.fillStyle='#64748b';ctx.fillText(`完整行为账本 · 共 ${blocks.length} 个动作（滚轮查看）`,mx+20,listTop-5);
+  for(let i=0;i<blocks.length;i++){const y=listTop+i*rowH-sy;if(y<listTop-rowH||y>listTop+listH)continue;const b=blocks[i];if(i%2===0){ctx.fillStyle='rgba(30,41,59,.42)';ctx.fillRect(mx+16,y,mw-32,rowH);}ctx.fillStyle='#a78bfa';ctx.fillText(`#${b.height}`,mx+22,y+14);ctx.fillStyle='#e2e8f0';ctx.fillText(String(b.action_type||'unknown').slice(0,24),mx+74,y+14);ctx.fillStyle='#64748b';ctx.fillText(String(b.block_hash||'').slice(0,10),mx+mw-96,y+14);}
 }
 
 function _formatLedgerBytes(bytes) {
@@ -827,7 +778,7 @@ export function handleDebugClick(clickX, clickY, bounds, w, h) {
   // 🌟 标签页切换 (最优先检测, 5 tabs)
   const tabY = my + 36;
   const tabH = 22;
-  const TAB_COUNT = 5;
+  const TAB_COUNT = 4;
   const tabW = (mw - 32 - 6 * (TAB_COUNT - 1)) / TAB_COUNT;
   const tabToasts = ['🔭 已切换到场景监视器', '📦 已切换到物品库', '👥 已切换到玩家信息', '⛓️ 已切换到玩家行为账本', '▶️ 已切换到录像回放'];
   for (let i = 0; i < TAB_COUNT; i++) {
@@ -836,32 +787,10 @@ export function handleDebugClick(clickX, clickY, bounds, w, h) {
       debugTabState.activeTab = i;
       debugTabState.itemScrollY = 0;
       debugTabState.playersScrollY = 0;
-      if (i === 2) _fetchPlayersReport(); // 切到玩家页自动拉一次报表 (5秒内缓存不重拉)
+      if (i === 2) { _closePlayerDetail(); _fetchPlayersReport(); } // 切到玩家页自动拉一次报表 (5秒内缓存不重拉)
       debugState.setToast(tabToasts[i]);
       return true;
     }
-  }
-
-  // 🌟 Tab 4: 录像回放控制
-  if (debugTabState.activeTab === 4) {
-    const replay = debugTabState._replay || (debugTabState._replay = new (replayEngine.constructor)(localHashChain.blocks));
-    const a = debugTabState._replayHitAreas || {};
-    if (a.start && clickX >= a.start.x && clickX <= a.start.x + a.start.w && clickY >= a.start.y && clickY <= a.start.y + a.start.h) {
-      replay.reset(localHashChain.blocks);
-      debugState.setToast('⏮️ 已回到录像起点');
-      return true;
-    }
-    if (a.step && clickX >= a.step.x && clickX <= a.step.x + a.step.w && clickY >= a.step.y && clickY <= a.step.y + a.step.h) {
-      replay.step(1);
-      debugState.setToast(`⏭️ 已回放至 #${replay.state.block_height || 0}`);
-      return true;
-    }
-    if (a.all && clickX >= a.all.x && clickX <= a.all.x + a.all.w && clickY >= a.all.y && clickY <= a.all.y + a.all.h) {
-      replay.playAll();
-      debugState.setToast(`▶️ 已完成回放，共 ${replay.blocks.length} 个区块`);
-      return true;
-    }
-    return true;
   }
 
   // 🌟 Tab 1: 物品库点击处理
@@ -899,15 +828,32 @@ export function handleDebugClick(clickX, clickY, bounds, w, h) {
     return true;
   }
 
-  // 🌟 Tab 2: 玩家信息页点击 (仅刷新按钮可交互, 列表只读)
+  // 🌟 Tab 2: GM 玩家管理：点击玩家打开详细档案
   if (debugTabState.activeTab === 2) {
-    const area = debugTabState._refreshBtnArea;
-    if (area && clickX >= area.x && clickX <= area.x + area.w && clickY >= area.y && clickY <= area.y + area.h) {
-      _fetchPlayersReport(true);
-      debugState.setToast('🔄 正在重新拉取玩家报表…');
+    if (debugTabState._selectedPlayerRef) {
+      const areas = debugTabState._playerDetailReplayAreas || {};
+      const back = { x: mx + 16, y: my + 64, w: 58, h: 22 };
+      if (clickX >= back.x && clickX <= back.x + back.w && clickY >= back.y && clickY <= back.y + back.h) { _closePlayerDetail(); return true; }
+      if (areas.verify && clickX >= areas.verify.x && clickX <= areas.verify.x + areas.verify.w && clickY >= areas.verify.y && clickY <= areas.verify.y + areas.verify.h) {
+        networkAdapter.invoke('player_detail', { player_ref: debugTabState._selectedPlayerRef }).then((d) => {
+          if (d) { debugTabState._selectedPlayerDetail = d; debugTabState._playerDetailReplay = new (replayEngine.constructor)(d.ledger || []); debugState.setToast(d.ledger_integrity ? '✅ 服务端账本校验通过' : '🚨 服务端账本校验失败'); }
+          else debugState.setToast('❌ 服务端账本校验读取失败');
+        });
+        return true;
+      }
+      const replay = debugTabState._playerDetailReplay || new (replayEngine.constructor)(debugTabState._selectedPlayerDetail?.ledger || []);
+      if (areas.start && clickX >= areas.start.x && clickX <= areas.start.x + areas.start.w && clickY >= areas.start.y && clickY <= areas.start.y + areas.start.h) { replay.reset(); debugState.setToast('⏮️ 已回到该玩家录像起点'); return true; }
+      if (areas.step && clickX >= areas.step.x && clickX <= areas.step.x + areas.step.w && clickY >= areas.step.y && clickY <= areas.step.y + areas.step.h) { replay.step(1); debugState.setToast(`⏭️ 回放至 #${replay.state.block_height || 0}`); return true; }
+      if (areas.all && clickX >= areas.all.x && clickX <= areas.all.x + areas.all.w && clickY >= areas.all.y && clickY <= areas.all.y + areas.all.h) { replay.playAll(); debugState.setToast(`▶️ 已回放该玩家全部 ${replay.blocks.length} 个动作`); return true; }
+      if (areas.replay && clickX >= areas.replay.x && clickX <= areas.replay.x + areas.replay.w && clickY >= areas.replay.y && clickY <= areas.replay.y + areas.replay.h) { replay.reset(); debugState.setToast('▶️ 回放已重置到起点'); return true; }
       return true;
     }
-    return false;
+    const area = debugTabState._refreshBtnArea;
+    if (area && clickX >= area.x && clickX <= area.x + area.w && clickY >= area.y && clickY <= area.y + area.h) { _fetchPlayersReport(true); debugState.setToast('🔄 正在重新拉取玩家报表…'); return true; }
+    for (const row of (debugTabState._playerRowHitAreas || [])) {
+      if (clickX >= row.x && clickX <= row.x + row.w && clickY >= row.y && clickY <= row.y + row.h) { _openPlayerDetail(row.playerRef); return true; }
+    }
+    return true;
   }
   let cy = my + 64 + 88;
 
@@ -1156,12 +1102,19 @@ export function handleDebugWheel(deltaY) {
   if (!uiState.isOpen('debug')) return false;
   // 🌟 Tab 2: 玩家信息页滚动 (在线+离线列表合并滚动)
   if (debugTabState.activeTab === 2) {
-    const data = debugTabState._playersData;
-    const rowCount = data ? (data.online || []).length + (data.offline || []).length : 0;
     const bounds = getModalBounds('debug', window.innerWidth, window.innerHeight);
-    const listH = bounds.mh - 80 - 38 - 18 - 6; // 内容区减汇总栏/表头/间距 (与绘制几何一致)
-    const maxScroll = Math.max(0, rowCount * 24 - listH);
-    debugTabState.playersScrollY = Math.max(0, Math.min(maxScroll, (debugTabState.playersScrollY || 0) + deltaY * 0.5));
+    if (debugTabState._selectedPlayerRef && debugTabState._selectedPlayerDetail) {
+      const count = (debugTabState._selectedPlayerDetail.ledger || []).length;
+      const listH = bounds.mh - 64 - 32 - 90 - 34 - 86 - 20;
+      const maxScroll = Math.max(0, count * 20 - listH);
+      debugTabState._playerDetailScrollY = Math.max(0, Math.min(maxScroll, (debugTabState._playerDetailScrollY || 0) + deltaY * 0.7));
+    } else {
+      const data = debugTabState._playersData;
+      const rowCount = data ? (data.online || []).length + (data.offline || []).length : 0;
+      const listH = bounds.mh - 80 - 38 - 18 - 6;
+      const maxScroll = Math.max(0, rowCount * 24 - listH);
+      debugTabState.playersScrollY = Math.max(0, Math.min(maxScroll, (debugTabState.playersScrollY || 0) + deltaY * 0.5));
+    }
     return true;
   }
   if (debugTabState.activeTab === 3) return true;

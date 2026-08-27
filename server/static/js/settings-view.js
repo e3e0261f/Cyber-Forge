@@ -220,7 +220,7 @@ export function drawSettingsModal(ctx, bounds, w, h, time) {
 
   ctx.save();
   // 1. 全息底框
-  drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', '⚙️ 系统设置与天道中枢 (System Settings)', time);
+  drawHoloModalFrame(ctx, mx, my, mw, mh, '#38bdf8', '⚙️ 系统设置与天道中枢 (System Settings)', time, 'settings');
 
   // 2. 顶部选项卡 (Tabs)
   const tabs = [
@@ -263,15 +263,15 @@ export function drawSettingsModal(ctx, bounds, w, h, time) {
   ctx.textBaseline = 'alphabetic';
 
   if (settingsState.activeTab === 'audio') {
-    drawAudioTab(ctx, contentX, contentY, contentW, time);
+    drawAudioTab(ctx, contentX, contentY, contentW, time, 'settings');
   } else if (settingsState.activeTab === 'graphics') {
-    drawGraphicsTab(ctx, contentX, contentY, contentW, time);
+    drawGraphicsTab(ctx, contentX, contentY, contentW, time, 'settings');
   } else if (settingsState.activeTab === 'gameplay') {
-    drawGameplayTab(ctx, contentX, contentY, contentW, time);
+    drawGameplayTab(ctx, contentX, contentY, contentW, time, 'settings');
   } else if (settingsState.activeTab === 'blockchain') {
-    drawBlockchainTab(ctx, contentX, contentY, contentW, time);
+    drawBlockchainTab(ctx, contentX, contentY, contentW, time, 'settings');
   } else if (settingsState.activeTab === 'account') {
-    drawAccountTab(ctx, contentX, contentY, contentW, time);
+    drawAccountTab(ctx, contentX, contentY, contentW, time, 'settings');
   }
 
   ctx.restore();

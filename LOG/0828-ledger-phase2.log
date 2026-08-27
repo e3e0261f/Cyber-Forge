@@ -1,0 +1,30 @@
+# Cyber Forge — Phase 2: Replay Foundation
+
+Date: 2026-08-28
+
+## 先修复的第一阶段问题
+Debug Window 的“重新校验”错误来自把 LocalStorage 的服务器 baseline 元数据混入了“本地录像带自身完整性”校验。
+现已拆分职责：
+- `verifyChainIntegrity()` 只检查 Ledger 内部高度、prev_hash、字段和 block_hash。
+- `verifyAgainstBaseline()` 单独负责未来的 Server baseline 对齐验证。
+这样旧 baseline / 多端同步元数据变化不会把内部完整的 Ledger 误判为损坏。
+
+## 第二阶段第一版
+新增 `security/replay-engine.js`：
+- LedgerReplay 独立维护 replay cursor 和 audit state。
+- 支持 reset / step / seek / playAll。
+- 当前只实现审计投影：movement_interval、gain、drop、strike_forge、level_up。
+- 未注册的 Action 保留在时间线，不擅自猜测游戏规则。
+- Replay 不修改正式 GameStore.state。
+
+Debug Window 新增 `▶️ 回放` 标签页：
+- 起点
+- 单步
+- 全部
+- 当前 Block / Action / 坐标 / Zone / 简单物品事件统计
+
+## 设计原则
+这一阶段的目标不是马上“重写整个游戏”，而是先证明：
+`Ledger -> Replay -> Deterministic Audit State`
+这条管线成立。
+完整游戏 Replay 和 Server Replay/Verify 留到后续阶段。

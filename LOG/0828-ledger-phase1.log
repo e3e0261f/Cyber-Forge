@@ -1,0 +1,30 @@
+# Cyber Forge — Phase 1: Player Action Ledger
+
+Date: 2026-08-28
+
+## Goal
+将客户端本地 HashChain 明确升级为“玩家行为录像机”的第一阶段：每一个动作独立形成可验证 Ledger Block，并立即进入 IndexedDB 持久化流程。
+
+## Completed
+- 每个 `appendAction()` 调用直接生成一个 Block，不再等待 100 笔动作后合并成 `batch_actions`。
+- Block 增加 `ledger_version = 2`。
+- 本地链校验增加高度连续性、字段基本类型与 Hash 重算检查。
+- 增加 Ledger Head / 最近区块 / 估算大小 / 1 MiB 工程目标观测能力。
+- IndexedDB 继续作为主要账本存储，LocalStorage 继续保存快速 Head 与基线信息。
+- Debug Window 增加“⛓️ 账本”标签页，仅用于观察与校验，不修改正常游戏 UI。
+- Shared Rust 协议增加 `PLAYER_LEDGER_VERSION = 2` 与链连续性测试。
+
+## Deliberately Not Done
+- 未实现 Replay 播放器。
+- 未改变 Server Authority。
+- 未删除现有 `world_state`。
+- 未改变正常游戏 UI。
+- 未把服务器验证逻辑升级为完整事件 Replay；这是第二、三阶段内容。
+
+## Design Principle
+Server 是世界唯一真相；Client Ledger 记录“玩家做了什么”，客户端可以本地模拟，但没有最终裁决权。
+
+## 2026-08-28 修复
+收到实际 cargo 编译错误报告。原因是 PLAYER_LEDGER_VERSION 常量上方的 derive 属性错误地附着到了 const，而 ActionLogBlock 本身缺少 Debug/Clone/Serialize/Deserialize derive，导致 E0774 与一系列 E0277 连锁错误。
+修复：将 derive 正确移动到 ActionLogBlock 结构体，并保留账本版本常量独立定义。
+由于当前打包环境没有 cargo/rustc，无法在此环境重新执行 Rust 编译；该错误修复属于明确的语法/trait derive 位置错误，待开发环境 cargo check 验证。

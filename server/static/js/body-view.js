@@ -17,7 +17,7 @@ export function drawBodyModal(ctx, w, h, time) {
     const title = s.title ? ` · ${s.title}` : '';
     const pending = s.pending_breakthrough ? ' ⚡待渡劫' : '';
 
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#22c55e', `【身体素质】${s.realm_name || '炼体'} ${s.sub_level || 1}层${title}${pending}`, time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#22c55e', `【身体素质】${s.realm_name || '炼体'} ${s.sub_level || 1}层${title}${pending}`, time, 'body');
 
     const n = (x) => (x === 0 || x ? String(x) : '0');
     const colW = (mw - 48) / 2, leftX = mx + 24, rightX = leftX + colW;

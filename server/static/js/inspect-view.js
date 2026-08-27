@@ -10,7 +10,7 @@ export function drawInspectModal(ctx, w, h, time) {
     const { mx, my, mw, mh } = bounds;
     const item = inspectState.inspectItem;
 
-    drawHoloModalFrame(ctx, mx, my, mw, mh, '#00e5ff', '📜【天道出生证明 (四维指纹)】', time);
+    drawHoloModalFrame(ctx, mx, my, mw, mh, '#00e5ff', '📜【天道出生证明 (四维指纹)】', time, 'inspect');
 
     if (!item) {
         ctx.fillStyle = '#64748b'; ctx.font = '13px sans-serif';
