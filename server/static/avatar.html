@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Cyber-Forge: 2.5D 角色创建工坊 (8大爆笑流派库)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            background: #07090e;
+            color: #e0e6ed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #toolbox {
+            width: 420px;
+            background: #0f121a;
+            border-right: 2px solid #1c2230;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            box-shadow: 6px 0 25px rgba(0,0,0,0.7);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .title-container {
+            border-bottom: 2px solid #1c2230;
+            padding-bottom: 8px;
+        }
+        h1.main-title {
+            font-size: 24px;
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0,255,204,0.5);
+            letter-spacing: 2px;
+            font-weight: 900;
+        }
+        .sub-title {
+            font-size: 12px;
+            color: #7b889b;
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        /* 🌟 8大动作流派卡片区 */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            background: #07080d;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #1c2230;
+        }
+        .style-card {
+            padding: 7px 8px;
+            background: #151824;
+            border: 1px solid #242c3d;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            color: #a0aec0;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .style-card:hover { background: #1e2436; border-color: #00ffcc; color: #fff; }
+        .style-card.active {
+            background: #00a884;
+            border-color: #00ffcc;
+            color: #07090e;
+            box-shadow: 0 0 8px rgba(0,255,204,0.4);
+        }
+
+        .part-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            background: #07080d;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .tab-btn {
+            padding: 6px 2px;
+            background: transparent;
+            border: none;
+            color: #8a96a3;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #00ffcc;
+            color: #080a0f;
+            box-shadow: 0 0 10px rgba(0,255,204,0.4);
+        }
+
+        #draw-pad-wrapper {
+            background: #151824;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #242c3d;
+        }
+
+        #draw-pad {
+            background: #ffffff;
+            border-radius: 8px;
+            cursor: crosshair;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.1);
+        }
+
+        .pad-guide-text {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        .tools-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 6px;
+            width: 100%;
+        }
+        .btn-undo {
+            background: #232a3d;
+            border: 1px solid #36435e;
+            color: #00ffcc;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-undo:hover { background: #2f3a54; border-color: #00ffcc; transform: scale(1.05); }
+
+        .palette-box {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .color-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #242c3d;
+            transition: transform 0.2s;
+        }
+        .color-dot:hover { transform: scale(1.2); }
+        .color-dot.active { border-color: #fff; transform: scale(1.18); box-shadow: 0 0 8px #fff; }
+
+        .btn-group { display: flex; gap: 6px; }
+        button.action-btn {
+            flex: 1;
+            padding: 7px 10px;
+            background: #181d2a;
+            color: #fff;
+            border: 1px solid #283246;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button.action-btn:hover { background: #222a3b; border-color: #00ffcc; }
+
+        button.primary {
+            background: #00a884;
+            border-color: #00ffcc;
+            color: #07090e;
+            font-size: 13px;
+            padding: 10px;
+            box-shadow: 0 0 12px rgba(0,255,204,0.35);
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid #00ffcc;
+        }
+        button.primary:hover { background: #00ffcc; }
+
+        #stage-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #131722 0%, #05060a 100%);
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 18, 26, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: 1px solid #202738;
+            font-size: 12px;
+            line-height: 1.8;
+            pointer-events: none;
+        }
+        #instructions span { color: #00ffcc; font-weight: bold; }
+
+        #dir-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 18, 26, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #202738;
+            font-size: 12px;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbox">
+        <div class="title-container">
+            <h1 class="main-title">角色创建</h1>
+            <div class="sub-title">— 2.5D 涂鸦小人工坊 —</div>
+        </div>
+
+        <!-- 🌟 8大爆笑动作流派选择区 -->
+        <div style="font-size: 11px; color: #00ffcc; font-weight: bold;">🎭 选择小人动作流派：</div>
+        <div class="style-grid">
+            <div class="style-card active" data-style="ninja">🥷 火影疾风</div>
+            <div class="style-card" data-style="drunk">🍷 醉拳扭臀</div>
+            <div class="style-card" data-style="sonic">⚡ 无影飞毛腿</div>
+            <div class="style-card" data-style="sneaky">🦹 偷感极重</div>
+            <div class="style-card" data-style="noodle">🤪 面条触电</div>
+            <div class="style-card" data-style="zombie">🧟 僵尸蹦跶</div>
+            <div class="style-card" data-style="penguin">🐧 企鹅外八</div>
+            <div class="style-card" data-style="mech">🤖 发条机甲</div>
+        </div>
+
+        <div style="font-size: 11px; color: #7b889b; font-weight: bold; margin-top: 4px;">🎨 部位手绘涂鸦：</div>
+        <div class="part-tabs">
+            <button class="tab-btn active" data-part="face">1. 五官</button>
+            <button class="tab-btn" data-part="hair">2. 发饰</button>
+            <button class="tab-btn" data-part="torso">3. 身体</button>
+            <button class="tab-btn" data-part="arm_up">4. 大臂</button>
+            <button class="tab-btn" data-part="arm_low">5. 小臂</button>
+            <button class="tab-btn" data-part="leg_up">6. 大腿</button>
+            <button class="tab-btn" data-part="leg_low">7. 小腿</button>
+        </div>
+
+        <div id="draw-pad-wrapper">
+            <canvas id="draw-pad" width="160" height="160"></canvas>
+            <div class="pad-guide-text" id="guide-text">当前绘制: 【正面五官】</div>
+            
+            <div class="tools-row">
+                <button class="btn-undo" id="btn-undo" title="撤销上一笔">↩ 撤销</button>
+                <div class="palette-box">
+                    <div class="color-dot active" style="background: #111;" data-color="#111"></div>
+                    <div class="color-dot" style="background: #ffffff;" data-color="#ffffff"></div>
+                    <div class="color-dot" style="background: #00ffcc;" data-color="#00ffcc"></div>
+                    <div class="color-dot" style="background: #f1c40f;" data-color="#f1c40f"></div>
+                    <div class="color-dot" style="background: #e74c3c;" data-color="#e74c3c"></div>
+                    <div class="color-dot" style="background: #e0ac69;" data-color="#e0ac69"></div>
+                    <div class="color-dot" style="background: #34495e;" data-color="#34495e"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="action-btn" id="btn-clear">🗑️ 清空当前</button>
+            <button class="action-btn" id="btn-preset-funny">⚡ 黄金比例预设</button>
+        </div>
+
+        <button class="primary" id="btn-apply">✨ 保存并注入 2.5D 角色</button>
+    </div>
+
+    <div id="stage-container">
+        <div id="instructions">
+            🎮 2.5D 纯正操控：<br>
+            • <span>W / S / A / D</span> 操控全向奔跑 (8方向精准姿态！)<br>
+            • <span>正面直视镜头展示手绘脸部，转到背面展示发饰后脑勺</span>！<br>
+            • <span>左侧随时点击切换 8 款爆笑流派</span>，体验不同步态喜感！
+        </div>
+        <div id="dir-indicator">当前朝向: 正南 (流派: 🥷 火影疾风)</div>
+    </div>
+
+    <script>
+        /* ==========================================================
+           1. 画板系统 (支持 7 部件 + 撤销)
+           ========================================================== */
+        const pad = document.getElementById('draw-pad');
+        const pCtx = pad.getContext('2d');
+        let isDrawing = false;
+        let currentPart = 'face';
+        let brushColor = '#111';
+
+        const parts = ['face', 'hair', 'torso', 'arm_up', 'arm_low', 'leg_up', 'leg_low'];
+        const partCanvases = {};
+        const partHistory = {};
+
+        parts.forEach(p => {
+            partCanvases[p] = document.createElement('canvas');
+            partCanvases[p].width = 160;
+            partCanvases[p].height = 160;
+            partHistory[p] = [];
+        });
+
+        function setupBrush() {
+            pCtx.lineWidth = 8;
+            pCtx.lineCap = 'round';
+            pCtx.lineJoin = 'round';
+            pCtx.strokeStyle = brushColor;
+        }
+
+        function pushHistory() {
+            const hist = partHistory[currentPart];
+            if (hist.length > 20) hist.shift();
+            hist.push(pCtx.getImageData(0, 0, 160, 160));
+        }
+
+        document.getElementById('btn-undo').onclick = () => {
+            const hist = partHistory[currentPart];
+            if (hist.length > 0) {
+                const prev = hist.pop();
+                pCtx.putImageData(prev, 0, 0);
+                saveCurrentPart();
+            }
+        };
+
+        function saveCurrentPart() {
+            const ctx = partCanvases[currentPart].getContext('2d');
+            ctx.clearRect(0, 0, 160, 160);
+            ctx.drawImage(pad, 0, 0);
+        }
+
+        function switchPart(newPart) {
+            saveCurrentPart();
+            currentPart = newPart;
+            pCtx.clearRect(0, 0, 160, 160);
+            pCtx.drawImage(partCanvases[currentPart], 0, 0);
+            setupBrush();
+
+            const names = {
+                face: '正面五官 (仅正面显示)', hair: '背面发饰 (背向镜头展示)',
+                torso: '身体衣服 (直接印在3D躯干上)', arm_up: '大臂', arm_low: '小臂与手掌',
+                leg_up: '大腿', leg_low: '小腿与脚鞋'
+            };
+            document.getElementById('guide-text').textContent = `当前绘制: 【${names[currentPart]}】`;
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                switchPart(btn.getAttribute('data-part'));
+            };
+        });
+
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.onclick = () => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                brushColor = dot.getAttribute('data-color');
+                setupBrush();
+            };
+        });
+
+        pad.addEventListener('mousedown', (e) => {
+            pushHistory();
+            isDrawing = true;
+            setupBrush();
+            pCtx.beginPath();
+            pCtx.moveTo(e.offsetX, e.offsetY);
+        });
+        pad.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            pCtx.lineTo(e.offsetX, e.offsetY);
+            pCtx.stroke();
+        });
+        window.addEventListener('mouseup', () => { isDrawing = false; saveCurrentPart(); });
+
+        document.getElementById('btn-clear').onclick = () => {
+            pushHistory();
+            pCtx.clearRect(0, 0, 160, 160);
+            saveCurrentPart();
+        };
+
+        // 默认搞笑格格预设
+        function drawPresetFunny() {
+            // 1. 五官
+            const fCtx = partCanvases.face.getContext('2d');
+            fCtx.clearRect(0,0,160,160); fCtx.lineWidth = 7; fCtx.strokeStyle = '#111';
+            fCtx.beginPath(); fCtx.arc(56, 75, 12, 0, Math.PI*2); fCtx.arc(104, 75, 12, 0, Math.PI*2); fCtx.stroke();
+            fCtx.fillStyle = '#00ffcc';
+            fCtx.beginPath(); fCtx.arc(58, 75, 5, 0, Math.PI*2); fCtx.arc(106, 75, 5, 0, Math.PI*2); fCtx.fill();
+            fCtx.beginPath(); fCtx.arc(80, 96, 16, 0.15*Math.PI, 0.85*Math.PI); fCtx.stroke();
+
+            // 2. 发饰
+            const hCtx = partCanvases.hair.getContext('2d');
+            hCtx.clearRect(0,0,160,160); hCtx.lineWidth = 8; hCtx.strokeStyle = '#111';
+            hCtx.beginPath();
+            hCtx.moveTo(30, 40); hCtx.lineTo(130, 40);
+            hCtx.lineTo(100, 110); hCtx.lineTo(60, 110);
+            hCtx.closePath();
+            hCtx.stroke();
+            hCtx.fillStyle = '#e74c3c';
+            hCtx.beginPath(); hCtx.arc(80, 50, 14, 0, Math.PI*2); hCtx.fill();
+
+            // 3. 身体
+            const tCtx = partCanvases.torso.getContext('2d');
+            tCtx.clearRect(0,0,160,160); tCtx.lineWidth = 8; tCtx.strokeStyle = '#111';
+            tCtx.beginPath();
+            tCtx.moveTo(55, 30); tCtx.lineTo(105, 30);
+            tCtx.lineTo(115, 130); tCtx.lineTo(45, 130);
+            tCtx.closePath();
+            tCtx.stroke();
+            tCtx.fillStyle = '#f1c40f';
+            tCtx.beginPath(); tCtx.arc(80, 80, 6, 0, Math.PI*2); tCtx.fill();
+
+            // 4. 四肢
+            const drawL = (ctx, col='#111', w=9) => {
+                ctx.clearRect(0,0,160,160); ctx.lineWidth = w; ctx.strokeStyle = col; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(80, 20); ctx.lineTo(80, 140); ctx.stroke();
+            };
+            drawL(partCanvases.arm_up.getContext('2d'), '#111', 10);
+            drawL(partCanvases.arm_low.getContext('2d'), '#e0ac69', 9);
+            drawL(partCanvases.leg_up.getContext('2d'), '#111', 10);
+            drawL(partCanvases.leg_low.getContext('2d'), '#e74c3c', 9);
+
+            pCtx.clearRect(0,0,160,160);
+            pCtx.drawImage(partCanvases[currentPart], 0, 0);
+            setupBrush();
+        }
+        document.getElementById('btn-preset-funny').onclick = () => { drawPresetFunny(); rebuildRig(); };
+
+        /* ==========================================================
+           2. PixiJS 2.5D 空间渲染引擎
+           ========================================================== */
+        const container = document.getElementById('stage-container');
+        const app = new PIXI.Application({
+            width: container.clientWidth,
+            height: container.clientHeight,
+            backgroundAlpha: 0,
+            antialias: true
+        });
+        container.appendChild(app.view);
+        window.addEventListener('resize', () => app.renderer.resize(container.clientWidth, container.clientHeight));
+
+        const shadowGfx = new PIXI.Graphics();
+        const stageWorld = new PIXI.Container();
+        stageWorld.sortableChildren = true;
+
+        app.stage.addChild(shadowGfx);
+        app.stage.addChild(stageWorld);
+
+        const headBoxGfx = new PIXI.Graphics();
+        const torsoBoxGfx = new PIXI.Graphics();
+        let faceSprite = null;
+        let hairSprite = null;
+        let torsoSprite = null;
+
+        let armL_up = null, armL_low = null;
+        let armR_up = null, armR_low = null;
+        let legL_up = null, legL_low = null;
+        let legR_up = null, legR_low = null;
+
+        function createFreshTexture(cvs) {
+            return new PIXI.Texture(new PIXI.BaseTexture(cvs));
+        }
+
+        function rebuildRig() {
+            saveCurrentPart();
+            stageWorld.removeChildren();
+
+            stageWorld.addChild(torsoBoxGfx);
+            stageWorld.addChild(headBoxGfx);
+
+            faceSprite = new PIXI.Sprite(createFreshTexture(partCanvases.face));
+            faceSprite.anchor.set(0.5, 0.5);
+            faceSprite.width = 36; faceSprite.height = 36;
+            stageWorld.addChild(faceSprite);
+
+            hairSprite = new PIXI.Sprite(createFreshTexture(partCanvases.hair));
+            hairSprite.anchor.set(0.5, 0.8);
+            hairSprite.width = 44; hairSprite.height = 44;
+            stageWorld.addChild(hairSprite);
+
+            torsoSprite = new PIXI.Sprite(createFreshTexture(partCanvases.torso));
+            torsoSprite.anchor.set(0.5, 0.5);
+            torsoSprite.width = 34; torsoSprite.height = 52;
+            stageWorld.addChild(torsoSprite);
+
+            function create2DLimb(texUp, texLow, upH=24, lowH=22) {
+                const up = new PIXI.Container();
+                const sprUp = new PIXI.Sprite(texUp);
+                sprUp.anchor.set(0.5, 0.1);
+                sprUp.width = 12; sprUp.height = upH;
+                up.addChild(sprUp);
+
+                const low = new PIXI.Container();
+                low.position.set(0, upH + 2);
+                const sprLow = new PIXI.Sprite(texLow);
+                sprLow.anchor.set(0.5, 0.1);
+                sprLow.width = 11; sprLow.height = lowH;
+                low.addChild(sprLow);
+
+                up.addChild(low);
+                stageWorld.addChild(up);
+                return { up, low };
+            }
+
+            const aL = create2DLimb(createFreshTexture(partCanvases.arm_up), createFreshTexture(partCanvases.arm_low), 24, 22);
+            armL_up = aL.up; armL_low = aL.low;
+
+            const aR = create2DLimb(createFreshTexture(partCanvases.arm_up), createFreshTexture(partCanvases.arm_low), 24, 22);
+            armR_up = aR.up; armR_low = aR.low;
+
+            const lL = create2DLimb(createFreshTexture(partCanvases.leg_up), createFreshTexture(partCanvases.leg_low), 22, 22);
+            legL_up = lL.up; legL_low = lL.low;
+
+            const lR = create2DLimb(createFreshTexture(partCanvases.leg_up), createFreshTexture(partCanvases.leg_low), 22, 22);
+            legR_up = lR.up; legR_low = lR.low;
+        }
+
+        document.getElementById('btn-apply').onclick = rebuildRig;
+
+        /* ==========================================================
+           3. 2.5D 几何体渲染器
+           ========================================================== */
+        function render3DIsometricBox(gfx, cx, cy, w, h, d, angleRad, isHead=true) {
+            const hw = w/2, hh = h/2, hd = d/2;
+            const verts = [
+                [-hw, -hh, -hd], [hw, -hh, -hd], [hw, hh, -hd], [-hw, hh, -hd],
+                [-hw, -hh,  hd], [hw, -hh,  hd], [hw, hh,  hd], [-hw, hh,  hd]
+            ];
+
+            const cosA = Math.cos(angleRad), sinA = Math.sin(angleRad);
+
+            const proj = verts.map(v => {
+                let x = v[0], y = v[1], z = v[2];
+                let rx = x * cosA + z * sinA;
+                let rz = -x * sinA + z * cosA;
+                let sx = rx + cx;
+                let sy = y + cy - rz * 0.28;
+                return { sx, sy, rz };
+            });
+
+            const faces = [
+                { idx: [4, 5, 6, 7], col: isHead ? 0xd7ccc8 : 0x1f2433 },
+                { idx: [1, 0, 3, 2], col: isHead ? 0x181b24 : 0x12151f },
+                { idx: [0, 4, 7, 3], col: isHead ? 0x222836 : 0x181c28 },
+                { idx: [5, 1, 2, 6], col: isHead ? 0x1e2430 : 0x151824 },
+                { idx: [0, 1, 5, 4], col: isHead ? 0x2b3344 : 0x2a3244 },
+                { idx: [7, 6, 2, 3], col: 0x10131a }
+            ];
+
+            faces.forEach(f => {
+                const p0 = proj[f.idx[0]], p1 = proj[f.idx[1]], p2 = proj[f.idx[2]];
+                const cross = (p1.sx - p0.sx)*(p2.sy - p0.sy) - (p1.sy - p0.sy)*(p2.sx - p0.sx);
+                if (cross > 0) {
+                    gfx.beginFill(f.col);
+                    gfx.lineStyle(1.2, 0x00ffcc, 0.3);
+                    gfx.moveTo(p0.sx, p0.sy);
+                    for (let i = 1; i < 4; i++) gfx.lineTo(proj[f.idx[i]].sx, proj[f.idx[i]].sy);
+                    gfx.closePath();
+                    gfx.endFill();
+                }
+            });
+        }
+
+        /* ==========================================================
+           4. 8 大爆笑动作流派动力学计算核心
+           ========================================================== */
+        let currentStyle = 'ninja';
+
+        const styleNames = {
+            ninja: '🥷 火影疾风', drunk: '🍷 醉拳扭臀', sonic: '⚡ 无影飞毛腿', sneaky: '🦹 偷感极重',
+            noodle: '🤪 面条触电', zombie: '🧟 僵尸蹦跶', penguin: '🐧 企鹅外八', mech: '🤖 发条机甲'
+        };
+
+        document.querySelectorAll('.style-card').forEach(card => {
+            card.onclick = () => {
+                document.querySelectorAll('.style-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                currentStyle = card.getAttribute('data-style');
+            };
+        });
+
+        const char = {
+            x: app.screen.width / 2,
+            y: app.screen.height / 2 + 10,
+            vx: 0, vy: 0,
+            facingAngle: 0,
+            targetAngle: 0,
+            animTimer: 0,
+            idleTime: 0,
+            lookAroundState: 0,
+            lookTimer: 0,
+            isScratching: false,
+            scratchTimer: 0
+        };
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+        const dirNames = {
+            "S": "正南", "W": "正北", "A": "正西", "D": "正东",
+            "WA": "西北", "WD": "东北", "SA": "西南", "SD": "东南"
+        };
+
+        app.ticker.add((delta) => {
+            if (!faceSprite || !legL_up || !legR_up) return;
+
+            let mx = 0, my = 0;
+            if (keys['w'] || keys['arrowup']) my -= 1;
+            if (keys['s'] || keys['arrowdown']) my += 1;
+            if (keys['a'] || keys['arrowleft']) mx -= 1;
+            if (keys['d'] || keys['arrowright']) mx += 1;
+
+            let isMoving = (mx !== 0 || my !== 0);
+            let dirText = "静止待机";
+
+            // 🌟 根据流派配置移速与步频
+            let speed = 4.2;
+            let cadence = 0.16;
+
+            if (currentStyle === 'ninja') { speed = 6.0; cadence = 0.24; }
+            else if (currentStyle === 'drunk') { speed = 3.5; cadence = 0.13; }
+            else if (currentStyle === 'sonic') { speed = 7.5; cadence = 0.45; }
+            else if (currentStyle === 'sneaky') { speed = 3.2; cadence = 0.32; }
+            else if (currentStyle === 'noodle') { speed = 4.0; cadence = 0.20; }
+            else if (currentStyle === 'zombie') { speed = 3.0; cadence = 0.14; }
+            else if (currentStyle === 'penguin') { speed = 3.6; cadence = 0.22; }
+            else if (currentStyle === 'mech') { speed = 3.8; cadence = 0.15; }
+
+            if (isMoving) {
+                char.vx = mx * speed;
+                char.vy = my * speed;
+                char.targetAngle = Math.atan2(mx, my);
+
+                let tag = (my < 0 ? "W" : (my > 0 ? "S" : "")) + (mx < 0 ? "A" : (mx > 0 ? "D" : ""));
+                dirText = dirNames[tag] || "移动中";
+
+                char.idleTime = 0;
+                char.isScratching = false;
+                char.lookAroundState = 0;
+            } else {
+                char.vx *= 0.75; char.vy *= 0.75;
+                char.idleTime += delta * (1/60);
+
+                if (char.idleTime > 4 && (Math.floor(char.idleTime) % 9 === 0) && char.lookTimer <= 0) {
+                    char.lookAroundState = (Math.random() > 0.5 ? 1 : -1);
+                    char.lookTimer = 2.0;
+                }
+                if (char.lookTimer > 0) {
+                    char.lookTimer -= delta * (1/60);
+                    if (char.lookTimer <= 0) char.lookAroundState = 0;
+                }
+
+                if (char.idleTime > 7 && (Math.floor(char.idleTime) % 15 === 0) && char.scratchTimer <= 0) {
+                    char.isScratching = true;
+                    char.scratchTimer = 2.2;
+                }
+                if (char.scratchTimer > 0) {
+                    char.scratchTimer -= delta * (1/60);
+                    if (char.scratchTimer <= 0) char.isScratching = false;
+                }
+            }
+
+            document.getElementById('dir-indicator').textContent = `朝向: ${dirText} | 当前流派: ${styleNames[currentStyle]}` + 
+                (char.isScratching ? " (🪰挠痒中...)" : (char.lookAroundState !== 0 ? " (👀看风景...)" : ""));
+
+            let diff = char.targetAngle - char.facingAngle;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            char.facingAngle += diff * 0.2;
+
+            char.x += char.vx;
+            char.y += char.vy;
+            char.x = Math.max(80, Math.min(app.screen.width - 80, char.x));
+            char.y = Math.max(80, Math.min(app.screen.height - 80, char.y));
+
+            char.animTimer += (isMoving ? cadence : 0.04) * delta;
+            const t = char.animTimer;
+
+            const ang = char.facingAngle;
+            const cosA = Math.cos(ang);
+            const sinA = Math.sin(ang);
+            const isVerticalMove = Math.abs(cosA) > 0.5;
+
+            // ============================================================
+            // 🌟 核心：8 大流派差异化动力学参数计算
+            // ============================================================
+            let bounceY = isMoving ? -Math.abs(Math.sin(t * 1.5)) * 7 : Math.sin(t * 0.6) * 2;
+            let hipWiggleX = isMoving ? Math.sin(t * 1.5) * 4 : 0;
+            let torsoRoll = isMoving ? Math.sin(t * 1.5) * 0.1 : 0;
+            let headWobble = isMoving ? Math.sin(t * 1.5) * 0.14 : Math.sin(t * 0.6) * 0.04;
+
+            let armRotL = 0, armRotR = 0;
+            let elbowL = -0.2, elbowR = -0.2;
+            let legRotL = 0, legRotR = 0;
+            let kneeL = 0, kneeR = 0;
+            let armOffsetL_Y = 0, armOffsetR_Y = 0;
+            let legOffsetL_Y = 0, legOffsetR_Y = 0;
+
+            const stepCycle = Math.sin(t * 1.5);
+            const runDir = Math.sign(sinA || 1);
+
+            if (isMoving) {
+                if (currentStyle === 'ninja') {
+                    // 🥷 火影：双手后展，后腿极速高踢
+                    bounceY = -Math.abs(Math.sin(t * 2)) * 11;
+                    headWobble = Math.sin(t * 2) * 0.08;
+                    armRotL = -runDir * 1.8 + Math.sin(t * 2) * 0.2;
+                    armRotR = -runDir * 1.8 + Math.cos(t * 2) * 0.2;
+                    elbowL = -0.4; elbowR = -0.4;
+
+                    legRotL = stepCycle * 1.1; legRotR = -stepCycle * 1.1;
+                    kneeL = Math.max(0, -legRotL * runDir * 1.8);
+                    kneeR = Math.max(0, -legRotR * runDir * 1.8);
+
+                } else if (currentStyle === 'drunk') {
+                    // 🍷 醉拳：大扭屁股 + 软绵绵晃脑
+                    hipWiggleX = Math.sin(t * 1.2) * 9;
+                    torsoRoll = Math.sin(t * 1.2) * 0.28;
+                    headWobble = -Math.sin(t * 1.2) * 0.35;
+                    bounceY = Math.sin(t * 1.2) * 6;
+
+                    armRotL = -stepCycle * 0.7 + Math.cos(t) * 0.3;
+                    armRotR = stepCycle * 0.7 - Math.cos(t) * 0.3;
+                    elbowL = -0.6; elbowR = -0.6;
+                    legRotL = stepCycle * 0.65; legRotR = -stepCycle * 0.65;
+                    kneeL = Math.max(0, -Math.cos(t * 1.5) * 1.0);
+                    kneeR = Math.max(0, Math.cos(t * 1.5) * 1.0);
+
+                } else if (currentStyle === 'sonic') {
+                    // ⚡ 无影飞毛腿：疯狂倒腾 + 极速交替打气
+                    bounceY = -Math.abs(Math.sin(t * 2)) * 14;
+                    armRotL = -stepCycle * 1.4; armRotR = stepCycle * 1.4;
+                    elbowL = -0.8; elbowR = -0.8;
+                    legRotL = stepCycle * 1.3; legRotR = -stepCycle * 1.3;
+                    kneeL = Math.max(0, -Math.cos(t * 1.5) * 2.0);
+                    kneeR = Math.max(0, Math.cos(t * 1.5) * 2.0);
+
+                } else if (currentStyle === 'sneaky') {
+                    // 🦹 偷感极重：小恐龙手 + 极速踮脚
+                    bounceY = -Math.abs(Math.sin(t * 3)) * 4;
+                    armRotL = 0.5; armRotR = -0.5;
+                    elbowL = -1.5; elbowR = -1.5; // 双手蜷在胸口
+                    legRotL = stepCycle * 0.35; legRotR = -stepCycle * 0.35;
+                    kneeL = 0.4 + Math.sin(t * 3) * 0.3;
+                    kneeR = 0.4 - Math.sin(t * 3) * 0.3;
+
+                } else if (currentStyle === 'noodle') {
+                    // 🤪 面条人：同向海草狂舞
+                    armRotL = Math.sin(t) * 1.4; armRotR = Math.sin(t + 0.3) * 1.4;
+                    elbowL = Math.cos(t * 2) * 0.8; elbowR = Math.sin(t * 2) * 0.8;
+                    legRotL = stepCycle * 0.9; legRotR = -stepCycle * 0.9;
+                    kneeL = Math.abs(Math.sin(t)) * 1.4; kneeR = Math.abs(Math.cos(t)) * 1.4;
+
+                } else if (currentStyle === 'zombie') {
+                    // 🧟 僵尸：双臂前平举 + 垂直小跳
+                    bounceY = -Math.abs(Math.sin(t * 2)) * 12;
+                    armRotL = isVerticalMove ? 0 : runDir * 1.4;
+                    armRotR = isVerticalMove ? 0 : runDir * 1.4;
+                    elbowL = 0; elbowR = 0;
+                    legRotL = 0.1; legRotR = 0.1;
+                    kneeL = 0.1; kneeR = 0.1;
+
+                } else if (currentStyle === 'penguin') {
+                    // 🐧 企鹅：双手像小翅膀拍打 + 外八摇摆
+                    hipWiggleX = Math.sin(t * 1.5) * 7;
+                    torsoRoll = Math.sin(t * 1.5) * 0.18;
+                    armRotL = -0.8 + Math.sin(t * 3) * 0.4;
+                    armRotR = 0.8 - Math.sin(t * 3) * 0.4;
+                    elbowL = 0; elbowR = 0;
+                    legRotL = stepCycle * 0.5; legRotR = -stepCycle * 0.5;
+                    kneeL = 0.2; kneeR = 0.2;
+
+                } else if (currentStyle === 'mech') {
+                    // 🤖 发条机甲：90度机械卡顿
+                    const snapCycle = Math.sign(stepCycle) * 0.85;
+                    armRotL = -snapCycle * 0.9; armRotR = snapCycle * 0.9;
+                    elbowL = -0.8; elbowR = -0.8;
+                    legRotL = snapCycle * 0.8; legRotR = -snapCycle * 0.8;
+                    kneeL = snapCycle > 0 ? 1.0 : 0;
+                    kneeR = snapCycle < 0 ? 1.0 : 0;
+                }
+
+                // 🌟 上下纵深 (W/S) 空间深度位移
+                if (isVerticalMove && currentStyle !== 'ninja' && currentStyle !== 'zombie') {
+                    armOffsetL_Y = stepCycle * 8;
+                    armOffsetR_Y = -stepCycle * 8;
+                    legOffsetL_Y = stepCycle * 9;
+                    legOffsetR_Y = -stepCycle * 9;
+                }
+            }
+
+            if (char.lookAroundState !== 0) headWobble += char.lookAroundState * 0.45;
+
+            // --- 1. 3D 头部立方体 ---
+            headBoxGfx.clear();
+            const headY = char.y + bounceY - 38;
+            render3DIsometricBox(headBoxGfx, char.x + hipWiggleX * 0.3, headY, 36, 36, 34, ang + headWobble, true);
+            headBoxGfx.zIndex = 10;
+
+            // --- 2. 正面五官 (饱满不压缩) ---
+            faceSprite.position.set(char.x + hipWiggleX * 0.3, headY);
+            faceSprite.scale.set(1.0, 1.0);
+            faceSprite.rotation = headWobble;
+            faceSprite.zIndex = 12;
+            faceSprite.visible = cosA >= -0.2;
+
+            // --- 3. 背面发饰 ---
+            hairSprite.position.set(char.x + hipWiggleX * 0.3, headY - 14);
+            hairSprite.scale.set(1.0, 1.0);
+            hairSprite.rotation = headWobble * 1.2;
+            hairSprite.zIndex = 15;
+            hairSprite.visible = cosA < -0.2;
+
+            // --- 4. 2.5D 躯干 ---
+            torsoBoxGfx.clear();
+            const torsoY = char.y + bounceY + 8;
+            render3DIsometricBox(torsoBoxGfx, char.x + hipWiggleX, torsoY, 34, 52, 24, ang, false);
+            torsoBoxGfx.zIndex = 8;
+
+            torsoSprite.position.set(char.x + hipWiggleX, torsoY);
+            torsoSprite.scale.set(1.0, 1.0);
+            torsoSprite.rotation = torsoRoll;
+            torsoSprite.zIndex = 9;
+            torsoSprite.visible = cosA >= -0.2;
+
+            // --- 5. 双臂挂接 ---
+            const shLX = char.x + hipWiggleX - cosA * 22;
+            const shRX = char.x + hipWiggleX + cosA * 22;
+            const shLZ = -sinA * 18;
+            const shRZ = sinA * 18;
+
+            let scratchElbow = elbowR;
+            if (char.isScratching) {
+                scratchElbow = -1.6 + Math.sin(Date.now() * 0.035) * 0.4;
+                armRotR = 0.85;
+                torsoSprite.rotation = 0.15;
+            }
+
+            armL_up.position.set(shLX, torsoY - 18 + armOffsetL_Y);
+            armL_up.zIndex = (shLZ + armOffsetL_Y * 2 > 0 ? 16 : 4);
+            armL_up.rotation = armRotL;
+            armL_low.rotation = elbowL;
+
+            armR_up.position.set(shRX, torsoY - 18 + armOffsetR_Y);
+            armR_up.zIndex = (shRZ + armOffsetR_Y * 2 > 0 ? 16 : 4);
+            armR_up.rotation = armRotR;
+            armR_low.rotation = scratchElbow;
+
+            // --- 6. 双腿挂接 ---
+            const hipY = torsoY + 24;
+            legL_up.position.set(char.x + hipWiggleX - 10, hipY + legOffsetL_Y);
+            legL_up.rotation = legRotL;
+            legL_low.rotation = kneeL;
+            legL_up.zIndex = (legOffsetL_Y > 0 ? 7 : 5);
+
+            legR_up.position.set(char.x + hipWiggleX + 10, hipY + legOffsetR_Y);
+            legR_up.rotation = legRotR;
+            legR_low.rotation = kneeR;
+            legR_up.zIndex = (legOffsetR_Y > 0 ? 7 : 5);
+
+            // 阴影
+            shadowGfx.clear();
+            shadowGfx.beginFill(0x000000, 0.45);
+            shadowGfx.drawEllipse(char.x + hipWiggleX, hipY + 34, 32, 10);
+            shadowGfx.endFill();
+        });
+
+        // 初始化
+        drawPresetFunny();
+        rebuildRig();
+    </script>
+    
+</body>
+</html>

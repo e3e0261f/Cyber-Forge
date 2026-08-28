@@ -69,10 +69,11 @@ pub async fn api_action_handler(
 
     // 分发到具体的动作处理器
     let result = match action_key.as_str() {
-        key if key.starts_with("teleport_zone:") => handle_teleport(&mut player, key, &world, now_secs),
+        key if key.starts_with("teleport_zone:") => handle_teleport(&mut player, key, &world, now_secs, false),
+        key if key.starts_with("fast_travel:") => handle_teleport(&mut player, key, &world, now_secs, true),
         "sync_pos" => handle_sync_pos(&mut player, custom_x, custom_y, now_secs),
         "strike_mine" | "gather_zone_resource" => handle_gather(&mut player, &body, &world, now_secs),
-        key if key.starts_with("drop_item") => handle_drop_item(&mut player, key, &body),
+        key if key.starts_with("drop_item") => handle_drop_item(&mut player, key, &body),  
         "audit_movement_report" => handle_movement_audit(&mut player, &body, &world),
         "audit_item_drop" => handle_audit_item_drop(&account_id),
         "audit_item_gain" => handle_audit_item_gain(&account_id, &body),
@@ -113,15 +114,23 @@ fn handle_teleport(
     action_key: &str,
     world: &WorldState,
     now_secs: u64,
+    is_fast_travel: bool, // 🌟 新增参数
 ) -> Result<Option<HttpResponse>, ApiError> {
-    // 🌟 商票跑商行动限制: 持有商票期间禁用飞行与快速传送
-    if player.merchant_ticket.as_ref().map(|t| t.is_active).unwrap_or(false) {
+    
+    // 🌟 商票跑商行动限制: 只有“远程飞行(fast_travel)”才会被拦截，物理走传送门放行！
+    if is_fast_travel && player.merchant_ticket.as_ref().map(|t| t.is_active).unwrap_or(false) {
         let mut snap = build_player_snapshot(player, world);
-        snap["toast"] = serde_json::Value::String("⚠️ 持有商票期间严禁飞行与快速传送，必须脚踏实地步行跑商！".to_string());
+        snap["toast"] = serde_json::Value::String("⚠️ 持有商票期间严禁飞行与快速传送，必须走过图点！".to_string());
         return Ok(Some(HttpResponse::Ok().json(snap)));
     }
 
-    let target_zone = action_key.strip_prefix("teleport_zone:").unwrap_or("beijing");
+    // 自动剥离前缀获取目标地图
+    let target_zone = if action_key.starts_with("teleport_zone:") {
+        action_key.strip_prefix("teleport_zone:").unwrap_or("beijing")
+    } else {
+        action_key.strip_prefix("fast_travel:").unwrap_or("beijing")
+    };
+    
     let from_zone_id = player.position.zone_id.clone();
 
     // 传送冷却判定

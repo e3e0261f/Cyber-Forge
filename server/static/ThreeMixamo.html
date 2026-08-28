@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Cyber-Forge: 3D 角色创建工坊 (圆球手办+无骨散架版)</title>
+    <!-- 双保险加载 Three.js -->
+    <script src="js/three.min.js"></script>
+    <script>
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://fastly.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            background: #06080d;
+            color: #e0e6ed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #ui-panel {
+            width: 440px;
+            background: #0d1017;
+            border-right: 2px solid #1c2230;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            box-shadow: 6px 0 25px rgba(0,0,0,0.8);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .title-box {
+            border-bottom: 2px solid #1c2230;
+            padding-bottom: 6px;
+        }
+        h1.title {
+            font-size: 22px;
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0,255,204,0.5);
+            letter-spacing: 2px;
+            font-weight: 900;
+        }
+        .subtitle {
+            font-size: 11px;
+            color: #7b889b;
+            margin-top: 2px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            color: #00ffcc;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .part-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            background: #07080d;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .tab-btn {
+            padding: 6px 2px;
+            background: transparent;
+            border: none;
+            color: #8a96a3;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #00ffcc;
+            color: #080a0f;
+            box-shadow: 0 0 10px rgba(0,255,204,0.4);
+        }
+
+        .color-config-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #141724;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #242c3d;
+            font-size: 11px;
+        }
+        .color-pickers {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+        input[type=color] {
+            border: 1px solid #333d59;
+            width: 20px; height: 20px;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #draw-box {
+            background: #141724;
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #242c3d;
+        }
+        #paint-canvas {
+            background: #ffffff;
+            border-radius: 6px;
+            cursor: crosshair;
+        }
+
+        .tools-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 6px;
+            width: 100%;
+        }
+        .btn-sm {
+            background: #202638;
+            border: 1px solid #333d59;
+            color: #00ffcc;
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-sm:hover { background: #2b344c; }
+
+        .palette { display: flex; gap: 5px; }
+        .color-dot {
+            width: 18px; height: 18px; border-radius: 50%;
+            cursor: pointer; border: 2px solid #242c3d;
+        }
+        .color-dot.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 6px #fff; }
+
+        .btn-group-primary {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        button.primary-btn {
+            background: #00a884;
+            border: 1px solid #00ffcc;
+            color: #06080d;
+            font-size: 13px;
+            padding: 8px;
+            box-shadow: 0 0 12px rgba(0,255,204,0.35);
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button.primary-btn:hover { background: #00ffcc; }
+
+        button.export-btn {
+            background: #232a3d;
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            font-size: 11.5px;
+            padding: 7px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button.export-btn:hover { background: #00ffcc; color: #07090e; }
+
+        /* 🌟 核心参数调节面板 */
+        .debug-panel {
+            background: #121622;
+            border: 1px dashed #28334a;
+            border-radius: 8px;
+            padding: 7px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 3.5px;
+        }
+        .debug-title {
+            font-size: 11px;
+            color: #f1c40f;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+        input[type=range] {
+            flex: 1;
+            margin-left: 8px;
+            accent-color: #00ffcc;
+            cursor: pointer;
+            height: 3px;
+        }
+
+        #webgl-stage {
+            flex: 1;
+            position: relative;
+        }
+
+        #status-card {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(13, 16, 23, 0.88);
+            backdrop-filter: blur(10px);
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid #1c2230;
+            font-size: 12px;
+            line-height: 1.8;
+            pointer-events: none;
+        }
+        #status-card span { color: #00ffcc; font-weight: bold; }
+
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-box {
+            background: #0f121a;
+            border: 2px solid #00ffcc;
+            border-radius: 12px;
+            padding: 20px;
+            width: 550px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 0 30px rgba(0,255,204,0.4);
+        }
+        textarea.json-output {
+            background: #06080d;
+            color: #00ffcc;
+            font-family: monospace;
+            border: 1px solid #1c2230;
+            border-radius: 6px;
+            padding: 10px;
+            height: 250px;
+            resize: none;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div class="title-box">
+            <h1 class="title">角色创建</h1>
+            <div class="subtitle">Cyber-Forge 3D 正圆球体手办 (散架布娃娃版)</div>
+        </div>
+
+        <div class="section-title">
+            <span>🎨 部位选择 & 独立底色</span>
+        </div>
+
+        <div class="part-tabs">
+            <button class="tab-btn active" data-part="face">1. 头部脸部</button>
+            <button class="tab-btn" data-part="chest">2. 身体衣服</button>
+            <button class="tab-btn" data-part="arm">3. 手臂组件</button>
+            <button class="tab-btn" data-part="leg">4. 腿部组件</button>
+        </div>
+
+        <div class="color-config-row">
+            <span>当前部件 3D 底色：</span>
+            <div class="color-pickers">
+                <div class="color-item">
+                    <span>底色</span>
+                    <input type="color" id="picker-base-color" value="#00ffcc">
+                </div>
+            </div>
+        </div>
+
+        <div id="draw-box">
+            <canvas id="paint-canvas" width="140" height="140"></canvas>
+            <div class="tools-row">
+                <button class="btn-sm" id="btn-undo">↩ 撤销</button>
+                <div class="palette">
+                    <div class="color-dot active" style="background: #111;" data-color="#111"></div>
+                    <div class="color-dot" style="background: #ffffff;" data-color="#ffffff"></div>
+                    <div class="color-dot" style="background: #00ffcc;" data-color="#00ffcc"></div>
+                    <div class="color-dot" style="background: #e74c3c;" data-color="#e74c3c"></div>
+                    <div class="color-dot" style="background: #f1c40f;" data-color="#f1c40f"></div>
+                    <div class="color-dot" style="background: #3498db;" data-color="#3498db"></div>
+                </div>
+                <button class="btn-sm" id="btn-clear">🗑️ 清空</button>
+            </div>
+        </div>
+
+        <div class="btn-group-primary">
+            <button class="primary-btn" id="btn-sync-tex">✨ 注入 3D 正圆球体模型</button>
+            <button class="export-btn" id="btn-export-json">🚀 保存角色并导出游戏配置 (JSON)</button>
+        </div>
+
+        <!-- 🌟 重新调教的 8 大参数调节面板 -->
+        <div class="debug-panel">
+            <div class="debug-title">
+                <span>🛠️ 角色个性特征参数 (已重构校准)</span>
+            </div>
+            <div class="slider-row">
+                <span>✨ 全身圆润度 (方块 ↔ 正圆球):</span>
+                <input type="range" id="slider-roundness" min="0.0" max="1.0" step="0.05" value="1.0">
+            </div>
+            <div class="slider-row">
+                <span>🦴 身体软烂/散架程度:</span>
+                <input type="range" id="slider-ragdoll" min="0.0" max="1.0" step="0.05" value="0.55">
+            </div>
+            <div class="slider-row">
+                <span>🎪 身体左右摆幅 (扭臀晃腰):</span>
+                <input type="range" id="slider-wobble" min="0.2" max="2.5" step="0.1" value="1.3">
+            </div>
+            <div class="slider-row">
+                <span>🔍 模型整体大小比例:</span>
+                <input type="range" id="slider-scale" min="0.6" max="1.5" step="0.05" value="1.0">
+            </div>
+            <div class="slider-row">
+                <span>🧠 头部大小比例 (Q版大头):</span>
+                <input type="range" id="slider-head-size" min="0.7" max="1.6" step="0.05" value="1.2">
+            </div>
+            <div class="slider-row">
+                <span>👕 身躯大小胖瘦:</span>
+                <input type="range" id="slider-body-size" min="0.6" max="1.5" step="0.05" value="0.95">
+            </div>
+            <div class="slider-row">
+                <span>🦵 迈步倒腾频率:</span>
+                <input type="range" id="slider-freq" min="6" max="22" step="1" value="11">
+            </div>
+            <div class="slider-row">
+                <span>📐 四肢前后摆幅:</span>
+                <input type="range" id="slider-swing" min="0.4" max="1.6" step="0.1" value="0.95">
+            </div>
+            <div class="slider-row">
+                <span>🥋 膝盖弯折度:</span>
+                <input type="range" id="slider-knee" min="0.4" max="1.8" step="0.1" value="1.1">
+            </div>
+        </div>
+    </div>
+
+    <div id="webgl-stage">
+        <div id="status-card">
+            🎮 3D 角色状态：<br>
+            • 几何形态：<span id="label-form">正圆形潮玩萌球体 (默认)</span><br>
+            • 肢体物理：<span id="label-ragdoll">牛顿重力自然甩动 (散架度: 55%)</span><br>
+            • 视角机位：<span>固定斜上 32° 黄金透视</span>
+        </div>
+    </div>
+
+    <!-- 导出 JSON 弹窗 -->
+    <div id="modal-overlay">
+        <div id="modal-box">
+            <h2 style="color:#00ffcc; font-size:16px;">📦 角色创建参数就绪 (可直接存入服务端数据库)</h2>
+            <textarea class="json-output" id="json-textarea" readonly></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn-sm" id="btn-copy-json">📋 复制 JSON</button>
+                <button class="primary-btn" style="padding:6px 14px;" id="btn-close-modal">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================
+           1. 画板系统 (精美默认五官与胸口战衣)
+           ========================================================== */
+        const cvs = document.getElementById('paint-canvas');
+        const ctx = cvs.getContext('2d');
+        let isDrawing = false;
+        let brushColor = '#111';
+        let currentTarget = 'face';
+
+        const partCanvases = {
+            face: document.createElement('canvas'),
+            chest: document.createElement('canvas'),
+            arm: document.createElement('canvas'),
+            leg: document.createElement('canvas')
+        };
+        const histories = { face: [], chest: [], arm: [], leg: [] };
+
+        // 🌟 默认清爽赛博青底色
+        const partBaseColors = {
+            face: '#00ffcc',
+            chest: '#00ffcc',
+            arm: '#ffe0b2',
+            leg: '#34495e'
+        };
+
+        Object.values(partCanvases).forEach(c => { c.width = 256; c.height = 256; });
+
+        function initCanvasWithDefault() {
+            // 头部大萌脸 (清爽黑线)
+            const fCtx = partCanvases.face.getContext('2d');
+            fCtx.clearRect(0,0,256,256);
+            fCtx.lineWidth = 14; fCtx.strokeStyle = '#111'; fCtx.lineCap = 'round';
+            fCtx.beginPath(); fCtx.arc(88, 105, 12, 0, Math.PI*2); fCtx.arc(168, 105, 12, 0, Math.PI*2); fCtx.fill();
+            fCtx.beginPath(); fCtx.arc(128, 135, 36, 0.15*Math.PI, 0.85*Math.PI); fCtx.stroke();
+
+            // 身体战衣 (精美发光圆环)
+            const cCtx = partCanvases.chest.getContext('2d');
+            cCtx.clearRect(0,0,256,256);
+            cCtx.lineWidth = 14; cCtx.strokeStyle = '#111'; cCtx.lineCap = 'round';
+            cCtx.beginPath(); cCtx.moveTo(128, 40); cCtx.lineTo(128, 200); cCtx.stroke();
+            cCtx.fillStyle = '#ffffff';
+            cCtx.beginPath(); cCtx.arc(128, 128, 30, 0, Math.PI*2); cCtx.fill(); cCtx.stroke();
+
+            partCanvases.arm.getContext('2d').clearRect(0,0,256,256);
+            partCanvases.leg.getContext('2d').clearRect(0,0,256,256);
+
+            loadToPad();
+        }
+
+        function saveFromPad() {
+            const dest = partCanvases[currentTarget].getContext('2d');
+            dest.clearRect(0,0,256,256);
+            dest.drawImage(cvs, 0, 0, 256, 256);
+        }
+
+        function loadToPad() {
+            ctx.clearRect(0,0,140,140);
+            ctx.drawImage(partCanvases[currentTarget], 0, 0, 140, 140);
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = brushColor;
+
+            document.getElementById('picker-base-color').value = partBaseColors[currentTarget];
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                saveFromPad();
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTarget = btn.getAttribute('data-part');
+                loadToPad();
+            };
+        });
+
+        document.getElementById('picker-base-color').oninput = (e) => {
+            partBaseColors[currentTarget] = e.target.value;
+            update3DMaterials();
+        };
+
+        cvs.addEventListener('mousedown', (e) => {
+            const h = histories[currentTarget];
+            if (h.length > 15) h.shift();
+            h.push(ctx.getImageData(0,0,140,140));
+
+            isDrawing = true;
+            ctx.strokeStyle = brushColor;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+        cvs.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        });
+        window.addEventListener('mouseup', () => { isDrawing = false; saveFromPad(); });
+
+        document.getElementById('btn-undo').onclick = () => {
+            const h = histories[currentTarget];
+            if (h.length > 0) {
+                ctx.putImageData(h.pop(), 0, 0);
+                saveFromPad();
+            }
+        };
+
+        document.getElementById('btn-clear').onclick = () => {
+            const h = histories[currentTarget];
+            if (h.length > 15) h.shift();
+            h.push(ctx.getImageData(0,0,140,140));
+
+            ctx.clearRect(0, 0, 140, 140);
+            saveFromPad();
+        };
+
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.onclick = () => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                brushColor = dot.getAttribute('data-color');
+            };
+        });
+
+        initCanvasWithDefault();
+
+        /* ==========================================================
+           2. Three.js 固定 2.5D 场景
+           ========================================================== */
+        const stage = document.getElementById('webgl-stage');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x06080d);
+        scene.fog = new THREE.Fog(0x06080d, 12, 30);
+
+        const camera = new THREE.PerspectiveCamera(40, stage.clientWidth / stage.clientHeight, 0.1, 100);
+        camera.position.set(0, 3.4, 5.8);
+        camera.lookAt(0, 1.05, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(stage.clientWidth, stage.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        stage.appendChild(renderer.domElement);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = stage.clientWidth / stage.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(stage.clientWidth, stage.clientHeight);
+        });
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x111622, 0.9);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.2);
+        dirLight.position.set(4, 7, 4);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const backLight = new THREE.DirectionalLight(0xff0077, 0.7);
+        backLight.position.set(-4, 4, -4);
+        scene.add(backLight);
+
+        const gridHelper = new THREE.GridHelper(24, 24, 0x00ffcc, 0x141a29);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+
+        const floorGeo = new THREE.PlaneGeometry(50, 50);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x080b12, roughness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        /* ==========================================================
+           3. 真正的正圆球体平滑插值几何体算法
+           ========================================================== */
+        const charRoot = new THREE.Group();
+        scene.add(charRoot);
+
+        const skeletonRig = {
+            pelvis: new THREE.Group(),
+            spine:  new THREE.Group(),
+            chest:  new THREE.Group(),
+            neck:   new THREE.Group(),
+            head:   new THREE.Group(),
+            shoulderL: new THREE.Group(), elbowL: new THREE.Group(),
+            shoulderR: new THREE.Group(), elbowR: new THREE.Group(),
+            hipL: new THREE.Group(), kneeL: new THREE.Group(),
+            hipR: new THREE.Group(), kneeR: new THREE.Group(),
+        };
+
+        let headMeshNode, bodyMeshNode;
+        let limbMeshes = [];
+
+        function createSpherifiedGeometry(w, h, d, roundFactor) {
+            const segments = 16;
+            const geo = new THREE.BoxGeometry(w, h, d, segments, segments, segments);
+            const pos = geo.attributes.position;
+            const v = new THREE.Vector3();
+            const radius = Math.min(w, Math.min(h, d)) / 2;
+
+            for (let i = 0; i < pos.count; i++) {
+                v.fromBufferAttribute(pos, i);
+                const len = v.length();
+                if (len > 0.0001) {
+                    const sphereX = (v.x / len) * radius;
+                    const sphereY = (v.y / len) * radius;
+                    const sphereZ = (v.z / len) * radius;
+
+                    v.x = THREE.MathUtils.lerp(v.x, sphereX, roundFactor);
+                    v.y = THREE.MathUtils.lerp(v.y, sphereY, roundFactor);
+                    v.z = THREE.MathUtils.lerp(v.z, sphereZ, roundFactor);
+                }
+                pos.setXYZ(i, v.x, v.y, v.z);
+            }
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        function createCombinedCanvasTexture(baseHex, drawCanvas) {
+            const temp = document.createElement('canvas');
+            temp.width = 256; temp.height = 256;
+            const tCtx = temp.getContext('2d');
+            tCtx.fillStyle = baseHex;
+            tCtx.fillRect(0, 0, 256, 256);
+            tCtx.drawImage(drawCanvas, 0, 0, 256, 256);
+            const tex = new THREE.CanvasTexture(temp);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function update3DMaterials() {
+            if (headMeshNode) {
+                const combinedFace = createCombinedCanvasTexture(partBaseColors.face, partCanvases.face);
+                headMeshNode.material[4].map = combinedFace;
+                headMeshNode.material[4].needsUpdate = true;
+                for (let i = 0; i < 6; i++) {
+                    if (i !== 4) headMeshNode.material[i].color.set(partBaseColors.face);
+                }
+            }
+            if (bodyMeshNode) {
+                const combinedChest = createCombinedCanvasTexture(partBaseColors.chest, partCanvases.chest);
+                bodyMeshNode.material[4].map = combinedChest;
+                bodyMeshNode.material[4].needsUpdate = true;
+                for (let i = 0; i < 6; i++) {
+                    if (i !== 4) bodyMeshNode.material[i].color.set(partBaseColors.chest);
+                }
+            }
+            limbMeshes.forEach(item => {
+                if (item.type === 'arm') item.mesh.material.color.set(partBaseColors.arm);
+                if (item.type === 'leg') item.mesh.material.color.set(partBaseColors.leg);
+            });
+        }
+
+        function assembleHumanoidSkeleton(roundFactor, headScale, bodyScale) {
+            charRoot.clear();
+            limbMeshes = [];
+
+            skeletonRig.pelvis = new THREE.Group();
+            skeletonRig.pelvis.position.set(0, 0.75, 0);
+            charRoot.add(skeletonRig.pelvis);
+
+            skeletonRig.spine = new THREE.Group();
+            skeletonRig.spine.position.set(0, 0.2, 0);
+            skeletonRig.pelvis.add(skeletonRig.spine);
+
+            skeletonRig.chest = new THREE.Group();
+            skeletonRig.chest.position.set(0, 0.25, 0);
+            skeletonRig.spine.add(skeletonRig.chest);
+
+            skeletonRig.neck = new THREE.Group();
+            skeletonRig.neck.position.set(0, 0.35, 0);
+            skeletonRig.chest.add(skeletonRig.neck);
+
+            skeletonRig.head = new THREE.Group();
+            skeletonRig.head.position.set(0, 0.35 * headScale, 0);
+            skeletonRig.neck.add(skeletonRig.head);
+
+            const headMatBase = new THREE.MeshStandardMaterial({ color: partBaseColors.face, roughness: 0.35 });
+            const faceCombinedTex = createCombinedCanvasTexture(partBaseColors.face, partCanvases.face);
+            const headMatFace = new THREE.MeshStandardMaterial({ map: faceCombinedTex, roughness: 0.35 });
+            const headMaterials = [headMatBase, headMatBase, headMatBase, headMatBase, headMatFace, headMatBase];
+
+            const bodyMatBase = new THREE.MeshStandardMaterial({ color: partBaseColors.chest, roughness: 0.35 });
+            const chestCombinedTex = createCombinedCanvasTexture(partBaseColors.chest, partCanvases.chest);
+            const bodyMatChest = new THREE.MeshStandardMaterial({ map: chestCombinedTex, roughness: 0.35 });
+            const bodyMaterials = [bodyMatBase, bodyMatBase, bodyMatBase, bodyMatBase, bodyMatChest, bodyMatBase];
+
+            const armMat = new THREE.MeshStandardMaterial({ color: partBaseColors.arm, roughness: 0.4 });
+            const legMat = new THREE.MeshStandardMaterial({ color: partBaseColors.leg, roughness: 0.4 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xe0ac69, roughness: 0.4 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x11141c, roughness: 0.4 });
+
+            // 头部
+            const hGeo = createSpherifiedGeometry(0.72 * headScale, 0.72 * headScale, 0.68 * headScale, roundFactor);
+            headMeshNode = new THREE.Mesh(hGeo, headMaterials);
+            headMeshNode.castShadow = true;
+            skeletonRig.head.add(headMeshNode);
+
+            // 身体
+            const bGeo = createSpherifiedGeometry(0.72 * bodyScale, 0.85 * bodyScale, 0.46 * bodyScale, roundFactor);
+            bodyMeshNode = new THREE.Mesh(bGeo, bodyMaterials);
+            bodyMeshNode.position.y = -0.1;
+            bodyMeshNode.castShadow = true;
+            skeletonRig.chest.add(bodyMeshNode);
+
+            // 双臂
+            function attachArm(isLeft) {
+                const shoulder = new THREE.Group();
+                shoulder.position.set(isLeft ? -0.48 * bodyScale : 0.48 * bodyScale, 0.22, 0);
+
+                const upGeo = createSpherifiedGeometry(0.20, 0.38, 0.22, roundFactor);
+                const upMesh = new THREE.Mesh(upGeo, armMat.clone());
+                upMesh.position.y = -0.19;
+                upMesh.castShadow = true;
+                shoulder.add(upMesh);
+                limbMeshes.push({ mesh: upMesh, type: 'arm' });
+
+                const elbow = new THREE.Group();
+                elbow.position.set(0, -0.38, 0);
+
+                const lowGeo = createSpherifiedGeometry(0.18, 0.32, 0.20, roundFactor);
+                const lowMesh = new THREE.Mesh(lowGeo, armMat.clone());
+                lowMesh.position.y = -0.16;
+                lowMesh.castShadow = true;
+                elbow.add(lowMesh);
+                limbMeshes.push({ mesh: lowMesh, type: 'arm' });
+
+                const handGeo = createSpherifiedGeometry(0.18, 0.14, 0.20, roundFactor);
+                const handMesh = new THREE.Mesh(handGeo, skinMat);
+                handMesh.position.y = -0.39;
+                handMesh.castShadow = true;
+                elbow.add(handMesh);
+
+                shoulder.add(elbow);
+                skeletonRig.chest.add(shoulder);
+                return { shoulder, elbow };
+            }
+
+            const armL = attachArm(true);
+            skeletonRig.shoulderL = armL.shoulder; skeletonRig.elbowL = armL.elbow;
+
+            const armR = attachArm(false);
+            skeletonRig.shoulderR = armR.shoulder; skeletonRig.elbowR = armR.elbow;
+
+            // 双腿
+            function attachLeg(isLeft) {
+                const hip = new THREE.Group();
+                hip.position.set(isLeft ? -0.22 : 0.22, -0.05, 0);
+
+                const thighGeo = createSpherifiedGeometry(0.22, 0.36, 0.24, roundFactor);
+                const thighMesh = new THREE.Mesh(thighGeo, legMat.clone());
+                thighMesh.position.y = -0.18;
+                thighMesh.castShadow = true;
+                hip.add(thighMesh);
+                limbMeshes.push({ mesh: thighMesh, type: 'leg' });
+
+                const knee = new THREE.Group();
+                knee.position.set(0, -0.36, 0);
+
+                const shinGeo = createSpherifiedGeometry(0.20, 0.32, 0.22, roundFactor);
+                const shinMesh = new THREE.Mesh(shinGeo, legMat.clone());
+                shinMesh.position.y = -0.16;
+                shinMesh.castShadow = true;
+                knee.add(shinMesh);
+                limbMeshes.push({ mesh: shinMesh, type: 'leg' });
+
+                const shoeGeo = createSpherifiedGeometry(0.22, 0.12, 0.30, roundFactor);
+                const shoeMesh = new THREE.Mesh(shoeGeo, darkMat);
+                shoeMesh.position.set(0, -0.38, 0.04);
+                shoeMesh.castShadow = true;
+                knee.add(shoeMesh);
+
+                hip.add(knee);
+                skeletonRig.pelvis.add(hip);
+                return { hip, knee };
+            }
+
+            const legL = attachLeg(true);
+            skeletonRig.hipL = legL.hip; skeletonRig.kneeL = legL.knee;
+
+            const legR = attachLeg(false);
+            skeletonRig.hipR = legR.hip; skeletonRig.kneeR = legR.knee;
+
+            const s = parseFloat(sliderScale.value);
+            charRoot.scale.set(s, s, s);
+        }
+
+        document.getElementById('btn-sync-tex').onclick = () => {
+            saveFromPad();
+            update3DMaterials();
+        };
+
+        /* ==========================================================
+           4. 导出 JSON 配置
+           ========================================================== */
+        document.getElementById('btn-export-json').onclick = () => {
+            saveFromPad();
+            const config = {
+                version: "Spherified_Chibi_v4.0",
+                character_id: "cultivator_" + Date.now(),
+                timestamp: Date.now(),
+                proportions: {
+                    overall_scale: parseFloat(sliderScale.value),
+                    head_scale: parseFloat(sliderHeadSize.value),
+                    body_scale: parseFloat(sliderBodySize.value),
+                    roundness: parseFloat(sliderRoundness.value),
+                },
+                physics: {
+                    ragdoll_floppiness: parseFloat(sliderRagdoll.value),
+                    cadence_freq: parseFloat(sliderFreq.value),
+                    swing_amplitude: parseFloat(sliderSwing.value),
+                    knee_flex: parseFloat(sliderKnee.value),
+                    wobble_bounce: parseFloat(sliderWobble.value),
+                },
+                colors: { ...partBaseColors },
+                textures: {
+                    face_png: partCanvases.face.toDataURL(),
+                    chest_png: partCanvases.chest.toDataURL()
+                }
+            };
+
+            document.getElementById('json-textarea').value = JSON.stringify(config, null, 2);
+            document.getElementById('modal-overlay').style.display = 'flex';
+        };
+
+        document.getElementById('btn-close-modal').onclick = () => {
+            document.getElementById('modal-overlay').style.display = 'none';
+        };
+        document.getElementById('btn-copy-json').onclick = () => {
+            navigator.clipboard.writeText(document.getElementById('json-textarea').value);
+            alert("✅ 角色参数 JSON 已复制！");
+        };
+
+        /* ==========================================================
+           5. 滑块与【散架布娃娃重力物理】动力学主循环
+           ========================================================== */
+        const sliderScale     = document.getElementById('slider-scale');
+        const sliderHeadSize  = document.getElementById('slider-head-size');
+        const sliderBodySize  = document.getElementById('slider-body-size');
+        const sliderRoundness = document.getElementById('slider-roundness');
+        const sliderRagdoll   = document.getElementById('slider-ragdoll');
+        const sliderFreq      = document.getElementById('slider-freq');
+        const sliderSwing     = document.getElementById('slider-swing');
+        const sliderKnee      = document.getElementById('slider-knee');
+        const sliderWobble    = document.getElementById('slider-wobble');
+
+        function refreshSkeleton() {
+            const r = parseFloat(sliderRoundness.value);
+            document.getElementById('label-form').textContent = r > 0.8 ? "正圆形潮玩萌球体 (默认)" : (r > 0.2 ? "圆角潮玩手办" : "纯方块体素机甲");
+            assembleHumanoidSkeleton(
+                r,
+                parseFloat(sliderHeadSize.value),
+                parseFloat(sliderBodySize.value)
+            );
+        }
+
+        sliderScale.oninput     = () => { const s = parseFloat(sliderScale.value); charRoot.scale.set(s, s, s); };
+        sliderHeadSize.oninput  = refreshSkeleton;
+        sliderBodySize.oninput  = refreshSkeleton;
+        sliderRoundness.oninput = refreshSkeleton;
+
+        sliderRagdoll.oninput = () => {
+            const rag = parseFloat(sliderRagdoll.value);
+            document.getElementById('label-ragdoll').textContent = rag > 0.7 ? "完全散架面条人 (纯重力甩动)" : (rag > 0.2 ? `牛顿重力自然甩动 (散架度: ${Math.round(rag*100)}%)` : "刚性骨骼机器人");
+        };
+
+        refreshSkeleton();
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+        let charPos = new THREE.Vector3(0, 0, 0);
+        let targetRotation = 0;
+        let animTime = 0;
+
+        // 🌟 物理惯性甩动变量
+        let noodleRoll = 0, noodleRollVel = 0;
+        let headInertiaYaw = 0;
+
+        // 四肢自由物理双摆角速度 (用于完全散架模式)
+        let armL_vel = 0, armR_vel = 0;
+        let elbowL_vel = 0, elbowR_vel = 0;
+        let legL_vel = 0, legR_vel = 0;
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const dt = Math.min(0.033, delta);
+
+            let moveX = 0, moveZ = 0;
+            if (keys['w'] || keys['arrowup']) moveZ -= 1;
+            if (keys['s'] || keys['arrowdown']) moveZ += 1;
+            if (keys['a'] || keys['arrowleft']) moveX -= 1;
+            if (keys['d'] || keys['arrowright']) moveX += 1;
+
+            const isMoving = (moveX !== 0 || moveZ !== 0);
+
+            const curSpeed   = 4.0;
+            const ragdoll    = parseFloat(sliderRagdoll.value); // 散架程度 (0: 刚性, 1: 散架)
+            const curFreq    = parseFloat(sliderFreq.value);
+            const curSwing   = parseFloat(sliderSwing.value);
+            const curKnee    = parseFloat(sliderKnee.value);
+            const curWobble  = parseFloat(sliderWobble.value);
+
+            if (isMoving) {
+                targetRotation = Math.atan2(moveX, moveZ);
+
+                const moveDir = new THREE.Vector3(moveX, 0, moveZ).normalize();
+                charPos.addScaledVector(moveDir, curSpeed * dt);
+
+                charPos.x = Math.max(-9, Math.min(9, charPos.x));
+                charPos.z = Math.max(-9, Math.min(9, charPos.z));
+                charRoot.position.copy(charPos);
+
+                animTime += dt * curFreq;
+            } else {
+                animTime += dt * 2.5;
+            }
+
+            // 平滑转向
+            let currentRot = charRoot.rotation.y;
+            let diff = targetRotation - currentRot;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            charRoot.rotation.y += diff * 0.18;
+
+            headInertiaYaw += (diff * 0.35 - headInertiaYaw) * 0.2;
+
+            // ============================================================
+            // 🌟 核心动力学：身体左右摆幅 + 散架牛顿重力甩动
+            // ============================================================
+            if (isMoving) {
+                const step = Math.sin(animTime);
+                const bounce = Math.abs(Math.sin(animTime)) * 0.10 * curWobble;
+
+                // 1. 骨盆摇摆 (扭臀晃腰)
+                skeletonRig.pelvis.position.y = 0.75 + bounce;
+                skeletonRig.pelvis.rotation.z = step * 0.14 * curWobble;
+                skeletonRig.pelvis.rotation.x = Math.cos(animTime * 2) * 0.06;
+
+                // 2. 脊椎无骨扭动
+                const targetRoll = -step * 0.22 * curWobble;
+                noodleRollVel = (noodleRollVel + (targetRoll - noodleRoll) * 22 * dt) * 0.86;
+                noodleRoll += noodleRollVel * dt;
+
+                skeletonRig.spine.rotation.z = noodleRoll;
+                skeletonRig.spine.rotation.y = step * 0.12 * curWobble;
+
+                // 3. 头部弹簧大晃脑
+                skeletonRig.head.rotation.z = -noodleRoll * 0.9;
+                skeletonRig.head.rotation.y = headInertiaYaw + Math.sin(animTime) * 0.1;
+                skeletonRig.head.rotation.x = 0.08;
+
+                // ============================================================
+                // 🌟 4. 散架重力融合系统 (ragdoll = 1 时完全靠重力和离心力甩飞)
+                // ============================================================
+                const activeSwing = step * curSwing;
+
+                // 左臂 (大臂 + 小臂/手)
+                const armL_target = activeSwing * (1.0 - ragdoll * 0.3) + Math.sin(animTime * 1.5) * ragdoll * 0.8;
+                armL_vel = (armL_vel + (armL_target - skeletonRig.shoulderL.rotation.x) * 25 * dt) * (0.92 - ragdoll * 0.05);
+                skeletonRig.shoulderL.rotation.x += armL_vel * dt;
+                skeletonRig.shoulderL.rotation.z = Math.sin(animTime) * ragdoll * 0.4; // 散架横向乱甩！
+
+                const elbowL_target = -0.2 - Math.max(0, -activeSwing * 0.5) - (ragdoll * Math.sin(animTime * 2) * 0.8);
+                elbowL_vel = (elbowL_vel + (elbowL_target - skeletonRig.elbowL.rotation.x) * 20 * dt) * 0.88;
+                skeletonRig.elbowL.rotation.x += elbowL_vel * dt;
+
+                // 右臂
+                const armR_target = -activeSwing * (1.0 - ragdoll * 0.3) - Math.sin(animTime * 1.5) * ragdoll * 0.8;
+                armR_vel = (armR_vel + (armR_target - skeletonRig.shoulderR.rotation.x) * 25 * dt) * (0.92 - ragdoll * 0.05);
+                skeletonRig.shoulderR.rotation.x += armR_vel * dt;
+                skeletonRig.shoulderR.rotation.z = -Math.sin(animTime) * ragdoll * 0.4;
+
+                const elbowR_target = -0.2 - Math.max(0, activeSwing * 0.5) + (ragdoll * Math.sin(animTime * 2) * 0.8);
+                elbowR_vel = (elbowR_vel + (elbowR_target - skeletonRig.elbowR.rotation.x) * 20 * dt) * 0.88;
+                skeletonRig.elbowR.rotation.x += elbowR_vel * dt;
+
+                // 双腿 (后蹬膝盖弯折)
+                const legL_target = -activeSwing;
+                legL_vel = (legL_vel + (legL_target - skeletonRig.hipL.rotation.x) * 25 * dt) * 0.90;
+                skeletonRig.hipL.rotation.x += legL_vel * dt;
+                skeletonRig.kneeL.rotation.x = Math.max(0, activeSwing * curKnee * 1.1) + (ragdoll * Math.abs(Math.sin(animTime * 2)) * 0.5);
+
+                const legR_target = activeSwing;
+                legR_vel = (legR_vel + (legR_target - skeletonRig.hipR.rotation.x) * 25 * dt) * 0.90;
+                skeletonRig.hipR.rotation.x += legR_vel * dt;
+                skeletonRig.kneeR.rotation.x = Math.max(0, -activeSwing * curKnee * 1.1) + (ragdoll * Math.abs(Math.sin(animTime * 2)) * 0.5);
+
+            } else {
+                // 待机轻柔摇晃
+                const breathe = Math.sin(animTime) * 0.02 * curWobble;
+                skeletonRig.pelvis.position.y = 0.75 + breathe;
+                skeletonRig.pelvis.rotation.set(0, 0, 0);
+                skeletonRig.spine.rotation.set(0, 0, Math.sin(animTime * 0.5) * 0.03);
+                skeletonRig.chest.rotation.set(0, 0, 0);
+
+                skeletonRig.head.rotation.set(0, headInertiaYaw, Math.sin(animTime * 0.5) * 0.05);
+
+                // 手臂自然耷拉
+                skeletonRig.shoulderL.rotation.set(0.06 + breathe, 0, 0.05 + ragdoll * 0.15);
+                skeletonRig.elbowL.rotation.set(-0.15, 0, 0);
+
+                skeletonRig.shoulderR.rotation.set(-0.06 - breathe, 0, -0.05 - ragdoll * 0.15);
+                skeletonRig.elbowR.rotation.set(-0.15, 0, 0);
+
+                skeletonRig.hipL.rotation.set(0, 0, 0);
+                skeletonRig.kneeL.rotation.set(0.03, 0, 0);
+
+                skeletonRig.hipR.rotation.set(0, 0, 0);
+                skeletonRig.kneeR.rotation.set(0.03, 0, 0);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

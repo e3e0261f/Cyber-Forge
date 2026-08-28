@@ -432,69 +432,6 @@
       "block_hash": "356d2b8792344c46",
       "last_active_at": 1787653278
     },
-    "account_72da7fda167fd6ba": {
-      "account_id": "account_72da7fda167fd6ba",
-      "position": {
-        "x": 13500.0,
-        "y": 13500.0,
-        "zone_id": "beijing",
-        "last_updated": 1787645210
-      },
-      "copper": 100,
-      "coins": 0,
-      "jade": 0,
-      "level": 1,
-      "backpack": [],
-      "max_backpack": 12,
-      "current_weight": -0.0,
-      "max_weight": 50.0,
-      "merchant_ticket": null,
-      "bank_items": [],
-      "teleport_cooldown_until": 0,
-      "invulnerable_until": 0,
-      "invulnerable_fatigue_until": 0,
-      "block_height": 2,
-      "block_hash": "ddee1a8e85f7e635",
-      "last_active_at": 0
-    },
-    "default_cultivator": {
-      "account_id": "default_cultivator",
-      "position": {
-        "x": 26453.199999999997,
-        "y": 10799.7,
-        "zone_id": "wild_bj_qh_1",
-        "last_updated": 1787849766
-      },
-      "copper": 50100,
-      "coins": 0,
-      "jade": 0,
-      "level": 1,
-      "backpack": [
-        {
-          "id": "merchant_ticket",
-          "item_id": "merchant_ticket",
-          "name": "商票",
-          "item_type": "Consumable",
-          "tier": 1,
-          "stack_count": 1,
-          "max_stack": 1,
-          "is_bound": true,
-          "weight": 1.0,
-          "attributes": {}
-        }
-      ],
-      "max_backpack": 12,
-      "current_weight": 1.0,
-      "max_weight": 50.0,
-      "merchant_ticket": null,
-      "bank_items": [],
-      "teleport_cooldown_until": 0,
-      "invulnerable_until": 0,
-      "invulnerable_fatigue_until": 0,
-      "block_height": 1178,
-      "block_hash": "68cfb612756e44cb",
-      "last_active_at": 1787849766
-    },
     "account_dcfaf1f3_b4055f6d": {
       "account_id": "account_dcfaf1f3_b4055f6d",
       "position": {
@@ -519,9 +456,9 @@
           "is_bound": true,
           "weight": 1.5,
           "attributes": {
+            "category": 3.0,
             "quality": 1.0,
-            "unit_weight": 1.5,
-            "category": 3.0
+            "unit_weight": 1.5
           }
         },
         {
@@ -556,49 +493,546 @@
     "account_58e1b4ad345b5b77": {
       "account_id": "account_58e1b4ad345b5b77",
       "position": {
-        "x": 26246.5,
-        "y": 10855.8,
-        "zone_id": "wild_bj_qh_1",
-        "last_updated": 1787849887
+        "x": 10940.950420827963,
+        "y": 785.7469898154969,
+        "zone_id": "wild_yn_qh_2",
+        "last_updated": 1787936365
       },
-      "copper": 50100,
-      "coins": 0,
-      "jade": 0,
+      "copper": 704845,
+      "coins": 15020,
+      "jade": 1502,
       "level": 1,
       "backpack": [
         {
-          "id": "merchant_ticket",
-          "item_id": "merchant_ticket",
-          "name": "商票",
-          "item_type": "Consumable",
+          "id": "item_2_907657741",
+          "item_id": "mat_t2_herb",
+          "name": "寒铁·T2.1",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 17,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_3_1291479641",
+          "item_id": "mat_t3_wood",
+          "name": "寒铁·T3.1",
+          "item_type": "Material",
+          "tier": 3,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_2949217211",
+          "item_id": "mat_t1_wood",
+          "name": "雪松木·T1.1",
+          "item_type": "Material",
           "tier": 1,
-          "stack_count": 1,
-          "max_stack": 1,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_1355882839",
+          "item_id": "mat_t2_stone",
+          "name": "冰晶·T2.1",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 3.0,
+          "attributes": {}
+        },
+        {
+          "id": "item_5_1390797553",
+          "item_id": "mat_t5_wood",
+          "name": "雪松木·T5.1",
+          "item_type": "Material",
+          "tier": 5,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_5_4036714858",
+          "item_id": "mat_t5_fur",
+          "name": "寒铁·T5.1",
+          "item_type": "Material",
+          "tier": 5,
+          "stack_count": 8,
+          "max_stack": 999,
           "is_bound": true,
           "weight": 1.0,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_3011745463",
+          "item_id": "mat_t2_herb",
+          "name": "万年玄冰·T2.2",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 12,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_4284357240",
+          "item_id": "mat_t2_stone",
+          "name": "冰晶·T2.2",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 3.0,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_2739206564",
+          "item_id": "mat_t1_stone",
+          "name": "冰魄石·T1.3",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 3.0,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_2990333047",
+          "item_id": "mat_t4_stone",
+          "name": "冰晶·T4.3",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 3.0,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_666090928",
+          "item_id": "mat_t2_wood",
+          "name": "雪松木·T2.2",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_3763856455",
+          "item_id": "mat_t4_stone",
+          "name": "寒铁·T4.1",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 3.0,
           "attributes": {}
         }
       ],
       "max_backpack": 12,
-      "current_weight": 1.0,
+      "current_weight": 195.0,
       "max_weight": 50.0,
-      "merchant_ticket": {
-        "ticket_id": "ticket_wild_bj_qh_1_account_58e1b4ad345b5b77",
-        "credit_limit": 30000,
-        "current_deposit": 30000,
-        "issue_city": "wild_bj_qh_1",
-        "is_active": true,
-        "cargo": [],
-        "used_credit": 0,
-        "earned_total": 0
+      "merchant_ticket": null,
+      "bank_items": [
+        {
+          "id": "item_1_1372563868",
+          "item_id": "mat_t1_wood",
+          "name": "古木·T1.1",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_7_3266759174",
+          "item_id": "mat_t7_wood",
+          "name": "灵木·T7.1",
+          "item_type": "Material",
+          "tier": 7,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_28471651",
+          "item_id": "mat_t1_herb",
+          "name": "灵草·T1.3",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 3,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_817764341",
+          "item_id": "mat_t1_herb",
+          "name": "仙芝·T1.4",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 10,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_3251177416",
+          "item_id": "mat_t1_herb",
+          "name": "灵草·T1.2",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 4,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_2665541176",
+          "item_id": "mat_t1_herb",
+          "name": "仙芝·T1.3",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 33,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_2059810196",
+          "item_id": "mat_t2_wood",
+          "name": "灵木·T2.2",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_1983246486",
+          "item_id": "mat_t4_wood",
+          "name": "灵木·T4.1",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_3041276094",
+          "item_id": "mat_t4_herb",
+          "name": "灵草·T4.3",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 48,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_872894691",
+          "item_id": "mat_t4_herb",
+          "name": "灵草·T4.2",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 10,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_515417808",
+          "item_id": "mat_t2_wood",
+          "name": "灵木·T2.3",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 41,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_3422406818",
+          "item_id": "mat_t4_herb",
+          "name": "仙芝·T4.1",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_3_2225105268",
+          "item_id": "mat_t3_herb",
+          "name": "仙芝·T3.1",
+          "item_type": "Material",
+          "tier": 3,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_743452232",
+          "item_id": "mat_t1_herb",
+          "name": "灵草·T1.4",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_3756084333",
+          "item_id": "mat_t2_wood",
+          "name": "古木·T2.2",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_5_2334173567",
+          "item_id": "mat_t5_wood",
+          "name": "灵木·T5.3",
+          "item_type": "Material",
+          "tier": 5,
+          "stack_count": 25,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_3_1267290271",
+          "item_id": "mat_t3_herb",
+          "name": "灵草·T3.3",
+          "item_type": "Material",
+          "tier": 3,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_3_3356866964",
+          "item_id": "mat_t3_wood",
+          "name": "灵木·T3.3",
+          "item_type": "Material",
+          "tier": 3,
+          "stack_count": 16,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_4_3576657203",
+          "item_id": "mat_t4_wood",
+          "name": "灵木·T4.3",
+          "item_type": "Material",
+          "tier": 4,
+          "stack_count": 18,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_7_1214670797",
+          "item_id": "mat_t7_herb",
+          "name": "灵草·T7.3",
+          "item_type": "Material",
+          "tier": 7,
+          "stack_count": 10,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_4025522996",
+          "item_id": "mat_t2_herb",
+          "name": "灵草·T2.4",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_3_3872202155",
+          "item_id": "mat_t3_herb",
+          "name": "仙芝·T3.3",
+          "item_type": "Material",
+          "tier": 3,
+          "stack_count": 10,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_942924709",
+          "item_id": "mat_t2_herb",
+          "name": "灵草·T2.3",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 16,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_2_1158607809",
+          "item_id": "mat_t2_wood",
+          "name": "灵木·T2.4",
+          "item_type": "Material",
+          "tier": 2,
+          "stack_count": 5,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_8_457601182",
+          "item_id": "mat_t8_wood",
+          "name": "灵木·T8.3",
+          "item_type": "Material",
+          "tier": 8,
+          "stack_count": 10,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_3045798509",
+          "item_id": "mat_t1_herb",
+          "name": "灵草·T1.1",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_7_2571836161",
+          "item_id": "mat_t7_wood",
+          "name": "古木·T7.3",
+          "item_type": "Material",
+          "tier": 7,
+          "stack_count": 9,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_1_1986814741",
+          "item_id": "mat_t1_wood",
+          "name": "灵木·T1.3",
+          "item_type": "Material",
+          "tier": 1,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 1.5,
+          "attributes": {}
+        },
+        {
+          "id": "item_6_2719289467",
+          "item_id": "mat_t6_herb",
+          "name": "灵草·T6.3",
+          "item_type": "Material",
+          "tier": 6,
+          "stack_count": 8,
+          "max_stack": 999,
+          "is_bound": true,
+          "weight": 0.5,
+          "attributes": {}
+        }
+      ],
+      "teleport_cooldown_until": 1787933149,
+      "invulnerable_until": 1787933174,
+      "invulnerable_fatigue_until": 1787933204,
+      "block_height": 3271,
+      "block_hash": "a32423b9d3a9c4dc",
+      "last_active_at": 1787936417
+    },
+    "default_cultivator": {
+      "account_id": "default_cultivator",
+      "position": {
+        "x": 2370.8737243887317,
+        "y": 25445.21267299259,
+        "zone_id": "wild_yn_qh_1",
+        "last_updated": 1787857199
       },
+      "copper": 702625,
+      "coins": 15020,
+      "jade": 1502,
+      "level": 1,
+      "backpack": [],
+      "max_backpack": 12,
+      "current_weight": -0.0,
+      "max_weight": 50.0,
+      "merchant_ticket": null,
       "bank_items": [],
-      "teleport_cooldown_until": 1787849737,
-      "invulnerable_until": 1787849762,
-      "invulnerable_fatigue_until": 1787849792,
-      "block_height": 1201,
-      "block_hash": "928b90377c747020",
-      "last_active_at": 1787849943
+      "teleport_cooldown_until": 0,
+      "invulnerable_until": 0,
+      "invulnerable_fatigue_until": 0,
+      "block_height": 2933,
+      "block_hash": "05a059624bdf4f21",
+      "last_active_at": 1787857199
     },
     "account_eda77b87a0b0d2b": {
       "account_id": "account_eda77b87a0b0d2b",
@@ -624,108 +1058,45 @@
       "block_height": 0,
       "block_hash": "0000000000000000genesis_hash",
       "last_active_at": 1787645970
+    },
+    "account_72da7fda167fd6ba": {
+      "account_id": "account_72da7fda167fd6ba",
+      "position": {
+        "x": 13500.0,
+        "y": 13500.0,
+        "zone_id": "beijing",
+        "last_updated": 1787645210
+      },
+      "copper": 100,
+      "coins": 0,
+      "jade": 0,
+      "level": 1,
+      "backpack": [],
+      "max_backpack": 12,
+      "current_weight": -0.0,
+      "max_weight": 50.0,
+      "merchant_ticket": null,
+      "bank_items": [],
+      "teleport_cooldown_until": 0,
+      "invulnerable_until": 0,
+      "invulnerable_fatigue_until": 0,
+      "block_height": 2,
+      "block_hash": "ddee1a8e85f7e635",
+      "last_active_at": 0
     }
   },
   "gathering_nodes": {
-    "node_ore_054": {
-      "node_id": "node_ore_054",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_019": {
-      "node_id": "node_ore_019",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "hb_res_2": {
-      "node_id": "hb_res_2",
-      "zone_id": "hebei",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "wild_yn_qh_6_r1": {
-      "node_id": "wild_yn_qh_6_r1",
-      "zone_id": "wild_yn_qh_6",
+    "wild_sh_zj_1_r1": {
+      "node_id": "wild_sh_zj_1_r1",
+      "zone_id": "wild_sh_zj_1",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_bj_qh_3_r1": {
-      "node_id": "wild_bj_qh_3_r1",
-      "zone_id": "wild_bj_qh_3",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_031": {
-      "node_id": "node_ore_031",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_055": {
-      "node_id": "node_ore_055",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_zj_6_r1": {
-      "node_id": "wild_bj_zj_6_r1",
-      "zone_id": "wild_bj_zj_6",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_018": {
-      "node_id": "node_ore_018",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_005": {
-      "node_id": "node_ore_005",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_052": {
-      "node_id": "node_ore_052",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_yn_5_r1": {
-      "node_id": "wild_bj_yn_5_r1",
-      "zone_id": "wild_bj_yn_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_sh_zj_3_r1": {
-      "node_id": "wild_sh_zj_3_r1",
-      "zone_id": "wild_sh_zj_3",
+    "wild_yn_qh_4_r1": {
+      "node_id": "wild_yn_qh_4_r1",
+      "zone_id": "wild_yn_qh_4",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
@@ -739,6 +1110,14 @@
       "tier": 5,
       "respawn_rate_secs": 15
     },
+    "node_ore_006": {
+      "node_id": "node_ore_006",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
     "wild_zj_yn_5_r1": {
       "node_id": "wild_zj_yn_5_r1",
       "zone_id": "wild_zj_yn_5",
@@ -747,253 +1126,29 @@
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "node_ore_021": {
-      "node_id": "node_ore_021",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_hb_1_r1": {
-      "node_id": "wild_bj_hb_1_r1",
-      "zone_id": "wild_bj_hb_1",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_043": {
-      "node_id": "node_ore_043",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "bj_res_1": {
-      "node_id": "bj_res_1",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 6,
-      "respawn_rate_secs": 30
-    },
-    "node_ore_029": {
-      "node_id": "node_ore_029",
+    "node_ore_039": {
+      "node_id": "node_ore_039",
       "zone_id": "field_central",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 5,
       "respawn_rate_secs": 15
     },
-    "sh_res_1": {
-      "node_id": "sh_res_1",
-      "zone_id": "shanghai",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "yn_res_2": {
-      "node_id": "yn_res_2",
-      "zone_id": "yunnan",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_023": {
-      "node_id": "node_ore_023",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "yn_res_1": {
-      "node_id": "yn_res_1",
-      "zone_id": "yunnan",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_014": {
-      "node_id": "node_ore_014",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_zj_4_r1": {
-      "node_id": "wild_bj_zj_4_r1",
-      "zone_id": "wild_bj_zj_4",
+    "wild_zj_yn_3_r1": {
+      "node_id": "wild_zj_yn_3_r1",
+      "zone_id": "wild_zj_yn_3",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_bj_qh_4_r1": {
-      "node_id": "wild_bj_qh_4_r1",
-      "zone_id": "wild_bj_qh_4",
+    "wild_qh_hb_3_r1": {
+      "node_id": "wild_qh_hb_3_r1",
+      "zone_id": "wild_qh_hb_3",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
-    },
-    "wild_bj_yn_1_r1": {
-      "node_id": "wild_bj_yn_1_r1",
-      "zone_id": "wild_bj_yn_1",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_zj_yn_1_r1": {
-      "node_id": "wild_zj_yn_1_r1",
-      "zone_id": "wild_zj_yn_1",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_020": {
-      "node_id": "node_ore_020",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "bj_res_2": {
-      "node_id": "bj_res_2",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 6,
-      "respawn_rate_secs": 30
-    },
-    "node_ore_048": {
-      "node_id": "node_ore_048",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_003": {
-      "node_id": "node_ore_003",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "wild_qh_hb_5_r1": {
-      "node_id": "wild_qh_hb_5_r1",
-      "zone_id": "wild_qh_hb_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_bj_qh_5_r1": {
-      "node_id": "wild_bj_qh_5_r1",
-      "zone_id": "wild_bj_qh_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_bj_hb_5_r1": {
-      "node_id": "wild_bj_hb_5_r1",
-      "zone_id": "wild_bj_hb_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "qh_res_2": {
-      "node_id": "qh_res_2",
-      "zone_id": "qinghai",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_017": {
-      "node_id": "node_ore_017",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_001": {
-      "node_id": "node_ore_001",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "wild_sh_zj_1_r1": {
-      "node_id": "wild_sh_zj_1_r1",
-      "zone_id": "wild_sh_zj_1",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_041": {
-      "node_id": "node_ore_041",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_hb_2_r1": {
-      "node_id": "wild_bj_hb_2_r1",
-      "zone_id": "wild_bj_hb_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_035": {
-      "node_id": "node_ore_035",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_013": {
-      "node_id": "node_ore_013",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_hb_4_r1": {
-      "node_id": "wild_bj_hb_4_r1",
-      "zone_id": "wild_bj_hb_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "hb_res_1": {
-      "node_id": "hb_res_1",
-      "zone_id": "hebei",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
     },
     "node_ore_010": {
       "node_id": "node_ore_010",
@@ -1003,25 +1158,41 @@
       "tier": 1,
       "respawn_rate_secs": 15
     },
-    "wild_yn_qh_3_r1": {
-      "node_id": "wild_yn_qh_3_r1",
-      "zone_id": "wild_yn_qh_3",
+    "zj_res_1": {
+      "node_id": "zj_res_1",
+      "zone_id": "zhejiang",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "wild_bj_qh_2_r1": {
+      "node_id": "wild_bj_qh_2_r1",
+      "zone_id": "wild_bj_qh_2",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "sky_res_1": {
-      "node_id": "sky_res_1",
-      "zone_id": "sky_city",
+    "wild_qh_hb_5_r1": {
+      "node_id": "wild_qh_hb_5_r1",
+      "zone_id": "wild_qh_hb_5",
       "max_capacity": 100,
       "current_yield": 100,
-      "tier": 8,
-      "respawn_rate_secs": 15
+      "tier": 4,
+      "respawn_rate_secs": 20
     },
-    "wild_sh_zj_4_r1": {
-      "node_id": "wild_sh_zj_4_r1",
-      "zone_id": "wild_sh_zj_4",
+    "wild_hb_sh_1_r1": {
+      "node_id": "wild_hb_sh_1_r1",
+      "zone_id": "wild_hb_sh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_sh_zj_2_r1": {
+      "node_id": "wild_sh_zj_2_r1",
+      "zone_id": "wild_sh_zj_2",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
@@ -1035,281 +1206,17 @@
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "node_ore_040": {
-      "node_id": "node_ore_040",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_026": {
-      "node_id": "node_ore_026",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "wild_sh_zj_6_r1": {
-      "node_id": "wild_sh_zj_6_r1",
-      "zone_id": "wild_sh_zj_6",
+    "wild_bj_yn_1_r1": {
+      "node_id": "wild_bj_yn_1_r1",
+      "zone_id": "wild_bj_yn_1",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_zj_yn_6_r1": {
-      "node_id": "wild_zj_yn_6_r1",
-      "zone_id": "wild_zj_yn_6",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "qh_res_1": {
-      "node_id": "qh_res_1",
-      "zone_id": "qinghai",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_037": {
-      "node_id": "node_ore_037",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_yn_qh_2_r1": {
-      "node_id": "wild_yn_qh_2_r1",
-      "zone_id": "wild_yn_qh_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_bj_qh_2_r1": {
-      "node_id": "wild_bj_qh_2_r1",
-      "zone_id": "wild_bj_qh_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_sh_zj_5_r1": {
-      "node_id": "wild_sh_zj_5_r1",
-      "zone_id": "wild_sh_zj_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_yn_qh_5_r1": {
-      "node_id": "wild_yn_qh_5_r1",
-      "zone_id": "wild_yn_qh_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_bj_sh_4_r1": {
-      "node_id": "wild_bj_sh_4_r1",
-      "zone_id": "wild_bj_sh_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_045": {
-      "node_id": "node_ore_045",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_yn_3_r1": {
-      "node_id": "wild_bj_yn_3_r1",
-      "zone_id": "wild_bj_yn_3",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_zj_yn_2_r1": {
-      "node_id": "wild_zj_yn_2_r1",
-      "zone_id": "wild_zj_yn_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_hb_sh_2_r1": {
-      "node_id": "wild_hb_sh_2_r1",
-      "zone_id": "wild_hb_sh_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_016": {
-      "node_id": "node_ore_016",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "sky_res_2": {
-      "node_id": "sky_res_2",
-      "zone_id": "sky_city",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 8,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_057": {
-      "node_id": "node_ore_057",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_yn_2_r1": {
-      "node_id": "wild_bj_yn_2_r1",
-      "zone_id": "wild_bj_yn_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_006": {
-      "node_id": "node_ore_006",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_039": {
-      "node_id": "node_ore_039",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_008": {
-      "node_id": "node_ore_008",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_042": {
-      "node_id": "node_ore_042",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_zj_yn_4_r1": {
-      "node_id": "wild_zj_yn_4_r1",
-      "zone_id": "wild_zj_yn_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_hb_sh_4_r1": {
-      "node_id": "wild_hb_sh_4_r1",
-      "zone_id": "wild_hb_sh_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_059": {
-      "node_id": "node_ore_059",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_sh_2_r1": {
-      "node_id": "wild_bj_sh_2_r1",
-      "zone_id": "wild_bj_sh_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_025": {
-      "node_id": "node_ore_025",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "gm_test_ore": {
-      "node_id": "gm_test_ore",
-      "zone_id": "zone_gm_test",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 9,
-      "respawn_rate_secs": 5
-    },
-    "wild_bj_zj_3_r1": {
-      "node_id": "wild_bj_zj_3_r1",
-      "zone_id": "wild_bj_zj_3",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "zj_res_2": {
-      "node_id": "zj_res_2",
-      "zone_id": "zhejiang",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_024": {
-      "node_id": "node_ore_024",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_058": {
-      "node_id": "node_ore_058",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_027": {
-      "node_id": "node_ore_027",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_sh_5_r1": {
-      "node_id": "wild_bj_sh_5_r1",
-      "zone_id": "wild_bj_sh_5",
+    "wild_qh_hb_4_r1": {
+      "node_id": "wild_qh_hb_4_r1",
+      "zone_id": "wild_qh_hb_4",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
@@ -1323,41 +1230,569 @@
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "sh_res_2": {
-      "node_id": "sh_res_2",
-      "zone_id": "shanghai",
+    "node_ore_005": {
+      "node_id": "node_ore_005",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_056": {
+      "node_id": "node_ore_056",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_025": {
+      "node_id": "node_ore_025",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "sky_res_2": {
+      "node_id": "sky_res_2",
+      "zone_id": "sky_city",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 8,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_hb_6_r1": {
+      "node_id": "wild_bj_hb_6_r1",
+      "zone_id": "wild_bj_hb_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_026": {
+      "node_id": "node_ore_026",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_2_res_27": {
+      "node_id": "wild_yn_qh_2_res_27",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_zj_2_r1": {
+      "node_id": "wild_bj_zj_2_r1",
+      "zone_id": "wild_bj_zj_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "bj_res_1": {
+      "node_id": "bj_res_1",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 6,
+      "respawn_rate_secs": 30
+    },
+    "node_ore_015": {
+      "node_id": "node_ore_015",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_023": {
+      "node_id": "node_ore_023",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_018": {
+      "node_id": "node_ore_018",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_hb_5_r1": {
+      "node_id": "wild_bj_hb_5_r1",
+      "zone_id": "wild_bj_hb_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_yn_5_r1": {
+      "node_id": "wild_bj_yn_5_r1",
+      "zone_id": "wild_bj_yn_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_034": {
+      "node_id": "node_ore_034",
+      "zone_id": "beijing",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 5,
-      "respawn_rate_secs": 25
+      "respawn_rate_secs": 15
     },
-    "wild_qh_hb_3_r1": {
-      "node_id": "wild_qh_hb_3_r1",
-      "zone_id": "wild_qh_hb_3",
+    "wild_bj_sh_4_r1": {
+      "node_id": "wild_bj_sh_4_r1",
+      "zone_id": "wild_bj_sh_4",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_bj_yn_6_r1": {
-      "node_id": "wild_bj_yn_6_r1",
-      "zone_id": "wild_bj_yn_6",
+    "node_ore_019": {
+      "node_id": "node_ore_019",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "sky_res_1": {
+      "node_id": "sky_res_1",
+      "zone_id": "sky_city",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 8,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_013": {
+      "node_id": "node_ore_013",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_hb_sh_2_r1": {
+      "node_id": "wild_hb_sh_2_r1",
+      "zone_id": "wild_hb_sh_2",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_zj_yn_3_r1": {
-      "node_id": "wild_zj_yn_3_r1",
-      "zone_id": "wild_zj_yn_3",
+    "wild_sh_zj_3_r1": {
+      "node_id": "wild_sh_zj_3_r1",
+      "zone_id": "wild_sh_zj_3",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_bj_zj_1_r1": {
-      "node_id": "wild_bj_zj_1_r1",
-      "zone_id": "wild_bj_zj_1",
+    "wild_bj_zj_3_r1": {
+      "node_id": "wild_bj_zj_3_r1",
+      "zone_id": "wild_bj_zj_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_012": {
+      "node_id": "node_ore_012",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_031": {
+      "node_id": "node_ore_031",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_hb_sh_5_r1": {
+      "node_id": "wild_hb_sh_5_r1",
+      "zone_id": "wild_hb_sh_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_yn_4_r1": {
+      "node_id": "wild_bj_yn_4_r1",
+      "zone_id": "wild_bj_yn_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_yn_2_r1": {
+      "node_id": "wild_bj_yn_2_r1",
+      "zone_id": "wild_bj_yn_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_3_r1": {
+      "node_id": "wild_yn_qh_3_r1",
+      "zone_id": "wild_yn_qh_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_1_res_74": {
+      "node_id": "wild_yn_qh_1_res_74",
+      "zone_id": "wild_yn_qh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_qh_3_r1": {
+      "node_id": "wild_bj_qh_3_r1",
+      "zone_id": "wild_bj_qh_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_1_r1": {
+      "node_id": "wild_yn_qh_1_r1",
+      "zone_id": "wild_yn_qh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_zj_6_r1": {
+      "node_id": "wild_bj_zj_6_r1",
+      "zone_id": "wild_bj_zj_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_hb_4_r1": {
+      "node_id": "wild_bj_hb_4_r1",
+      "zone_id": "wild_bj_hb_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_zj_5_r1": {
+      "node_id": "wild_bj_zj_5_r1",
+      "zone_id": "wild_bj_zj_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_sh_5_r1": {
+      "node_id": "wild_bj_sh_5_r1",
+      "zone_id": "wild_bj_sh_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_049": {
+      "node_id": "node_ore_049",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_zj_4_r1": {
+      "node_id": "wild_bj_zj_4_r1",
+      "zone_id": "wild_bj_zj_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_qh_hb_2_r1": {
+      "node_id": "wild_qh_hb_2_r1",
+      "zone_id": "wild_qh_hb_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_qh_6_r1": {
+      "node_id": "wild_bj_qh_6_r1",
+      "zone_id": "wild_bj_qh_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_sh_3_r1": {
+      "node_id": "wild_bj_sh_3_r1",
+      "zone_id": "wild_bj_sh_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_058": {
+      "node_id": "node_ore_058",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_hb_sh_6_r1": {
+      "node_id": "wild_hb_sh_6_r1",
+      "zone_id": "wild_hb_sh_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_sh_1_r1": {
+      "node_id": "wild_bj_sh_1_r1",
+      "zone_id": "wild_bj_sh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_028": {
+      "node_id": "node_ore_028",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_qh_4_r1": {
+      "node_id": "wild_bj_qh_4_r1",
+      "zone_id": "wild_bj_qh_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_1_res_16": {
+      "node_id": "wild_yn_qh_1_res_16",
+      "zone_id": "wild_yn_qh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_035": {
+      "node_id": "node_ore_035",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_043": {
+      "node_id": "node_ore_043",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_048": {
+      "node_id": "node_ore_048",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_sh_6_r1": {
+      "node_id": "wild_bj_sh_6_r1",
+      "zone_id": "wild_bj_sh_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_017": {
+      "node_id": "node_ore_017",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_yn_3_r1": {
+      "node_id": "wild_bj_yn_3_r1",
+      "zone_id": "wild_bj_yn_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_009": {
+      "node_id": "node_ore_009",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "wild_sh_zj_4_r1": {
+      "node_id": "wild_sh_zj_4_r1",
+      "zone_id": "wild_sh_zj_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_021": {
+      "node_id": "node_ore_021",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_053": {
+      "node_id": "node_ore_053",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_6_r1": {
+      "node_id": "wild_yn_qh_6_r1",
+      "zone_id": "wild_yn_qh_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_030": {
+      "node_id": "node_ore_030",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_060": {
+      "node_id": "node_ore_060",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "wild_zj_yn_1_r1": {
+      "node_id": "wild_zj_yn_1_r1",
+      "zone_id": "wild_zj_yn_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_2_res_89": {
+      "node_id": "wild_yn_qh_2_res_89",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_2_res_36": {
+      "node_id": "wild_yn_qh_2_res_36",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "wild_zj_yn_6_r1": {
+      "node_id": "wild_zj_yn_6_r1",
+      "zone_id": "wild_zj_yn_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_027": {
+      "node_id": "node_ore_027",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_008": {
+      "node_id": "node_ore_008",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_001": {
+      "node_id": "node_ore_001",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_041": {
+      "node_id": "node_ore_041",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_qh_5_r1": {
+      "node_id": "wild_bj_qh_5_r1",
+      "zone_id": "wild_bj_qh_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_hb_sh_4_r1": {
+      "node_id": "wild_hb_sh_4_r1",
+      "zone_id": "wild_hb_sh_4",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_hb_2_r1": {
+      "node_id": "wild_bj_hb_2_r1",
+      "zone_id": "wild_bj_hb_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_zj_yn_4_r1": {
+      "node_id": "wild_zj_yn_4_r1",
+      "zone_id": "wild_zj_yn_4",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
@@ -1371,24 +1806,24 @@
       "tier": 5,
       "respawn_rate_secs": 15
     },
-    "node_ore_032": {
-      "node_id": "node_ore_032",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 3,
-      "respawn_rate_secs": 15
-    },
-    "wild_yn_qh_4_r1": {
-      "node_id": "wild_yn_qh_4_r1",
-      "zone_id": "wild_yn_qh_4",
+    "wild_bj_yn_6_r1": {
+      "node_id": "wild_bj_yn_6_r1",
+      "zone_id": "wild_bj_yn_6",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "node_ore_007": {
-      "node_id": "node_ore_007",
+    "node_ore_003": {
+      "node_id": "node_ore_003",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_037": {
+      "node_id": "node_ore_037",
       "zone_id": "field_central",
       "max_capacity": 100,
       "current_yield": 100,
@@ -1403,33 +1838,137 @@
       "tier": 2,
       "respawn_rate_secs": 15
     },
-    "node_ore_047": {
-      "node_id": "node_ore_047",
+    "wild_hb_sh_3_r1": {
+      "node_id": "wild_hb_sh_3_r1",
+      "zone_id": "wild_hb_sh_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_sh_zj_5_r1": {
+      "node_id": "wild_sh_zj_5_r1",
+      "zone_id": "wild_sh_zj_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_007": {
+      "node_id": "node_ore_007",
       "zone_id": "field_central",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 3,
       "respawn_rate_secs": 15
     },
-    "node_ore_009": {
-      "node_id": "node_ore_009",
+    "node_ore_029": {
+      "node_id": "node_ore_029",
       "zone_id": "field_central",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 5,
       "respawn_rate_secs": 15
     },
-    "wild_yn_qh_1_r1": {
-      "node_id": "wild_yn_qh_1_r1",
-      "zone_id": "wild_yn_qh_1",
+    "zj_res_2": {
+      "node_id": "zj_res_2",
+      "zone_id": "zhejiang",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "node_ore_020": {
+      "node_id": "node_ore_020",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "sh_res_1": {
+      "node_id": "sh_res_1",
+      "zone_id": "shanghai",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "hb_res_1": {
+      "node_id": "hb_res_1",
+      "zone_id": "hebei",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "node_ore_002": {
+      "node_id": "node_ore_002",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "wild_zj_yn_2_r1": {
+      "node_id": "wild_zj_yn_2_r1",
+      "zone_id": "wild_zj_yn_2",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "node_ore_034": {
-      "node_id": "node_ore_034",
+    "wild_sh_zj_6_r1": {
+      "node_id": "wild_sh_zj_6_r1",
+      "zone_id": "wild_sh_zj_6",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "node_ore_042": {
+      "node_id": "node_ore_042",
       "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_052": {
+      "node_id": "node_ore_052",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_040": {
+      "node_id": "node_ore_040",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_hb_3_r1": {
+      "node_id": "wild_bj_hb_3_r1",
+      "zone_id": "wild_bj_hb_3",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "gm_test_ore": {
+      "node_id": "gm_test_ore",
+      "zone_id": "zone_gm_test",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 9,
+      "respawn_rate_secs": 5
+    },
+    "wild_yn_qh_1_res_30": {
+      "node_id": "wild_yn_qh_1_res_30",
+      "zone_id": "wild_yn_qh_1",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 5,
@@ -1443,57 +1982,129 @@
       "tier": 1,
       "respawn_rate_secs": 15
     },
-    "wild_hb_sh_3_r1": {
-      "node_id": "wild_hb_sh_3_r1",
-      "zone_id": "wild_hb_sh_3",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_030": {
-      "node_id": "node_ore_030",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "wild_sh_zj_2_r1": {
-      "node_id": "wild_sh_zj_2_r1",
-      "zone_id": "wild_sh_zj_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_028": {
-      "node_id": "node_ore_028",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_015": {
-      "node_id": "node_ore_015",
+    "node_ore_055": {
+      "node_id": "node_ore_055",
       "zone_id": "field_central",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 1,
       "respawn_rate_secs": 15
     },
-    "wild_bj_zj_5_r1": {
-      "node_id": "wild_bj_zj_5_r1",
-      "zone_id": "wild_bj_zj_5",
+    "node_ore_038": {
+      "node_id": "node_ore_038",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_045": {
+      "node_id": "node_ore_045",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_1_res_20": {
+      "node_id": "wild_yn_qh_1_res_20",
+      "zone_id": "wild_yn_qh_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "wild_bj_sh_2_r1": {
+      "node_id": "wild_bj_sh_2_r1",
+      "zone_id": "wild_bj_sh_2",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "wild_qh_hb_2_r1": {
-      "node_id": "wild_qh_hb_2_r1",
-      "zone_id": "wild_qh_hb_2",
+    "node_ore_057": {
+      "node_id": "node_ore_057",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_2_res_50": {
+      "node_id": "wild_yn_qh_2_res_50",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_011": {
+      "node_id": "node_ore_011",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_024": {
+      "node_id": "node_ore_024",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_014": {
+      "node_id": "node_ore_014",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_054": {
+      "node_id": "node_ore_054",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "wild_yn_qh_2_r1": {
+      "node_id": "wild_yn_qh_2_r1",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_2_res_3": {
+      "node_id": "wild_yn_qh_2_res_3",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 1,
+      "respawn_rate_secs": 15
+    },
+    "qh_res_2": {
+      "node_id": "qh_res_2",
+      "zone_id": "qinghai",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "wild_yn_qh_5_r1": {
+      "node_id": "wild_yn_qh_5_r1",
+      "zone_id": "wild_yn_qh_5",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_bj_zj_1_r1": {
+      "node_id": "wild_bj_zj_1_r1",
+      "zone_id": "wild_bj_zj_1",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 4,
@@ -1507,12 +2118,100 @@
       "tier": 4,
       "respawn_rate_secs": 20
     },
-    "node_ore_002": {
-      "node_id": "node_ore_002",
+    "hb_res_2": {
+      "node_id": "hb_res_2",
+      "zone_id": "hebei",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "bj_res_2": {
+      "node_id": "bj_res_2",
+      "zone_id": "beijing",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 6,
+      "respawn_rate_secs": 30
+    },
+    "node_ore_032": {
+      "node_id": "node_ore_032",
       "zone_id": "beijing",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "sh_res_2": {
+      "node_id": "sh_res_2",
+      "zone_id": "shanghai",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "wild_yn_qh_2_res_31": {
+      "node_id": "wild_yn_qh_2_res_31",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_047": {
+      "node_id": "node_ore_047",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 3,
+      "respawn_rate_secs": 15
+    },
+    "yn_res_2": {
+      "node_id": "yn_res_2",
+      "zone_id": "yunnan",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "wild_bj_hb_1_r1": {
+      "node_id": "wild_bj_hb_1_r1",
+      "zone_id": "wild_bj_hb_1",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 20
+    },
+    "wild_yn_qh_2_res_74": {
+      "node_id": "wild_yn_qh_2_res_74",
+      "zone_id": "wild_yn_qh_2",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 4,
+      "respawn_rate_secs": 15
+    },
+    "node_ore_059": {
+      "node_id": "node_ore_059",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 15
+    },
+    "yn_res_1": {
+      "node_id": "yn_res_1",
+      "zone_id": "yunnan",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 5,
+      "respawn_rate_secs": 25
+    },
+    "node_ore_051": {
+      "node_id": "node_ore_051",
+      "zone_id": "field_central",
+      "max_capacity": 100,
+      "current_yield": 100,
+      "tier": 2,
       "respawn_rate_secs": 15
     },
     "node_ore_022": {
@@ -1523,117 +2222,13 @@
       "tier": 3,
       "respawn_rate_secs": 15
     },
-    "wild_hb_sh_1_r1": {
-      "node_id": "wild_hb_sh_1_r1",
-      "zone_id": "wild_hb_sh_1",
+    "wild_yn_qh_1_res_9": {
+      "node_id": "wild_yn_qh_1_res_9",
+      "zone_id": "wild_yn_qh_1",
       "max_capacity": 100,
       "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_046": {
-      "node_id": "node_ore_046",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
+      "tier": 3,
       "respawn_rate_secs": 15
-    },
-    "wild_hb_sh_6_r1": {
-      "node_id": "wild_hb_sh_6_r1",
-      "zone_id": "wild_hb_sh_6",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "zj_res_1": {
-      "node_id": "zj_res_1",
-      "zone_id": "zhejiang",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 25
-    },
-    "node_ore_049": {
-      "node_id": "node_ore_049",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 5,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_056": {
-      "node_id": "node_ore_056",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "node_ore_060": {
-      "node_id": "node_ore_060",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 1,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_sh_6_r1": {
-      "node_id": "wild_bj_sh_6_r1",
-      "zone_id": "wild_bj_sh_6",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_hb_sh_5_r1": {
-      "node_id": "wild_hb_sh_5_r1",
-      "zone_id": "wild_hb_sh_5",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_qh_hb_4_r1": {
-      "node_id": "wild_qh_hb_4_r1",
-      "zone_id": "wild_qh_hb_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_038": {
-      "node_id": "node_ore_038",
-      "zone_id": "beijing",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_qh_6_r1": {
-      "node_id": "wild_bj_qh_6_r1",
-      "zone_id": "wild_bj_qh_6",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_011": {
-      "node_id": "node_ore_011",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 2,
-      "respawn_rate_secs": 15
-    },
-    "wild_bj_zj_2_r1": {
-      "node_id": "wild_bj_zj_2_r1",
-      "zone_id": "wild_bj_zj_2",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
     },
     "node_ore_033": {
       "node_id": "node_ore_033",
@@ -1643,71 +2238,39 @@
       "tier": 4,
       "respawn_rate_secs": 15
     },
-    "wild_bj_sh_1_r1": {
-      "node_id": "wild_bj_sh_1_r1",
-      "zone_id": "wild_bj_sh_1",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "wild_bj_sh_3_r1": {
-      "node_id": "wild_bj_sh_3_r1",
-      "zone_id": "wild_bj_sh_3",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_051": {
-      "node_id": "node_ore_051",
-      "zone_id": "field_central",
+    "node_ore_016": {
+      "node_id": "node_ore_016",
+      "zone_id": "beijing",
       "max_capacity": 100,
       "current_yield": 100,
       "tier": 2,
       "respawn_rate_secs": 15
     },
-    "wild_bj_yn_4_r1": {
-      "node_id": "wild_bj_yn_4_r1",
-      "zone_id": "wild_bj_yn_4",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_012": {
-      "node_id": "node_ore_012",
+    "node_ore_046": {
+      "node_id": "node_ore_046",
       "zone_id": "beijing",
       "max_capacity": 100,
       "current_yield": 100,
-      "tier": 3,
+      "tier": 2,
       "respawn_rate_secs": 15
     },
-    "wild_bj_hb_6_r1": {
-      "node_id": "wild_bj_hb_6_r1",
-      "zone_id": "wild_bj_hb_6",
+    "qh_res_1": {
+      "node_id": "qh_res_1",
+      "zone_id": "qinghai",
       "max_capacity": 100,
       "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
+      "tier": 5,
+      "respawn_rate_secs": 25
     },
-    "wild_bj_hb_3_r1": {
-      "node_id": "wild_bj_hb_3_r1",
-      "zone_id": "wild_bj_hb_3",
+    "wild_yn_qh_1_res_41": {
+      "node_id": "wild_yn_qh_1_res_41",
+      "zone_id": "wild_yn_qh_1",
       "max_capacity": 100,
       "current_yield": 100,
-      "tier": 4,
-      "respawn_rate_secs": 20
-    },
-    "node_ore_053": {
-      "node_id": "node_ore_053",
-      "zone_id": "field_central",
-      "max_capacity": 100,
-      "current_yield": 100,
-      "tier": 4,
+      "tier": 5,
       "respawn_rate_secs": 15
     }
   },
-  "saved_at": 1787849943,
+  "saved_at": 1787936417,
   "version": 2
 }
