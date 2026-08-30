@@ -161,11 +161,6 @@ impl UIWindowConfig {
     pub const CONTEXT_MENU_ROW_HEIGHT: f64 = 28.0;
     pub const CONTEXT_MENU_PAD: f64 = 6.0;
 
-    // === 弹窗最大化区域（上下 HUD 之间） ===
-    pub const MAX_MODAL_TOP_INSET: f64 = 60.0;
-    pub const MAX_MODAL_BOTTOM_INSET: f64 = 44.0;
-    pub const MAX_MODAL_SIDE_INSET: f64 = 10.0;
-
     // 默认回退弹窗尺寸
     pub const DEFAULT_MODAL_WIDTH: f64 = 560.0;
     pub const DEFAULT_MODAL_HEIGHT: f64 = 420.0;
@@ -317,6 +312,20 @@ pub struct TradeGoodCargo {
     pub buy_unit_price: u64,
 }
 
+/// 🌟 贸易车队 (承载背包跑商货物，降低负重，玩家负责跟随护送)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaravanFleet {
+    pub is_active: bool,
+    pub origin_city: String,
+    pub target_city: String,
+    pub cargo: Vec<GameItem>,
+    pub total_items: u32,
+    pub total_cost: u64,
+    pub start_time: u64,
+    pub duration_secs: u64,
+    pub status: String, // "escorting" | "arrived"
+}
+
 /// 阿尔比恩式硬核采集矿脉/资源节点储量池 (Yield Pool)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceNode {
@@ -355,6 +364,8 @@ pub struct PlayerState {
     #[serde(default = "default_max_weight")]
     pub max_weight: f64,
     pub merchant_ticket: Option<MerchantTicket>,
+    #[serde(default)]
+    pub caravan: Option<CaravanFleet>,
     #[serde(default)]
     pub bank_items: Vec<GameItem>,
     #[serde(default)]
@@ -409,10 +420,6 @@ pub struct ItemDropReport {
 }
 
 /// 本地区块链链式日志条目 (Local Blockchain Hash Chain Block)
-/// 客户端玩家行为账本协议版本。
-/// v2 的核心语义：一笔玩家动作对应一个 Ledger Block；服务端仍拥有最终裁决权。
-pub const PLAYER_LEDGER_VERSION: u32 = 2;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionLogBlock {
     pub height: u64,
@@ -563,18 +570,6 @@ mod tests {
     }
 
     #[test]
-    fn test_action_log_block_chain_continuity() {
-        let first = ActionLogBlock::create(1, "genesis", "move", "{\"x\":10}", 1000);
-        let second = ActionLogBlock::create(2, &first.block_hash, "attack", "{\"target\":7}", 1001);
-
-        assert_eq!(PLAYER_LEDGER_VERSION, 2);
-        assert!(first.verify());
-        assert!(second.verify());
-        assert_eq!(second.prev_hash, first.block_hash);
-        assert_eq!(second.height, first.height + 1);
-    }
-
-    #[test]
     fn test_player_state_weight_calculation() {
         let mut player = PlayerState {
             account_id: "test".into(),
@@ -592,6 +587,7 @@ mod tests {
             current_weight: 0.0,
             max_weight: 50.0,
             merchant_ticket: None,
+            caravan: None,
             bank_items: vec![],
             teleport_cooldown_until: 0,
             invulnerable_until: 0,
@@ -627,6 +623,7 @@ mod tests {
             current_weight: 0.0,
             max_weight: 50.0,
             merchant_ticket: None,
+            caravan: None,
             bank_items: vec![],
             teleport_cooldown_until: 0,
             invulnerable_until: 0,

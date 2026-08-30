@@ -540,8 +540,41 @@ export function drawStashModal(ctx, w, h, time) {
                 ctx.restore();
             }
 
-            // 🌟 3. 左上角品阶角标 (如 T2, T5)
-            if (item.tier && item.tier > 1) {
+            // 🌟 3. 左上角专属身份角标 (商票 / 跑商特产 / 品阶)
+            const isTicket = item.item_id === 'merchant_ticket' || item.id === 'merchant_ticket' || (item.name && item.name.includes('商票'));
+            const isTrade = item.isTradeGood || item.itemType === 'TradeGood' || (typeof item.id === 'string' && item.id.startsWith('trade_')) || (typeof item.itemId === 'string' && item.itemId.startsWith('trade_')) || (item.name && item.name.includes('特产'));
+
+            if (isTicket) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.95)';
+                ctx.strokeStyle = '#fde047';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.roundRect(cx + 2, cy + 2, 20, 11, 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('商票', cx + 12, cy + 7.5);
+                ctx.restore();
+            } else if (isTrade) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(234, 88, 12, 0.9)';
+                ctx.strokeStyle = '#fb923c';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.roundRect(cx + 2, cy + 2, 20, 11, 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('特产', cx + 12, cy + 7.5);
+                ctx.restore();
+            } else if (item.tier && item.tier > 1) {
                 ctx.save();
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                 ctx.font = 'bold 8px monospace';
@@ -583,7 +616,6 @@ export function drawStashModal(ctx, w, h, time) {
             }
 
             // 🌟 5. 特产买入价极小字标识 (记账无忧: 自动在格底标注当初买入价)
-            const isTrade = item.isTradeGood || item.itemType === 'TradeGood' || (typeof item.id === 'string' && item.id.startsWith('trade_')) || (typeof item.itemId === 'string' && item.itemId.startsWith('trade_'));
             const buyP = item.attributes?.buy_price ?? item.buy_price ?? item.buyPrice;
             if (isTrade && buyP !== undefined) {
                 ctx.save();

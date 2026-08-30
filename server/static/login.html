@@ -45,8 +45,8 @@
     .login-container {
       position: relative;
       z-index: 10;
-      width: 400px;
-      padding: 40px;
+      width: 440px;
+      padding: 32px 36px;
       background: rgba(15, 20, 35, 0.95);
       border: 1px solid rgba(0, 255, 200, 0.3);
       border-radius: 16px;
@@ -75,71 +75,150 @@
     /* 标题 */
     .login-title {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .login-title h1 {
-      font-size: 28px;
+      font-size: 26px;
       color: #00ffc8;
       text-shadow: 0 0 20px rgba(0, 255, 200, 0.5);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
     }
 
     .login-title p {
-      font-size: 14px;
+      font-size: 13px;
       color: #64748b;
+    }
+
+    /* 选项卡切换 */
+    .login-tabs {
+      display: flex;
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .tab-btn.active {
+      background: rgba(0, 255, 200, 0.15);
+      color: #00ffc8;
+      border: 1px solid rgba(0, 255, 200, 0.4);
+      box-shadow: 0 0 12px rgba(0, 255, 200, 0.15);
     }
 
     /* 输入框 */
     .input-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .input-group label {
-      display: block;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 12px;
       color: #94a3b8;
       margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
     }
 
-    .input-group input {
+    .input-group input, .input-group textarea {
       width: 100%;
-      padding: 14px 16px;
+      padding: 12px 14px;
       background: rgba(30, 41, 59, 0.8);
       border: 1px solid rgba(100, 116, 139, 0.3);
       border-radius: 8px;
       color: #e2e8f0;
-      font-size: 15px;
+      font-size: 14px;
       transition: all 0.3s ease;
+      font-family: inherit;
     }
 
-    .input-group input:focus {
+    .input-group textarea {
+      resize: vertical;
+      min-height: 72px;
+      line-height: 1.5;
+    }
+
+    .input-group input:focus, .input-group textarea:focus {
       outline: none;
       border-color: #00ffc8;
       box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
     }
 
-    .input-group input::placeholder {
+    .input-group input::placeholder, .input-group textarea::placeholder {
       color: #475569;
+      font-size: 13px;
+    }
+
+    .helper-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .helper-bar a {
+      color: #38bdf8;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .helper-bar a:hover {
+      color: #00ffc8;
+      text-decoration: underline;
+    }
+
+    .derived-id-box {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 6px;
+      font-size: 11px;
+      color: #94a3b8;
+      word-break: break-all;
+    }
+
+    .derived-id-box span {
+      color: #38bdf8;
+      font-family: monospace;
+      font-weight: bold;
     }
 
     /* 登录按钮 */
     .login-btn {
       width: 100%;
-      padding: 16px;
-      margin-top: 10px;
+      padding: 14px;
+      margin-top: 8px;
       background: linear-gradient(135deg, #00ffc8 0%, #38bdf8 100%);
       border: none;
       border-radius: 8px;
       color: #0a0e1a;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
     }
 
     .login-btn:hover {
@@ -162,21 +241,23 @@
       color: #ef4444;
       font-size: 13px;
       text-align: center;
-      margin-top: 15px;
-      min-height: 20px;
+      margin-top: 12px;
+      min-height: 18px;
     }
 
     /* 游客登录 */
     .guest-link {
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 14px;
       border-top: 1px solid rgba(100, 116, 139, 0.2);
     }
 
     .guest-link a {
       color: #64748b;
-      font-size: 13px;
+      font-size: 12px;
       text-decoration: none;
       transition: color 0.3s;
     }
@@ -189,7 +270,7 @@
     .loading {
       display: none;
       text-align: center;
-      margin-top: 15px;
+      margin-top: 12px;
     }
 
     .loading.show {
@@ -215,35 +296,63 @@
   <!-- 背景粒子 -->
   <div class="bg-particles" id="particles"></div>
 
-  <!-- 登录表单 -->
+  <!-- 登录容器 -->
   <div class="login-container">
     <div class="login-title">
       <h1>天道锻造大师</h1>
-      <p>Cyber-Forge · WEB v2.5.12</p>
+      <p>Cyber-Forge · WEB &amp; RUST v2.9.28</p>
     </div>
 
-    <form id="loginForm">
+    <!-- 模式选项卡 -->
+    <div class="login-tabs">
+      <button type="button" class="tab-btn active" id="tabMnemonic" data-mode="mnemonic">📜 天道四句话密证导入</button>
+      <button type="button" class="tab-btn" id="tabAccount" data-mode="account">👤 账号密码登录</button>
+    </div>
+
+    <!-- 1. 天道四句话密证导入表单 -->
+    <form id="mnemonicForm">
       <div class="input-group">
-        <label>账号</label>
-        <input type="text" id="username" placeholder="请输入账号" autocomplete="username" required>
+        <label>
+          <span>天道四句话密证 (助记词)</span>
+          <span style="color: #64748b; font-size: 11px;">4句短语用点或空格隔开</span>
+        </label>
+        <textarea id="mnemonicInput" placeholder="例如：甲子时 · 离火之极 · 剑宗逍遥 · 道法自然" rows="3" required></textarea>
+        <div class="helper-bar">
+          <a id="btnPasteMnemonic" href="javascript:void(0)">📋 粘贴剪贴板</a>
+          <a id="btnRandomMnemonic" href="javascript:void(0)">🎲 随机构建新密证</a>
+        </div>
+        <div class="derived-id-box" id="derivedIdBox">
+          🆔 映射修士ID: <span id="derivedIdText">尚未输入密证</span>
+        </div>
       </div>
 
-      <div class="input-group">
-        <label>密码</label>
-        <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
-      </div>
-
-      <button type="submit" class="login-btn" id="loginBtn">进入游戏</button>
-
-      <div class="error-msg" id="errorMsg"></div>
-
-      <div class="loading" id="loading">
-        <div class="loading-spinner"></div>
-      </div>
+      <button type="submit" class="login-btn" id="mnemonicLoginBtn">📥 验证天道密证并导入数据</button>
     </form>
 
+    <!-- 2. 常规账号密码登录表单 -->
+    <form id="accountForm" style="display: none;">
+      <div class="input-group">
+        <label>修士账号</label>
+        <input type="text" id="username" placeholder="请输入账号名" autocomplete="username">
+      </div>
+
+      <div class="input-group">
+        <label>密令 (选填)</label>
+        <input type="password" id="password" placeholder="请输入密码 (免密模式可直接进入)" autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="login-btn" id="accountLoginBtn">进入游戏</button>
+    </form>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+    </div>
+
     <div class="guest-link">
-      <a href="#" id="guestLogin">游客快速登录 →</a>
+      <a href="#" id="clearStorageBtn" title="清空本地缓存以全新修士身份起步">🔄 重置本地缓存</a>
+      <a href="#" id="guestLogin">⚡ 游客直接起步 →</a>
     </div>
   </div>
 
@@ -259,52 +368,193 @@
       particlesEl.appendChild(p);
     }
 
-    // 登录逻辑
-    const form = document.getElementById('loginForm');
+    // 辅助: 字符串 Hash 与 Account ID 派生
+    function simpleHash(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        let char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return (hash >>> 0).toString(16).padStart(8, '0');
+    }
+
+    function normalizeMnemonic(raw) {
+      if (!raw || typeof raw !== 'string') return null;
+      const clean = raw.trim();
+      if (!clean) return null;
+      const parts = clean.split(/[·\s、,，\/\-\|]+/).filter(Boolean);
+      if (parts.length === 4) {
+        return parts.join(' · ');
+      }
+      return null;
+    }
+
+    function deriveAccountIdFromMnemonic(mnemonic) {
+      const clean = (normalizeMnemonic(mnemonic) || mnemonic || '').trim();
+      return `account_${simpleHash(clean)}_${simpleHash(clean.split('').reverse().join(''))}`;
+    }
+
+    function generateGuestMnemonic() {
+      const P1 = ["甲子时","乙丑时","丙寅时","丁卯时","戊辰时","己巳时","庚午时","辛未时","壬申时","癸酉时","甲戌时","乙亥时","甲辰时","丙辰时","戊辰时","庚辰时","壬辰时"];
+      const P2 = ["离火之极","坎水之渊","震雷之怒","巽风之灵","乾天之高","坤地之厚","艮山之稳","兑泽之静","紫气东来","玄阴宿海","太极混元","两仪四象"];
+      const P3 = ["剑宗逍遥","气宗缥缈","体修霸道","丹谷悬壶","阵枢千机","符塔万象","器阁百炼","御兽通灵","魔门桀骜","妖宫诡秘","佛堂普度","道门清静"];
+      const P4 = ["道法自然","万剑归宗","天地无极","乾坤借法","大道无情","因果轮回","涅槃重生","羽化登仙","万法归一","天人合一","上善若水","大音希声"];
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      return `${pick(P1)} · ${pick(P2)} · ${pick(P3)} · ${pick(P4)}`;
+    }
+
+    // DOM 元素
+    const tabMnemonic = document.getElementById('tabMnemonic');
+    const tabAccount = document.getElementById('tabAccount');
+    const mnemonicForm = document.getElementById('mnemonicForm');
+    const accountForm = document.getElementById('accountForm');
+    const mnemonicInput = document.getElementById('mnemonicInput');
+    const derivedIdText = document.getElementById('derivedIdText');
+    const btnPasteMnemonic = document.getElementById('btnPasteMnemonic');
+    const btnRandomMnemonic = document.getElementById('btnRandomMnemonic');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('loginBtn');
     const errorMsg = document.getElementById('errorMsg');
     const loading = document.getElementById('loading');
     const guestLink = document.getElementById('guestLogin');
+    const clearStorageBtn = document.getElementById('clearStorageBtn');
 
-    // 检查是否已登录
+    // 默认填充本地已存的助记词 (如有)
+    const localMnemonic = localStorage.getItem('player_mnemonic');
+    if (localMnemonic) {
+      mnemonicInput.value = localMnemonic;
+      updateDerivedId(localMnemonic);
+    } else {
+      const initMn = generateGuestMnemonic();
+      mnemonicInput.value = initMn;
+      updateDerivedId(initMn);
+    }
+
+    // 选项卡切换
+    tabMnemonic.addEventListener('click', () => {
+      tabMnemonic.classList.add('active');
+      tabAccount.classList.remove('active');
+      mnemonicForm.style.display = 'block';
+      accountForm.style.display = 'none';
+      showError('');
+    });
+
+    tabAccount.addEventListener('click', () => {
+      tabAccount.classList.add('active');
+      tabMnemonic.classList.remove('active');
+      mnemonicForm.style.display = 'none';
+      accountForm.style.display = 'block';
+      showError('');
+    });
+
+    // 实时更新派生的 Account ID
+    function updateDerivedId(val) {
+      const norm = normalizeMnemonic(val);
+      if (norm) {
+        const id = deriveAccountIdFromMnemonic(norm);
+        derivedIdText.textContent = id;
+        derivedIdText.style.color = '#00ffc8';
+      } else {
+        derivedIdText.textContent = '密证需包含四句话，暂未就绪';
+        derivedIdText.style.color = '#ef4444';
+      }
+    }
+
+    mnemonicInput.addEventListener('input', (e) => {
+      updateDerivedId(e.target.value);
+    });
+
+    // 随机生成新密证
+    btnRandomMnemonic.addEventListener('click', () => {
+      const mn = generateGuestMnemonic();
+      mnemonicInput.value = mn;
+      updateDerivedId(mn);
+      showError('');
+    });
+
+    // 粘贴剪贴板
+    btnPasteMnemonic.addEventListener('click', async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            mnemonicInput.value = text.trim();
+            updateDerivedId(text);
+            showError('');
+          }
+        } else {
+          showError('浏览器禁用了剪贴板读取，请手动在输入框粘贴 (Ctrl+V)');
+        }
+      } catch (_) {
+        showError('请手动在输入框粘贴 (Ctrl+V)');
+      }
+    });
+
+    // 清空缓存
+    clearStorageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.clear();
+      sessionStorage.clear();
+      const newMn = generateGuestMnemonic();
+      mnemonicInput.value = newMn;
+      usernameInput.value = '';
+      updateDerivedId(newMn);
+      showError('已重置本地修士缓存');
+    });
+
+    // 自动登录检测
     const savedToken = localStorage.getItem('auth_token');
     const savedAccount = localStorage.getItem('account_id');
     if (savedToken && savedAccount) {
-      // 自动登录
       enterGame(savedAccount, savedToken);
     }
 
-    form.addEventListener('submit', async (e) => {
+    // 1. 提交天道四句话密证
+    mnemonicForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const raw = mnemonicInput.value.trim();
+      const norm = normalizeMnemonic(raw);
+      if (!norm) {
+        showError('请输入完整的天道四句话密证（可用空格或点·隔开四句短语）');
+        return;
+      }
+
+      await doLogin({ mnemonic: norm });
+    });
+
+    // 2. 提交常规账号
+    accountForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = usernameInput.value.trim();
       const password = passwordInput.value;
 
       if (!username) {
-        showError('请输入账号');
+        showError('请输入修士账号');
         return;
       }
 
-      await doLogin(username, password);
+      await doLogin({ username, password });
     });
 
+    // 3. 游客登录
     guestLink.addEventListener('click', async (e) => {
       e.preventDefault();
-      const guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
-      await doLogin(guestId, '', true);
+      const guestMnemonic = generateGuestMnemonic();
+      await doLogin({ mnemonic: guestMnemonic });
     });
 
-    async function doLogin(username, password, isGuest = false) {
+    async function doLogin(payload) {
       showError('');
       loading.classList.add('show');
-      loginBtn.disabled = true;
+      const submitBtn = payload.mnemonic ? document.getElementById('mnemonicLoginBtn') : document.getElementById('accountLoginBtn');
+      if (submitBtn) submitBtn.disabled = true;
 
       try {
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json();
@@ -313,21 +563,22 @@
           localStorage.setItem('auth_token', data.token);
           localStorage.setItem('account_id', data.account_id);
           
-          // 🌟 确保每个账号都有助记词 (首次登录时生成)
-          if (!localStorage.getItem('player_mnemonic')) {
+          if (payload.mnemonic) {
+            localStorage.setItem('player_mnemonic', payload.mnemonic);
+          } else if (!localStorage.getItem('player_mnemonic')) {
             const mnemonic = generateGuestMnemonic();
             localStorage.setItem('player_mnemonic', mnemonic);
           }
           
           enterGame(data.account_id, data.token);
         } else {
-          showError(data.message || '登录失败');
+          showError(data.message || '登录导入失败，请检查密证短语');
         }
       } catch (err) {
-        showError('网络错误，请重试');
+        showError('网络通信异常，请重试');
       } finally {
         loading.classList.remove('show');
-        loginBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
       }
     }
 
@@ -336,19 +587,15 @@
     }
 
     function enterGame(accountId, token) {
-      // 存储到全局变量供游戏使用
       window.GAME_AUTH = { accountId, token };
-      // 加载游戏
       loadGame();
     }
 
     function loadGame() {
-      // 隐藏登录界面，显示游戏
       document.querySelector('.login-container').style.display = 'none';
       const particles = document.getElementById('particles') || document.querySelector('.bg-particles');
       if (particles) particles.style.display = 'none';
       
-      // 创建游戏容器
       let gameRoot = document.getElementById('game-root');
       if (!gameRoot) {
         gameRoot = document.createElement('div');
@@ -356,21 +603,10 @@
         document.body.appendChild(gameRoot);
       }
 
-      // 动态加载游戏主模块
       const script = document.createElement('script');
       script.type = 'module';
-      script.src = 'js/app.js?v=2.9.26';
+      script.src = 'js/app.js?v=2.9.28';
       document.body.appendChild(script);
-    }
-
-    // 🌟 国风助记词生成 (与 auth.js 同步)
-    function generateGuestMnemonic() {
-      const P1 = ["甲子时","乙丑时","丙寅时","丁卯时","戊辰时","己巳时","庚午时","辛未时","壬申时","癸酉时","甲戌时","乙亥时","甲辰时","丙辰时","戊辰时","庚辰时","壬辰时"];
-      const P2 = ["离火之极","坎水之渊","震雷之怒","巽风之灵","乾天之高","坤地之厚","艮山之稳","兑泽之静","紫气东来","玄阴宿海","太极混元","两仪四象"];
-      const P3 = ["剑宗逍遥","气宗缥缈","体修霸道","丹谷悬壶","阵枢千机","符塔万象","器阁百炼","御兽通灵","魔门桀骜","妖宫诡秘","佛堂普度","道门清静"];
-      const P4 = ["道法自然","万剑归宗","天地无极","乾坤借法","大道无情","因果轮回","涅槃重生","羽化登仙","万法归一","天人合一","上善若水","大音希声"];
-      const pick = (a) => a[Math.floor(Math.random() * a.length)];
-      return `${pick(P1)} · ${pick(P2)} · ${pick(P3)} · ${pick(P4)}`;
     }
   </script>
 </body>

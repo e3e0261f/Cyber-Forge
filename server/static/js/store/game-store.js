@@ -281,8 +281,8 @@ export class GameStore {
      * 中央动作分发派发器 (对标 Rust: store.dispatch(Action::BuyTradeGoods(...)))
      */
     async dispatchAction(actionKey, payload = {}) {
-        // 关键业务动作自动存入本地区块链单向哈希日志
-        const internalKeys = ['sync_pos', 'audit_movement_report', 'sync_hash_chain', 'cloud_state_snapshot', 'audit_item_drop'];
+        // 关键业务动作自动存入本地区块链单向哈希日志 (过滤高频只读/内部心跳动作)
+        const internalKeys = ['sync_pos', 'audit_movement_report', 'sync_hash_chain', 'cloud_state_snapshot', 'audit_item_drop', 'inspect_player', 'ping'];
         if (actionKey && !internalKeys.includes(actionKey)) {
             localHashChain.appendAction(actionKey, payload);
         }
@@ -302,10 +302,14 @@ export class GameStore {
     }
 
     /**
-     * 基础敲击 / 锻造动作分发
+     * 基础敲击 / 锻造动作分发 (限频聚合审计块)
      */
     async dispatchStrike() {
-        localHashChain.appendAction('strike_forge', { timestamp: Date.now() });
+        const now = Date.now();
+        if (!this._lastStrikeRecordTime || now - this._lastStrikeRecordTime >= 3000) {
+            this._lastStrikeRecordTime = now;
+            localHashChain.appendAction('strike_forge', { timestamp: now });
+        }
         const snap = await networkAdapter.invoke('strike');
         if (snap) {
             this.syncState(snap);

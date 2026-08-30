@@ -134,7 +134,8 @@ export class AuditReporter {
 
         const dist = Math.hypot(currentX - this.periodStartX, currentY - this.periodStartY);
         
-        if (dist > 5.0) {
+        // 🌟 动作限频聚合：仅在跨越较大距离 (>= 150 像素) 或位移时长超过 15 秒且有实际位移时才记录审计块
+        if (dist >= 150.0 || (durationSecs >= 15.0 && dist >= 30.0)) {
             const report = {
                 start_x: Math.round(this.periodStartX * 10) / 10,
                 start_y: Math.round(this.periodStartY * 10) / 10,

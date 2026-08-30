@@ -25,6 +25,30 @@ function randomChoice(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
+export function normalizeMnemonic(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const clean = raw.trim();
+    if (!clean) return null;
+    // 分隔符支持: ·, 空格, 制表符, 、 , ， / - | 等
+    const parts = clean.split(/[·\s、,，\/\-\|]+/).filter(Boolean);
+    if (parts.length === 4) {
+        return parts.join(' · ');
+    }
+    return null;
+}
+
+export function validateMnemonic(raw) {
+    const normalized = normalizeMnemonic(raw);
+    if (!normalized) return false;
+    const parts = normalized.split(' · ');
+    return parts.length === 4 && parts.every(p => p.length >= 2);
+}
+
+export function deriveAccountIdFromMnemonic(mnemonic) {
+    const clean = (normalizeMnemonic(mnemonic) || mnemonic || '').trim();
+    return `account_${simpleHash(clean)}_${simpleHash(clean.split('').reverse().join(''))}`;
+}
+
 export function generateMnemonic() {
     return `${randomChoice(PART1)} · ${randomChoice(PART2)} · ${randomChoice(PART3)} · ${randomChoice(PART4)}`;
 }
@@ -69,7 +93,7 @@ export class AuthManager {
     }
 
     _deriveAccountId(mnemonic) {
-        return `account_${simpleHash(mnemonic)}_${simpleHash(mnemonic.split('').reverse().join(''))}`;
+        return deriveAccountIdFromMnemonic(mnemonic);
     }
 
     getMnemonic() {
@@ -82,14 +106,24 @@ export class AuthManager {
 
     importMnemonic(newMnemonic) {
         if (!newMnemonic || typeof newMnemonic !== 'string') return false;
-        // 简单验证格式
-        const parts = newMnemonic.split(' · ');
-        if (parts.length !== 4) return false;
+        const normalized = normalizeMnemonic(newMnemonic);
+        if (!normalized || !validateMnemonic(normalized)) return false;
         
-        this.mnemonic = newMnemonic;
+        this.mnemonic = normalized;
         this.accountId = this._deriveAccountId(this.mnemonic);
+        this.loginAccountId = this.accountId;
+        this.loginToken = `token_${this.accountId}_${Date.now()}`;
+        
         storageAdapter.set(STORAGE_KEYS.MNEMONIC, this.mnemonic);
-        return true;
+        localStorage.setItem('player_mnemonic', this.mnemonic);
+        localStorage.setItem('account_id', this.accountId);
+        localStorage.setItem('auth_token', this.loginToken);
+        
+        return {
+            success: true,
+            accountId: this.accountId,
+            mnemonic: this.mnemonic,
+        };
     }
 }
 

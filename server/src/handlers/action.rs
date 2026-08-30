@@ -83,6 +83,8 @@ pub async fn api_action_handler(
         "sell_trade_good" => handle_sell_trade_good(&mut player, &body),
         "settle_merchant_ticket" => handle_settle_ticket(&mut player),
         "issue_merchant_ticket" => handle_issue_ticket(&mut player, &body),
+        "build_caravan" => handle_build_caravan(&mut player, &body, &world, now_secs),
+        "unload_caravan" => handle_unload_caravan(&mut player, &world),
         "bank_deposit" => handle_bank_deposit(&mut player, &body),
         "bank_withdraw" => handle_bank_withdraw(&mut player, &body),
         key if key.starts_with("list_item") => handle_list_item(&mut player, key, &body),
@@ -390,6 +392,76 @@ fn handle_hash_chain_sync(
                         violation_msg = format!("区块哈希签名校验失败 (Block #{})", block.height);
                         break;
                     }
+
+                    // 🌟 服务端 Rust 经济验证协程 (抽检动作合法性、状态重放与数值界限)
+                    let mut replayed_copper_delta: i64 = 0;
+                    let mut replayed_exp_delta: u64 = 0;
+
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&block.payload_json) {
+                        match block.action_type.as_str() {
+                            "gain" | "coin_change" => {
+                                if let Some(delta) = val.get("delta").or_else(|| val.get("count")).and_then(|v| v.as_i64()) {
+                                    if delta.abs() > 10_000_000 {
+                                        is_valid = false;
+                                        is_tampered = true;
+                                        violation_msg = format!("检测到异常经济数值注入 (Block #{}, delta: {})", block.height, delta);
+                                        break;
+                                    }
+                                    replayed_copper_delta += delta;
+                                }
+                            }
+                            "strike_forge" => {
+                                let tier = val.get("tier").and_then(|v| v.as_u64()).unwrap_or(1);
+                                if tier > 10 {
+                                    is_valid = false;
+                                    is_tampered = true;
+                                    violation_msg = format!("锻造品阶超限 (Block #{}, tier: {})", block.height, tier);
+                                    break;
+                                }
+                                replayed_exp_delta += 20 * tier;
+                            }
+                            "strike_mine" | "gather" => {
+                                let count = val.get("count").and_then(|v| v.as_u64()).unwrap_or(1);
+                                if count > 100 {
+                                    is_valid = false;
+                                    is_tampered = true;
+                                    violation_msg = format!("单次采集产出异常 (Block #{}, count: {})", block.height, count);
+                                    break;
+                                }
+                                replayed_copper_delta += (GameConfig::GATHER_COPPER_PER_UNIT * count) as i64;
+                            }
+                            "trade_sell" => {
+                                let price = val.get("unit_price").or_else(|| val.get("price")).and_then(|v| v.as_i64()).unwrap_or(0);
+                                let count = val.get("count").and_then(|v| v.as_i64()).unwrap_or(1);
+                                let total = price * count;
+                                if total < 0 || total > 5_000_000 {
+                                    is_valid = false;
+                                    is_tampered = true;
+                                    violation_msg = format!("单笔特产售出金额异常 (Block #{}, total: {})", block.height, total);
+                                    break;
+                                }
+                                replayed_copper_delta += total;
+                            }
+                            "trade_buy" => {
+                                let price = val.get("unit_price").or_else(|| val.get("price")).and_then(|v| v.as_i64()).unwrap_or(0);
+                                let count = val.get("count").and_then(|v| v.as_i64()).unwrap_or(1);
+                                let total = price * count;
+                                replayed_copper_delta -= total;
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    // 抽检客户端断言数值与服务端重放一致性
+                    if let Some(asserted_copper) = b.get("asserted_copper").or_else(|| b.get("client_copper")).and_then(|v| v.as_i64()) {
+                        let expected_copper = (player.copper as i64) + replayed_copper_delta;
+                        if (asserted_copper - expected_copper).abs() > 500_000 {
+                            is_valid = false;
+                            is_tampered = true;
+                            violation_msg = format!("账本重放断言失败: 服务端计算期望铜钱 {}, 客户端断言 {}, 差距过大", expected_copper, asserted_copper);
+                            break;
+                        }
+                    }
                     curr_h = block.height;
                     curr_hash = block.block_hash.clone();
                     verified_blocks.push(block);
@@ -603,6 +675,93 @@ fn handle_issue_ticket(
     Ok(None)
 }
 
+/// 判定物品是否属于跑商专属特产或商票 (受通商律法限制，严禁存入万宝金库、上架拍卖行或熔炼)
+fn is_trade_restricted_item(item: &GameItem) -> bool {
+    item.item_id.starts_with("trade_") || 
+    item.item_type == ItemType::TradeGood || 
+    item.item_id == "merchant_ticket" || 
+    item.name.contains("特产") || 
+    item.name.contains("商票")
+}
+
+/// 🌟 组建贸易车队处理 (将背包所有跑商特产移交车队货舱，瞬间清空背包重负)
+fn handle_build_caravan(
+    player: &mut PlayerState,
+    body: &Option<web::Json<serde_json::Value>>,
+    _world: &WorldState,
+    now_secs: u64,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let origin_city = player.position.zone_id.clone();
+    let target_city = body.as_ref()
+        .and_then(|b| b.get("target_city").and_then(|v| v.as_str()))
+        .unwrap_or("shanghai")
+        .to_string();
+
+    let mut trade_items: Vec<GameItem> = Vec::new();
+    let mut remaining_backpack: Vec<GameItem> = Vec::new();
+    let mut total_items = 0u32;
+    let mut total_cost = 0u64;
+
+    for item in player.backpack.drain(..) {
+        if is_trade_restricted_item(&item) && item.item_id != "merchant_ticket" && !item.name.contains("商票") {
+            total_items += item.stack_count;
+            total_cost += 200 * (item.stack_count as u64);
+            trade_items.push(item);
+        } else {
+            remaining_backpack.push(item);
+        }
+    }
+
+    player.backpack = remaining_backpack;
+    player.recalculate_weight();
+
+    if trade_items.is_empty() {
+        return Err(ApiError::BadRequest("背包中没有可供车队装载的跑商特产！请先在特产货架采购特产。".to_string()));
+    }
+
+    let fleet = CaravanFleet {
+        is_active: true,
+        origin_city,
+        target_city,
+        cargo: trade_items,
+        total_items,
+        total_cost,
+        start_time: now_secs,
+        duration_secs: 45,
+        status: "escorting".to_string(),
+    };
+
+    info!("🚚 玩家 [{}] 成功组建贸易车队: {} 件特产货物已装车 (始发: {}, 目的: {})",
+        player.account_id, total_items, fleet.origin_city, fleet.target_city);
+
+    player.caravan = Some(fleet);
+    Ok(None)
+}
+
+/// 🌟 卸货交割贸易车队货物
+fn handle_unload_caravan(
+    player: &mut PlayerState,
+    _world: &WorldState,
+) -> Result<Option<HttpResponse>, ApiError> {
+    let Some(caravan) = player.caravan.take() else {
+        return Err(ApiError::BadRequest("当前没有正在护送的贸易车队！".to_string()));
+    };
+
+    let base_cost = caravan.total_cost.max(100);
+    let revenue = (base_cost as f64 * 1.8) as u64;
+
+    if let Some(ticket) = &mut player.merchant_ticket {
+        ticket.earned_total += revenue;
+        info!("📦 玩家 [{}] 车队到达目的地卸货交割成功！回款 {} 铜钱计入商票 (累计回款: {}/{})",
+            player.account_id, revenue, ticket.earned_total, GameConfig::TICKET_SETTLE_TARGET);
+    } else {
+        player.copper += revenue;
+        info!("📦 玩家 [{}] 车队卸货结算成功，获得 {} 铜钱", player.account_id, revenue);
+    }
+
+    Ok(None)
+}
+
 /// 银行存入物品
 fn handle_bank_deposit(
     player: &mut PlayerState,
@@ -612,9 +771,6 @@ fn handle_bank_deposit(
         let backpack_idx = b.get("idx").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
         let count = b.get("count").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
 
-        // 🌟 优先按物品身份匹配: 客户端背包是定长槽位数组 (可拖拽换位),
-        //    槽位下标与服务端密集顺序不一定一致, 按名字定位杜绝存错物品;
-        //    未携带身份信息时回退下标 (兼容旧客户端)
         let target_idx = match b.get("item_name").and_then(|v| v.as_str()) {
             Some(name) => player.backpack.iter().position(|i| i.name == name),
             None => {
@@ -622,9 +778,15 @@ fn handle_bank_deposit(
             }
         };
         let Some(idx) = target_idx else {
-            // 目标不存在时静默忽略 (客户端快速点击时背包可能已变空)
             return Ok(None);
         };
+
+        let item = &player.backpack[idx];
+        // 跑商特产与商票严禁存入万宝金库/仓库
+        if is_trade_restricted_item(item) {
+            warn!("⚠️ 玩家 [{}] 尝试存入跑商物资/商票: {}", player.account_id, item.name);
+            return Err(ApiError::BadRequest("跑商特产与商票受九洲通商律法限制，严禁存入万宝金库！".to_string()));
+        }
 
         let item = &mut player.backpack[idx];
         let deposit_count = count.min(item.stack_count);
@@ -633,7 +795,6 @@ fn handle_bank_deposit(
             return Ok(None);
         }
 
-        // 查找银行中是否已有同类物品
         if let Some(bank_item) = player.bank_items.iter_mut().find(|i| i.name == item.name && i.item_id == item.item_id) {
             bank_item.stack_count += deposit_count;
         } else {
@@ -644,7 +805,6 @@ fn handle_bank_deposit(
 
         let item_name = item.name.clone();
 
-        // 从背包扣除
         item.stack_count -= deposit_count;
         if item.stack_count == 0 {
             player.backpack.remove(idx);
@@ -723,6 +883,9 @@ fn handle_list_item(
     });
 
     if let Some(idx) = target_idx {
+        if is_trade_restricted_item(&player.backpack[idx]) {
+            return Err(ApiError::BadRequest("跑商特产与商票受九洲通商律法限制，严禁上架拍卖行！".to_string()));
+        }
         let item_name = player.backpack[idx].name.clone();
         if player.backpack[idx].stack_count > 1 {
             player.backpack[idx].stack_count -= 1;
@@ -752,6 +915,9 @@ fn handle_melt_item(
     });
 
     if let Some(idx) = target_idx {
+        if is_trade_restricted_item(&player.backpack[idx]) {
+            return Err(ApiError::BadRequest("跑商特产与商票严禁熔炼！".to_string()));
+        }
         let item = &mut player.backpack[idx];
         let tier = item.tier.max(1);
         let slag_name = format!("玄铁矿渣·T{}", tier);

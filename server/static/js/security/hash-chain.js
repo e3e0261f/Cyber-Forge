@@ -15,6 +15,7 @@ import { blockchainStorage, HEAD_KEYS } from '../adapters/blockchain-storage.js'
 export const GENESIS_HASH = '0000000000000000genesis_hash';
 export const LEDGER_VERSION = 2;
 export const MAX_LEDGER_SEGMENT_BYTES = 1024 * 1024; // 第一阶段工程目标：约 1 MiB，不作为硬协议限制
+export const MAX_HOT_BLOCKS_RETENTION = 40; // 🌟 活跃热账本滑动窗口保留最大块数 (防膨胀剪枝)
 
 const utf8Encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 
@@ -310,7 +311,7 @@ export class LocalHashChain {
     }
 
     /**
-     * 标记指定高度及以前的区块为已对账
+     * 标记指定高度及以前的区块为已对账，并在满足条件时自动触发【快照折叠与剪枝】(Ledger Pruning & Snapshot Folding)
      */
     markSyncedUpTo(height, confirmedHash) {
         let matched = false;
@@ -324,7 +325,41 @@ export class LocalHashChain {
         }
         // 异步更新 IndexedDB
         blockchainStorage.markSyncedUpTo(height, confirmedHash);
+
+        // 🌟 核心优化：已对账区块超过热保留窗口时，自动剪枝折叠历史区块，杜绝账本膨胀失控
+        this.pruneAndFold(MAX_HOT_BLOCKS_RETENTION);
+
         return matched;
+    }
+
+    /**
+     * 🌟 快照折叠与剪枝机制 (State Snapshot & Ledger Pruning)
+     * 将已经成功对账的陈旧区块裁剪折叠，仅保留最近 retentionWindow 个活跃区块作为滑动窗口
+     */
+    pruneAndFold(retentionWindow = MAX_HOT_BLOCKS_RETENTION) {
+        const syncedCount = this.blocks.filter(b => b.synced).length;
+        if (syncedCount <= retentionWindow) return;
+
+        // 找到需要保留的切分点
+        const keepCount = Math.max(10, retentionWindow);
+        if (this.blocks.length <= keepCount) return;
+
+        const pruneIndex = this.blocks.length - keepCount;
+        const prunedBlocks = this.blocks.slice(0, pruneIndex).filter(b => b.synced);
+        if (prunedBlocks.length === 0) return;
+
+        const lastPruned = prunedBlocks[prunedBlocks.length - 1];
+        console.log(`🧹 [LedgerPruning] 执行快照折叠与剪枝: 折叠 ${prunedBlocks.length} 个历史区块 (截止高度 #${lastPruned.height})`);
+
+        // 保留滑动窗口
+        this.blocks = this.blocks.slice(pruneIndex);
+        
+        // 剪枝持久化
+        try {
+            blockchainStorage.saveBlocks(this.blocks);
+        } catch (e) {
+            console.warn('[LedgerPruning] 剪枝落盘警告:', e);
+        }
     }
 
     /**

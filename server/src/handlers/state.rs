@@ -121,7 +121,6 @@ pub async fn api_players_report_handler(
         let p = entry.value();
         let idle = now_secs.saturating_sub(p.last_active_at);
         let info = serde_json::json!({
-            "player_ref": cyber_forge_shared::calculate_hash(&p.account_id),
             "account": mask_account_id(&p.account_id),
             "zone": p.position.zone_id,
             "x": p.position.x,
@@ -156,59 +155,6 @@ pub async fn api_players_report_handler(
         "online": online,
         "offline": offline,
     })))
-}
-
-/// 🌟 GM 调试专用：按不可逆 player_ref 打开玩家详情。
-/// player_ref = account_id 的稳定哈希，前端无需拿到完整认证凭证。
-pub async fn api_player_detail_handler(
-    req: HttpRequest,
-    world: web::Data<Arc<WorldState>>,
-    body: web::Json<serde_json::Value>,
-) -> Result<HttpResponse, ApiError> {
-    let _gm_account = extract_account_id(&req, Some(&body.0));
-    let player_ref = body.get("player_ref").and_then(|v| v.as_str()).unwrap_or("");
-    let found = world.get_ref().players.iter().find(|e| cyber_forge_shared::calculate_hash(e.key()) == player_ref);
-    let entry = match found {
-        Some(e) => e,
-        None => return Ok(HttpResponse::NotFound().json(serde_json::json!({"error": "玩家不存在"}))),
-    };
-    let p = entry.value();
-    let ledger = world.get_ref().player_ledgers.get(&p.account_id).map(|v| v.clone()).unwrap_or_default();
-    let integrity = verify_player_ledger(&ledger);
-    let recent_start = ledger.len().saturating_sub(50);
-    let recent = ledger[recent_start..].to_vec();
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "player_ref": player_ref,
-        "account": mask_account_id(&p.account_id),
-        "position": {"x": p.position.x, "y": p.position.y, "zone_id": p.position.zone_id},
-        "level": p.level,
-        "copper": p.copper,
-        "coins": p.coins,
-        "jade": p.jade,
-        "backpack": p.backpack,
-        "bank": p.bank_items,
-        "block_height": p.block_height,
-        "block_hash": p.block_hash,
-        "ledger_count": ledger.len(),
-        "ledger_integrity": integrity,
-        "recent_ledger": recent,
-        "ledger": ledger,
-        "last_active_at": p.last_active_at,
-    })))
-}
-
-/// 服务端已接收账本的完整性检查：连续高度 + 父哈希 + Block 自身哈希。
-fn verify_player_ledger(blocks: &[ActionLogBlock]) -> bool {
-    if blocks.is_empty() { return true; }
-    for i in 0..blocks.len() {
-        let b = &blocks[i];
-        if !b.verify() { return false; }
-        if i > 0 {
-            let prev = &blocks[i - 1];
-            if b.height != prev.height + 1 || b.prev_hash != prev.block_hash { return false; }
-        }
-    }
-    true
 }
 
 /// 账号脱敏 (账号即助记词凭证): 首 4 字符 + 末 2 字符, 过短全遮 (按 char 切割避免 UTF-8 边界崩溃)

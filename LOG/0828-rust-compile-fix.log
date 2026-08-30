@@ -1,0 +1,18 @@
+# Cyber Forge — Rust 服务端编译错误修复 (0828)
+
+Date: 2026-08-28
+
+## 问题排查与分析
+编译 `cyber-forge-server` 时出现 2 处报错：
+1. `error[E0609]: no field player_ledgers on type &WorldState` at `server/src/handlers/action.rs:492:27`
+   - 原因：Phase 3 中 `handle_hash_chain_sync` 将已校验的区块追加到 `world.player_ledgers`，但 `WorldState` 结构体及 `WorldState::new()` 中遗漏了 `player_ledgers` 字段定义。
+2. `error[E0063]: missing field caravan in initializer of cyber_forge_shared::PlayerState` at `server/src/main.rs:79:32`
+   - 原因：`cyber_forge_shared::PlayerState` 新增了 `caravan: Option<CaravanFleet>` 字段，`main.rs` 中的 `get_or_create_player` 及 `shared/src/lib.rs` 中的单元测试构造函数未初始化该字段。
+
+## 修复措施
+1. `server/src/main.rs`:
+   - `WorldState` 增加 `pub player_ledgers: Arc<DashMap<String, Vec<ActionLogBlock>>>`。
+   - `WorldState::new()` 增加 `player_ledgers: Arc::new(DashMap::new())` 初始化。
+   - `get_or_create_player` 中 `PlayerState` 初始构造增加 `caravan: None`。
+2. `shared/src/lib.rs`:
+   - `test_player_state_weight_calculation` 与 `test_serde_roundtrip_player_state` 测试用例构造中补齐 `caravan: None`。

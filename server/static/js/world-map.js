@@ -15,11 +15,11 @@ import { camera } from './camera.js';
 import { triggerWarpEffect } from './world.js';
 import { WORLD_ZONES, findShortestPath, MAP_SIZE, PLAYER_SPEED } from './world/world-topology.js';
 
-export let activeTab = 'zone'; // 'zone' | 'world' | 'trade' | 'sky_city'
+export let activeTab = 'zone'; // 'zone' | 'world' | 'sky_city'
 export let selectedZoneId = 'beijing';
 
 export function setActiveTab(tab) {
-  if (['zone', 'world', 'trade', 'sky_city'].includes(tab)) {
+  if (['zone', 'world', 'sky_city'].includes(tab)) {
     activeTab = tab;
   }
 }
@@ -64,7 +64,6 @@ export function drawWorldMapModal(ctx, w, h, time) {
   const tabs = [
     { id: 'zone', label: '🧭 区域地图 [Tab/M]' },
     { id: 'world', label: '🗺️ 世界地图 [S+Tab/L]' },
-    { id: 'trade', label: '🚚 跑商路线与行情' },
     { id: 'sky_city', label: '✨ 天空之城解封' },
   ];
   const tabW = 160, tabH = 26;
@@ -118,8 +117,6 @@ export function drawWorldMapModal(ctx, w, h, time) {
     drawZoneMapView(ctx, contentX, contentY, contentW, contentH, time, curZone);
   } else if (activeTab === 'world') {
     drawWorldTopologyView(ctx, contentX, contentY, contentW, contentH, time, curZoneId);
-  } else if (activeTab === 'trade') {
-    drawTradeView(ctx, contentX, contentY, contentW, contentH, time, 'map');
   } else if (activeTab === 'sky_city') {
     drawSkyCityView(ctx, contentX, contentY, contentW, contentH, time, 'map');
   }
@@ -619,7 +616,7 @@ export function handleWorldMapClick(mouseX, mouseY) {
 
   const tabY = my + 38;
   const tabW = 160, tabH = 26;
-  const tabs = ['zone', 'world', 'trade', 'sky_city'];
+  const tabs = ['zone', 'world', 'sky_city'];
 
   tabs.forEach((tabId, i) => {
     const tx = mx + 20 + i * (tabW + 8);
@@ -687,17 +684,6 @@ export function handleWorldMapClick(mouseX, mouseY) {
       });
       return true;
     }
-  } else if (activeTab === 'trade') {
-    const listY = contentY + 126;
-    TRADE_ROUTES_CONFIG.forEach((route, idx) => {
-      const ry = listY + 14 + idx * 52;
-      const btnX = contentX + contentW - 150;
-      const btnY = ry + 8;
-      if (mouseX >= btnX && mouseX <= btnX + 110 && mouseY >= btnY && mouseY <= btnY + 28) {
-        gameStore.dispatchAction(`start_caravan:${idx}`);
-        audio.playUI();
-      }
-    });
   } else if (activeTab === 'sky_city') {
     const shrineY = contentY + 74;
     const btnX = contentX + 44;

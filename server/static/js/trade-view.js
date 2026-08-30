@@ -29,6 +29,16 @@ export const TRADE_MAIN_TABS = [
     { id: 'market', label: '🏪 特产货架', desc: '赊购本城风土特产' },
     { id: 'cargo', label: '🎒 随身货单', desc: '查看买入价与回收利润' },
     { id: 'intel', label: '📜 跑商情报', desc: '江湖风闻与供需异动' },
+    { id: 'caravan', label: '🚚 贸易车队与商路', desc: '组建车队·清空背包重负·规划商路' },
+];
+
+// 🌟 九州黄金跑商推荐商路配置
+export const TRADE_ROUTES_CONFIG = [
+    { id: 1, from: 'yunnan', to: 'beijing', goods: '十万大山千年灵木 / 极品古茶', mult: 2.0, cost: 5000, profit: 12000, desc: '特设黄金暴利古道，翻山越岭入帝京' },
+    { id: 2, from: 'hebei', to: 'zhejiang', goods: '九幽丙火玄铁 / 铸铁火炉', mult: 1.8, cost: 4000, profit: 8800, desc: '相隔一城南下临安，工坊修缮急需' },
+    { id: 3, from: 'zhejiang', to: 'shanghai', goods: '龙泉古胚 / 水淬名剑 / 丝绸', mult: 1.6, cost: 6000, profit: 11000, desc: '江南水乡直达十里洋场，通商口岸热销' },
+    { id: 4, from: 'qinghai', to: 'shanghai', goods: '西域坤灵母石 / 天晶 / 藏刀', mult: 2.2, cost: 8000, profit: 21000, desc: '丝绸之路极远长线，洋行重金争购' },
+    { id: 5, from: 'sky_city', to: 'beijing', goods: '太虚玄晶 / 星辰神铁', mult: 3.0, cost: 15000, profit: 52000, desc: '九天迷雾秘岛特产，帝京皇威极高价包销' },
 ];
 
 // 🌟 商品分类定义
@@ -192,6 +202,23 @@ for (const goods of Object.values(CITY_TRADE_GOODS_DB)) {
 // 🌟 商票货物身份前缀与商票物品 ID
 export const TRADE_ITEM_PREFIX = 'trade_';
 export const TICKET_ITEM_ID = 'merchant_ticket';
+
+/**
+ * 🌟 获取商票/跑商物品展示 Emoji 图标
+ */
+export function getTradeGlyph(item) {
+    if (!item) return '💎';
+    if (item.item_id === 'merchant_ticket' || item.id === 'merchant_ticket' || (item.name && item.name.includes('商票'))) {
+        return '📜';
+    }
+    const rawId = String(item.itemId || item.id || '');
+    const goodId = rawId.replace(/^trade_/, '');
+    if (ALL_TRADE_GOODS[goodId]) {
+        return ALL_TRADE_GOODS[goodId].icon || '📦';
+    }
+    if (item.name && item.name.includes('特产')) return '🚚';
+    return item.glyph || '📦';
+}
 
 /**
  * 🌟 江湖风闻与跑商情报数据库 (动态事件与供需暴涨模型)
@@ -435,18 +462,6 @@ export function getTradeSellPrice(good, cityId, now = Date.now()) {
     return Math.max(1, Math.round(res.price * TICKET_SELL_RATIO));
 }
 
-/** 货物图标与渲染字形 */
-export function getTradeGlyph(item) {
-    if (!item) return null;
-    const iid = item.item_id || item.itemId || item.id || '';
-    if (iid === TICKET_ITEM_ID) return '📜';
-    if (typeof iid === 'string' && iid.startsWith(TRADE_ITEM_PREFIX)) {
-        const g = ALL_TRADE_GOODS[iid.slice(TRADE_ITEM_PREFIX.length)];
-        return g ? g.icon : '📦';
-    }
-    return null;
-}
-
 /** 收集背包中所有的商票特产货物 (精准读取当初买入价与进货地) */
 export function collectBackpackCargo() {
     const list = [];
@@ -478,13 +493,18 @@ export function collectBackpackCargo() {
     return list;
 }
 
-// 内部 UI 状态 (主标签页、分类筛选、翻页)
-let activeMainTab = 'market'; // 'market' | 'cargo' | 'intel'
+// 内部 UI 状态 (主标签页、分类筛选、翻页、车队目的地)
+let activeMainTab = 'market'; // 'market' | 'cargo' | 'intel' | 'caravan'
 let activeCategory = 'all';
 let buyPageIndex = 0;
 let sellPageIndex = 0;
 let intelScrollY = 0;
+export let selectedCaravanDest = 'beijing';
 const ITEMS_PER_PAGE = 5;
+
+export function setSelectedCaravanDest(cityId) {
+    selectedCaravanDest = cityId;
+}
 
 /** 30 分钟轮换上架算法: 从当前城市的货物池中随机挑选并标注售罄状态 */
 export function getCityStationStock(cityId, now = Date.now()) {
@@ -657,6 +677,9 @@ export function drawTradeModal(ctx, w, h, time) {
     } else if (activeMainTab === 'cargo') {
         // 🌟【随身货单】(买入价与回收利润详情)
         drawCargoDetailPanel(ctx, mx, my, mw, mh, mainTabY + mainTabH + 8, now, currentCity);
+    } else if (activeMainTab === 'caravan') {
+        // 🌟【贸易车队与商路】(一键装车·清空背包重负·规划商路)
+        drawCaravanPanel(ctx, mx, my, mw, mh, mainTabY + mainTabH + 8, now, currentCity);
     } else {
         // 🌟【特产货架】(双列布局: 本城在售 + 右侧快速出售)
         drawMarketPanel(ctx, mx, my, mw, mh, mainTabY + mainTabH + 8, now, currentCity, freeCredit);
@@ -990,6 +1013,203 @@ function drawIntelPanel(ctx, mx, my, mw, mh, startY, now, timerStr) {
     });
 }
 
+/** 🌟 绘制【贸易车队与商路】综合面板 */
+function drawCaravanPanel(ctx, mx, my, mw, mh, startY, now, currentCity) {
+    const panelW = mw - 32;
+    const player = gameState.player || {};
+    const caravan = player.caravan || gameState.caravan || null;
+    const cargo = collectBackpackCargo();
+    const totalCargoPieces = cargo.reduce((acc, c) => acc + c.count, 0);
+    const totalCargoCost = cargo.reduce((acc, c) => acc + (c.buyPrice || 0) * c.count, 0);
+
+    // 1. 上半部分：组建贸易车队（清空背包重负）
+    const fleetBoxY = startY;
+    const fleetBoxH = 155;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = caravan ? '#10b981' : '#f59e0b';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(mx + 16, fleetBoxY, panelW, fleetBoxH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    if (caravan) {
+        // 车队处于护送中状态
+        const originName = getCityName(caravan.origin_city);
+        const targetName = getCityName(caravan.target_city);
+        const cargoCount = (caravan.cargo_items || []).reduce((sum, item) => sum + Number(item.stack_count || item.stackCount || 1), 0);
+        const totalCost = Number(caravan.total_cost || 0);
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(`🚚【贸易车队护送中】 始发站: ${originName} ➔ 目的地: ${targetName}`, mx + 28, fleetBoxY + 16);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`• 车队货舱载物: ${cargoCount} 件特产货物 ｜ 货物总成本: ${totalCost.toLocaleString()} 铜钱`, mx + 28, fleetBoxY + 42);
+        ctx.fillText(`• 状态: 车队已代管所有特产负重，玩家已完全减负轻装。请跟随车队前往【${targetName}】驿站交割！`, mx + 28, fleetBoxY + 64);
+
+        const isAtDest = currentCity === caravan.target_city;
+        ctx.fillStyle = isAtDest ? '#00ffc8' : '#f59e0b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(isAtDest ? `✅ 当前已抵达目的城市【${targetName}】，可立即卸货结算！` : `⏳ 正在前往【${targetName}】途中 (当前所在: ${getCityName(currentCity)})`, mx + 28, fleetBoxY + 90);
+
+        // 卸货交割按钮
+        const unloadBtnX = mx + 28;
+        const unloadBtnY = fleetBoxY + 112;
+        const unloadBtnW = 260;
+        const unloadBtnH = 32;
+
+        ctx.fillStyle = isAtDest ? 'rgba(0, 255, 200, 0.25)' : 'rgba(51, 65, 85, 0.4)';
+        ctx.strokeStyle = isAtDest ? '#00ffc8' : '#475569';
+        ctx.beginPath();
+        ctx.roundRect(unloadBtnX, unloadBtnY, unloadBtnW, unloadBtnH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isAtDest ? '#00ffc8' : '#94a3b8';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(isAtDest ? '📦 抵达目的地 · 卸货结算回款' : `📦 需抵达【${targetName}】方可卸货`, unloadBtnX + unloadBtnW / 2, unloadBtnY + 8);
+        ctx.textAlign = 'left';
+    } else {
+        // 未组建车队状态
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('🚚 组建贸易护送车队（一键装车·清空背包全部特产重负）', mx + 28, fleetBoxY + 14);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('买完特产后背包沉重走不动？一键组建车队将所有特产移交车队货舱，玩家负重清零，轻装跟随护送！', mx + 28, fleetBoxY + 36);
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`🎒 背包待装车特产: `, mx + 28, fleetBoxY + 58);
+        ctx.fillStyle = totalCargoPieces > 0 ? '#34d399' : '#94a3b8';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`${totalCargoPieces} 件 (成本: ${totalCargoCost.toLocaleString()} 铜)`, mx + 140, fleetBoxY + 58);
+
+        // 目的城市选择单选按钮
+        const targetCities = [
+            { id: 'beijing', name: '北京' },
+            { id: 'hebei', name: '河北' },
+            { id: 'shanghai', name: '上海' },
+            { id: 'yunnan', name: '云南' },
+            { id: 'qinghai', name: '青海' },
+            { id: 'zhejiang', name: '浙江' },
+        ];
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('🎯 押运目的地:', mx + 28, fleetBoxY + 82);
+
+        const destBtnW = 54, destBtnH = 22;
+        targetCities.forEach((city, i) => {
+            const bx = mx + 115 + i * (destBtnW + 6);
+            const by = fleetBoxY + 77;
+            const isSel = selectedCaravanDest === city.id;
+            const isSelf = currentCity === city.id;
+
+            ctx.fillStyle = isSel ? 'rgba(245, 158, 11, 0.35)' : isSelf ? 'rgba(51, 65, 85, 0.3)' : 'rgba(30, 41, 59, 0.6)';
+            ctx.strokeStyle = isSel ? '#f59e0b' : isSelf ? '#475569' : '#334155';
+            ctx.lineWidth = isSel ? 1.5 : 1;
+            ctx.beginPath();
+            ctx.roundRect(bx, by, destBtnW, destBtnH, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = isSel ? '#fbbf24' : isSelf ? '#64748b' : '#cbd5e1';
+            ctx.font = isSel ? 'bold 11px sans-serif' : '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(city.name, bx + destBtnW / 2, by + 5);
+            ctx.textAlign = 'left';
+        });
+
+        // 组建车队按钮
+        const canBuild = totalCargoPieces > 0 && selectedCaravanDest !== currentCity;
+        const buildBtnX = mx + 28;
+        const buildBtnY = fleetBoxY + 112;
+        const buildBtnW = 280;
+        const buildBtnH = 32;
+
+        ctx.fillStyle = canBuild ? 'rgba(245, 158, 11, 0.25)' : 'rgba(51, 65, 85, 0.4)';
+        ctx.strokeStyle = canBuild ? '#f59e0b' : '#475569';
+        ctx.lineWidth = canBuild ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.roundRect(buildBtnX, buildBtnY, buildBtnW, buildBtnH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = canBuild ? '#fbbf24' : '#64748b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+            totalCargoPieces === 0 
+                ? '🚚 背包无特产货物 (请先在货架赊购)' 
+                : selectedCaravanDest === currentCity 
+                    ? '⚠️ 目的城市不能与始发地相同' 
+                    : `🚚 组建车队并装车 (前往${getCityName(selectedCaravanDest)})`, 
+            buildBtnX + buildBtnW / 2, 
+            buildBtnY + 8
+        );
+        ctx.textAlign = 'left';
+    }
+
+    // 2. 下半部分：九州黄金跑商路线与行情规划榜
+    const routeListY = fleetBoxY + fleetBoxH + 12;
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('🗺️ 九州黄金跑商路线与官方推荐行情榜（高收益长途商路）', mx + 16, routeListY);
+
+    const routesY = routeListY + 20;
+    TRADE_ROUTES_CONFIG.forEach((r, idx) => {
+        const ry = routesY + idx * 56;
+        const fromCity = getCityName(r.from);
+        const toCity = getCityName(r.to);
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(mx + 16, ry, panelW, 50, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // 路线标题
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`【${fromCity} ➔ ${toCity}】`, mx + 28, ry + 8);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '11px sans-serif';
+        ctx.fillText(`主营物资: ${r.goods} ｜ 溢价倍率: ${r.mult.toFixed(1)}x`, mx + 160, ry + 8);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`说明: ${r.desc} ｜ 参考收益: +${r.profit} 铜钱`, mx + 28, ry + 28);
+
+        // 设为目标商路按钮
+        const selRouteBtnX = mx + panelW - 130;
+        const selRouteBtnY = ry + 10;
+        const selRouteBtnW = 110;
+        const selRouteBtnH = 28;
+
+        const isDest = selectedCaravanDest === r.to;
+        ctx.fillStyle = isDest ? 'rgba(0, 255, 200, 0.2)' : 'rgba(30, 41, 59, 0.6)';
+        ctx.strokeStyle = isDest ? '#00ffc8' : '#475569';
+        ctx.beginPath();
+        ctx.roundRect(selRouteBtnX, selRouteBtnY, selRouteBtnW, selRouteBtnH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isDest ? '#00ffc8' : '#cbd5e1';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(isDest ? '✓ 已选定该目的地' : '🎯 设为押运目标', selRouteBtnX + selRouteBtnW / 2, selRouteBtnY + 7);
+        ctx.textAlign = 'left';
+    });
+}
+
 /** 处理商票驿站点击事件 */
 export function handleTradeClick(clickX, clickY, bounds) {
     const { mx, my, mw, mh } = bounds;
@@ -1149,6 +1369,96 @@ export function handleTradeClick(clickX, clickY, bounds) {
                 return true;
             }
             sy += 48;
+        }
+    }
+
+    if (activeMainTab === 'caravan') {
+        const player = gameState.player || {};
+        const caravan = player.caravan || gameState.caravan || null;
+        const cargo = collectBackpackCargo();
+        const totalCargoPieces = cargo.reduce((acc, c) => acc + c.count, 0);
+        const panelW = mw - 32;
+        const fleetBoxY = startY;
+        const fleetBoxH = 155;
+
+        if (caravan) {
+            // 卸货结算按钮点击
+            const isAtDest = currentCity === caravan.target_city;
+            const unloadBtnX = mx + 28;
+            const unloadBtnY = fleetBoxY + 112;
+            const unloadBtnW = 260;
+            const unloadBtnH = 32;
+
+            if (clickX >= unloadBtnX && clickX <= unloadBtnX + unloadBtnW && clickY >= unloadBtnY && clickY <= unloadBtnY + unloadBtnH) {
+                if (isAtDest) {
+                    gameStore.dispatchAction('unload_caravan', {});
+                    gameStore.setToast('📦 贸易车队卸货交割成功！已结算丰厚收益并返还额度！', '#10b981');
+                } else {
+                    gameStore.setToast(`⚠️ 需抵达目的城市【${getCityName(caravan.target_city)}】方可卸货结算！`, '#f59e0b');
+                }
+                return true;
+            }
+        } else {
+            // 目的城市选择单选按钮点击
+            const targetCities = [
+                { id: 'beijing', name: '北京' },
+                { id: 'hebei', name: '河北' },
+                { id: 'shanghai', name: '上海' },
+                { id: 'yunnan', name: '云南' },
+                { id: 'qinghai', name: '青海' },
+                { id: 'zhejiang', name: '浙江' },
+            ];
+
+            const destBtnW = 54, destBtnH = 22;
+            for (let i = 0; i < targetCities.length; i++) {
+                const city = targetCities[i];
+                const bx = mx + 115 + i * (destBtnW + 6);
+                const by = fleetBoxY + 77;
+                if (clickX >= bx && clickX <= bx + destBtnW && clickY >= by && clickY <= by + destBtnH) {
+                    if (city.id === currentCity) {
+                        gameStore.setToast('⚠️ 押运目的城市不能是当前始发地！', '#f59e0b');
+                    } else {
+                        selectedCaravanDest = city.id;
+                    }
+                    return true;
+                }
+            }
+
+            // 组建车队按钮点击
+            const buildBtnX = mx + 28;
+            const buildBtnY = fleetBoxY + 112;
+            const buildBtnW = 280;
+            const buildBtnH = 32;
+
+            if (clickX >= buildBtnX && clickX <= buildBtnX + buildBtnW && clickY >= buildBtnY && clickY <= buildBtnY + buildBtnH) {
+                if (totalCargoPieces === 0) {
+                    gameStore.setToast('⚠️ 背包中没有跑商特产货物，请先在货架赊购后再组建车队！', '#f59e0b');
+                } else if (selectedCaravanDest === currentCity) {
+                    gameStore.setToast('⚠️ 押运目的城市不能是当前始发地！', '#ef4444');
+                } else {
+                    gameStore.dispatchAction('build_caravan', { target_city: selectedCaravanDest });
+                    gameStore.setToast(`🚚 贸易车队组建成功！背包已减负，护送前往【${getCityName(selectedCaravanDest)}】！`, '#10b981');
+                }
+                return true;
+            }
+        }
+
+        // 下方黄金商路设置目标商路按钮点击
+        const routeListY = fleetBoxY + fleetBoxH + 12;
+        const routesY = routeListY + 20;
+        for (let idx = 0; idx < TRADE_ROUTES_CONFIG.length; idx++) {
+            const r = TRADE_ROUTES_CONFIG[idx];
+            const ry = routesY + idx * 56;
+            const selRouteBtnX = mx + panelW - 130;
+            const selRouteBtnY = ry + 10;
+            const selRouteBtnW = 110;
+            const selRouteBtnH = 28;
+
+            if (clickX >= selRouteBtnX && clickX <= selRouteBtnX + selRouteBtnW && clickY >= selRouteBtnY && clickY <= selRouteBtnY + selRouteBtnH) {
+                selectedCaravanDest = r.to;
+                gameStore.setToast(`🎯 已选定推荐商路目的地: 【${getCityName(r.to)}】`, '#00ffc8');
+                return true;
+            }
         }
     }
 
